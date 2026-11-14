@@ -217,3 +217,10 @@ Next proposed build: **Moon Rescue: Return Window**, a separate spacecraft map u
 The initial ship playthrough passed circuits, alignment, emergency isolation, filtering, heating and safe return. The subsequent minigame redesign also passed its full native runtime check. Classroom-sized multiplayer and learner observation remain open.
 
 Final ship verification: Java 25 `build runClientGameTest` passed the complete Mars regression and Return Window rescue, including the revised cartridge, momentum, constellation, signal, adapter and burn tasks. All station approaches were checked for actual visibility/collision clearance; native captures were inspected. Teacher relay tests pass 14/14, and the built-in browser checked selection/start/pause/acknowledgement/resume against an isolated fixture. Single-client verification does not establish classroom-sized multiplayer or learning effectiveness. Latest source remains `1794683726306.schem`; no newer remote map was present at the final check.
+
+## Hull-panel seam repair
+
+- [x] Seal all four panel corner strips and restrict face culling to actual block boundaries.
+- [x] Inspect the ship corridor in Minecraft and pass the build/full client playthrough.
+
+The rendering fix applies to existing hull blocks after resource reload; no map regeneration is required.

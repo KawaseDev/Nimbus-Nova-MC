@@ -48,6 +48,12 @@ final class ShipMissionChecks {
                 if (!level.getBlockState(marker.position()).is(ShipMap.block(marker.task())))
                     throw new AssertionError("A schematic task marker was not replaced: " + marker);
         });
+        world.getServer().runCommand("execute in nimbus_nova:return_window run tp @p 0.5 76 -17.5 180 -8");
+        context.waitTicks(10);
+        world.getConnection().waitForChunksRender();
+        context.runOnClient(client -> client.gui.hud.toggle());
+        GuidedMissionChecks.capture(context, "ship-sealed-panel-seams");
+        context.runOnClient(client -> client.gui.hud.toggle());
         final EnumSet<ShipTask> inspected = EnumSet.noneOf(ShipTask.class);
         for (final ShipMap.Marker marker : ShipMap.MARKERS) {
             if (inspected.add(marker.task()))
