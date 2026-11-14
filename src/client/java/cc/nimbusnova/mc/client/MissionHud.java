@@ -1,6 +1,10 @@
 package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.client.render.NovaRenderer;
+import cc.nimbusnova.mc.client.airlock.EntranceAirlockClient;
+import cc.nimbusnova.mc.world.EntranceAirlock;
+import cc.nimbusnova.mc.client.suit.SuitLifeSupportClient;
+import cc.nimbusnova.mc.suit.SuitAirPayload;
 import cc.nimbusnova.mc.mission.MissionProgressPayload;
 import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
 import cc.nimbusnova.mc.mission.MissionState;
@@ -23,31 +27,43 @@ final class MissionHud implements MissionPalette {
         final MissionState.Snapshot state = packet.state();
         final MissionProgressPayload objective = GuidedMissionClient.progress();
         final int width = Math.min(320, graphics.guiWidth() - 16), left = 8, top = 8;
-        MissionUi.panel(graphics, left, top, width, 32);
+        final SuitAirPayload suit = ObjectiveGuidance.onMars() ? SuitLifeSupportClient.state() : null;
+        final int objectiveTop = top + (suit == null ? 36 : 50);
+        MissionUi.panel(graphics, left, top, width, suit == null ? 32 : 46);
         NovaRenderer.text(graphics, packet.role().label, left + 10, top + 5, 10, ACCENT);
         final String status = state.phase() == MissionState.Phase.READY ? "PREPARE / no timer"
                 : state.phase() == MissionState.Phase.PAUSED ? "PAUSED"
                 : state.phase().ended() ? state.phase().name() : MissionUi.time(MissionState.DURATION_SECONDS - state.elapsedSeconds()) + " remaining";
         MissionUi.rightText(graphics, status, left + width - 10, top + 8, state.phase() == MissionState.Phase.FAILED ? DANGER : TEXT);
         NovaRenderer.text(graphics, "Power " + Math.round(state.battery()) + "%", left + 10, top + 20, 8.5F, state.battery() <= 25 ? DANGER : MUTED);
-        NovaRenderer.text(graphics, "Air " + Math.round(state.oxygen()) + "%", left + width / 3F, top + 20, 8.5F, state.oxygen() <= 25 ? DANGER : MUTED);
+        NovaRenderer.text(graphics, "Base air " + Math.round(state.oxygen()) + "%", left + width / 3F, top + 20, 8.5F, state.oxygen() <= 25 ? DANGER : MUTED);
         NovaRenderer.text(graphics, "Science " + Math.min(state.researchSeconds(), MissionState.RESEARCH_TARGET_SECONDS) + "/90s",
                 left + width * 2 / 3F, top + 20, 8.5F, MUTED);
 
+        if (suit != null) {
+            final String location = suit.frozen() ? "Paused" : suit.pressurized() ? "Habitat air / refilling"
+                    : !suit.helmet() ? "Outside / HELMET MISSING" : !suit.sealedSuit() ? "Outside / SUIT INCOMPLETE" : "Outside / suit sealed";
+            NovaRenderer.text(graphics, "Suit air " + (int) Math.ceil(suit.air()) + "% / " + location, left + 10, top + 34, 8.5F,
+                    suit.air() <= 25 || !suit.pressurized() && !suit.sealedSuit() ? DANGER : MUTED);
+        }
+
+        if (EntranceAirlockClient.scan() != null && EntranceAirlockClient.scan().visible()
+                && EntranceAirlockClient.scan().stage() > 0 && EntranceAirlock.isChamber(client.player.blockPosition())) return;
+
         if (state.phase().ended()) {
-            drawObjective(graphics, left, top + 36, width, state.objective(),
+            drawObjective(graphics, left, objectiveTop, width, state.objective(),
                     "Open your mission tablet to review the crew's decisions.", "J  Read mission report", null, SUCCESS, "REPORT");
             return;
         }
 
         if (state.phase() == MissionState.Phase.PAUSED) {
-            drawObjective(graphics, left, top + 36, width, "Discuss your next move",
+            drawObjective(graphics, left, objectiveTop, width, "Discuss your next move",
                     "Mission Control paused the clock and reserves. Talk with your crew.", "Wait for Mission Control to resume", null, ACCENT, "PAUSED");
             return;
         }
 
         if (!ObjectiveGuidance.onMars()) {
-            drawObjective(graphics, left, top + 36, width, "Enter Aster Outpost",
+            drawObjective(graphics, left, objectiveTop, width, "Enter Aster Outpost",
                     "Open the mission tablet and choose Enter outpost. Your crew is preparing on Mars.",
                     NimbusNovaClient.consoleKey.getTranslatedKeyMessage().getString() + "  Open mission tablet", null, ACCENT, "START HERE");
             return;
@@ -57,7 +73,7 @@ final class MissionHud implements MissionPalette {
                 && (MissionState.solarWarning(state.elapsedSeconds()) || MissionState.solarStorm(state.elapsedSeconds()));
         final Color accent = objective != null && objective.stage().equals("SHELTER_SAFE") ? SUCCESS
                 : solar || state.battery() <= 20 || state.oxygen() <= 20 ? DANGER : ACCENT;
-        drawObjective(graphics, left, top + 36, width,
+        drawObjective(graphics, left, objectiveTop, width,
                 objective == null ? "Meet Commander Vega" : objective.title(),
                 objective == null || objective.stage().equals("BRIEFING")
                         ? "WASD: walk. Mouse: look. Follow the arrow to Commander Vega, then right-click him."

@@ -1,6 +1,8 @@
 package cc.nimbusnova.mc.client.guidance;
 
 import cc.nimbusnova.mc.client.GuidedMissionClient;
+import cc.nimbusnova.mc.client.airlock.EntranceAirlockClient;
+import cc.nimbusnova.mc.world.EntranceAirlock;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.mission.MissionProgressPayload;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
@@ -82,7 +84,9 @@ public final class HologramGuidance {
 
     private static boolean unavailable(final Minecraft client) {
         return client.level == null || client.player == null || client.gui.screen() != null || client.gui.hud.isHidden()
-                || !client.level.dimension().equals(MarsTrainingMap.DIMENSION);
+                || !client.level.dimension().equals(MarsTrainingMap.DIMENSION)
+                || EntranceAirlockClient.scan() != null && EntranceAirlockClient.scan().stage() > 0
+                && EntranceAirlock.isChamber(client.player.blockPosition());
     }
 
     private static boolean hasWorldTarget(final MissionProgressPayload objective) {
@@ -155,7 +159,7 @@ public final class HologramGuidance {
         final float height = active ? 34 : 22;
         final float left = Math.clamp(screen.x - width / 2, 12, graphics.guiWidth() - width - 12);
         float top = screen.y - height - ring - 5;
-        if (top < 118) top = screen.y + ring + 5;
+        if (top < 132) top = screen.y + ring + 5;
         if (top < 118 || top + height > graphics.guiHeight() - 48) return;
 
         final LabelBounds bounds = new LabelBounds(left, top, width, height);

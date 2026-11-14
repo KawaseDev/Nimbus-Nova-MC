@@ -18,6 +18,7 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
 import org.jspecify.annotations.NullMarked;
 
@@ -25,10 +26,15 @@ import org.jspecify.annotations.NullMarked;
 public final class RoverRenderer extends EntityRenderer<MarsRover, RoverRenderer.RoverState> {
     private static final Identifier TEXTURE = Identifier.parse("nimbus_nova:textures/entity/rover.png");
     private final RoverModel model;
+    private final ModelPart windscreen;
 
     public RoverRenderer(final EntityRendererProvider.Context context) {
         super(context);
         model = new RoverModel(createModel());
+        final MeshDefinition glassMesh = new MeshDefinition();
+        glassMesh.getRoot().addOrReplaceChild("windscreen", CubeListBuilder.create().texOffs(0, 70)
+                .addBox(-9, -30, -5, 18, 13, 1), PartPose.ZERO);
+        windscreen = LayerDefinition.create(glassMesh, 128, 128).bakeRoot();
         shadowRadius = 1.25F;
     }
 
@@ -57,6 +63,9 @@ public final class RoverRenderer extends EntityRenderer<MarsRover, RoverRenderer
         poses.scale(1, -1, -1);
         collector.submitModel(model, state, poses, model.renderType(TEXTURE), state.lightCoords,
                 OverlayTexture.NO_OVERLAY, state.outlineColor);
+        // The cockpit texture is opaque artwork, so glass needs a translucent pass rather than the chassis cutout pass.
+        collector.submitModelPart(windscreen, poses, RenderTypes.entityTranslucent(TEXTURE), state.lightCoords,
+                OverlayTexture.NO_OVERLAY, null, 0x20FFFFFF, state.outlineColor);
         poses.popPose();
         super.submit(state, poses, collector, camera);
     }
@@ -79,8 +88,9 @@ public final class RoverRenderer extends EntityRenderer<MarsRover, RoverRenderer
                         .addBox(-11, -33, 15, 2, 21, 2)
                         .addBox(9, -33, 15, 2, 21, 2), PartPose.ZERO);
 
-        root.addOrReplaceChild("windscreen", CubeListBuilder.create().texOffs(0, 70)
-                        .addBox(-9, -30, -5, 18, 13, 1), PartPose.ZERO);
+        root.addOrReplaceChild("window_frame", CubeListBuilder.create().texOffs(48, 64)
+                        .addBox(-9, -31, -5.1F, 18, 1, 1.2F)
+                        .addBox(-9, -17, -5.1F, 18, 1, 1.2F), PartPose.ZERO);
 
         root.addOrReplaceChild("seat", CubeListBuilder.create().texOffs(48, 66)
                         .addBox(-6, -14, 0, 12, 2, 10)

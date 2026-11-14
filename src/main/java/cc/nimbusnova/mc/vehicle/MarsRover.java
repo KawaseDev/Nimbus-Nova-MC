@@ -100,7 +100,7 @@ public final class MarsRover extends VehicleEntity {
         }
 
         if (!player.startRiding(this)) return InteractionResult.FAIL;
-        player.sendSystemMessage(Component.literal("Aster Rover: movement keys steer and drive, jump brakes, sneak exits. No fuel simulation yet."));
+        player.sendSystemMessage(Component.literal("Aster Rover: movement keys steer and drive, jump brakes, sneak exits."));
         return InteractionResult.SUCCESS_SERVER;
     }
 

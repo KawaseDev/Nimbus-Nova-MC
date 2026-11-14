@@ -7,6 +7,7 @@ import cc.nimbusnova.mc.mission.MissionTaskOpenPayload;
 import cc.nimbusnova.mc.npc.MissionAstronaut;
 import cc.nimbusnova.mc.npc.MissionNpcs;
 import cc.nimbusnova.mc.content.OutpostContent;
+import cc.nimbusnova.mc.content.ScifiBlocks;
 import cc.nimbusnova.mc.client.npc.NpcDialogueScreen;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -75,12 +76,21 @@ final class GuidedMissionChecks {
                 throw new AssertionError("Outpost upgrade replaced an unknown player block");
             level.setBlock(sample, OutpostContent.SAMPLE_DEPOSIT.defaultBlockState(), Block.UPDATE_CLIENTS);
         });
+        world.getServer().runOnServer(server -> {
+            final var level = world.getConnection().getServerLevel();
+            level.setBlock(new BlockPos(-8, 66, 4), Blocks.SMOOTH_QUARTZ.defaultBlockState(), Block.UPDATE_CLIENTS);
+            level.setBlock(new BlockPos(-7, 66, 4), Blocks.GOLD_BLOCK.defaultBlockState(), Block.UPDATE_CLIENTS);
+            level.setBlock(new BlockPos(0, 66, -13), Blocks.STONE_PRESSURE_PLATE.defaultBlockState(), Block.UPDATE_CLIENTS);
+        });
         world.getServer().runCommand("mars upgrade");
         world.getServer().runCommand("mars upgrade");
         world.getServer().runOnServer(server -> {
             final var level = world.getConnection().getServerLevel();
             if (!level.getBlockState(playerBuild).is(Blocks.GOLD_BLOCK))
                 throw new AssertionError("Outpost upgrade changed an unrelated build");
+            if (!level.getBlockState(new BlockPos(-8, 66, 4)).is(ScifiBlocks.HULL_PANEL)
+                    || !level.getBlockState(new BlockPos(-7, 66, 4)).is(Blocks.GOLD_BLOCK))
+                throw new AssertionError("Legacy counter retrofit changed an unknown block or missed the old quartz");
             final BlockPos door = new BlockPos(0, 66, -12);
             if (!(level.getBlockState(door).getBlock() instanceof DoorBlock)
                     || level.getBlockState(door).getValue(DoorBlock.HALF) != DoubleBlockHalf.LOWER
@@ -93,7 +103,8 @@ final class GuidedMissionChecks {
         world.getServer().runOnServer(server -> {
             final var level = world.getConnection().getServerLevel();
             for (int x = -1; x <= 0; x++) {
-                if (!level.getBlockState(new BlockPos(x, 66, -12)).getCollisionShape(level, new BlockPos(x, 66, -12)).isEmpty())
+                if (level.getBlockState(new BlockPos(x, 66, -12)).getCollisionShape(level, new BlockPos(x, 66, -12))
+                        .toAabbs().stream().anyMatch(box -> box.contains(0.5, 0.5, 0.5)))
                     throw new AssertionError("An inactive laser field blocked the doorway");
                 for (final int z : new int[] { -13, -11 }) {
                     if (level.getBlockState(new BlockPos(x, 66, z)).is(Blocks.STONE_PRESSURE_PLATE))
@@ -104,7 +115,9 @@ final class GuidedMissionChecks {
         world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 0.5 66 -17 0 0");
         context.waitFor(client -> client.level != null && !client.level.getBlockState(new BlockPos(0, 66, -12)).getValue(DoorBlock.OPEN));
         context.waitTicks(5);
+        context.runOnClient(client -> client.gui.hud.toggle());
         capture(context, "laser-door-closed");
+        context.runOnClient(client -> client.gui.hud.toggle());
     }
 
     static void repair(final ClientGameTestContext context, final TestSingleplayerContext world, final boolean power, final boolean tryWrongAction) {

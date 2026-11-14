@@ -8,6 +8,8 @@ import cc.nimbusnova.mc.client.vehicle.RoverRenderer;
 import cc.nimbusnova.mc.client.npc.MissionNpcClient;
 import cc.nimbusnova.mc.client.effect.DustStormEffects;
 import cc.nimbusnova.mc.client.guidance.HologramGuidance;
+import cc.nimbusnova.mc.client.airlock.EntranceAirlockClient;
+import cc.nimbusnova.mc.client.suit.SuitLifeSupportClient;
 import cc.nimbusnova.mc.client.lesson.ScienceStationClient;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
@@ -40,6 +42,8 @@ public final class NimbusNovaClient implements ClientModInitializer {
         NovaRenderer.initialize();
         GuidedMissionClient.register();
         HologramGuidance.register();
+        EntranceAirlockClient.register();
+        SuitLifeSupportClient.register();
         ScienceStationClient.register();
         RoverRenderer.register();
         MissionNpcClient.register();
