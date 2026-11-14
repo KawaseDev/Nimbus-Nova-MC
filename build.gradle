@@ -137,3 +137,19 @@ jar {
     }
     from('CREDITS.md')
 }
+
+tasks.register('scifiAssetTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.content.scifi.ScifiAssetTest'
+    enableAssertions = true
+}
+
+tasks.register('domeGeometryTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.world.DomeGeometryTest'
+    enableAssertions = true
+}
+
+check.dependsOn scifiAssetTest, domeGeometryTest

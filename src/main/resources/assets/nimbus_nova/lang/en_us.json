@@ -23,5 +23,19 @@
   "block.nimbus_nova.sample_analyzer": "Sample analyzer",
   "block.nimbus_nova.outpost_supply_locker": "Crew supply locker",
   "block.nimbus_nova.outpost_weather_terminal": "Weather terminal",
-  "block.nimbus_nova.outpost_hologram_projector": "Mission hologram projector"
+  "block.nimbus_nova.outpost_hologram_projector": "Mission hologram projector",
+  "block.nimbus_nova.scifi_dome_glass": "Habitat Dome Glass",
+  "block.nimbus_nova.scifi_hull_panel": "Habitat Hull Panel",
+  "block.nimbus_nova.scifi_reinforced_hull": "Reinforced Shelter Hull",
+  "block.nimbus_nova.scifi_floor_tile": "Outpost Floor Tile",
+  "block.nimbus_nova.scifi_floor_light": "Animated Floor Beacon",
+  "block.nimbus_nova.scifi_strip_light": "Service Strip Light",
+  "block.nimbus_nova.scifi_support_beam": "Dome Support Rib",
+  "block.nimbus_nova.scifi_cable_trunk": "Power Cable Trunk",
+  "block.nimbus_nova.scifi_vent": "Vent Grille (model)",
+  "block.nimbus_nova.scifi_battery_bank": "Battery Rack (model)",
+  "block.nimbus_nova.scifi_air_tank": "Air Cylinder (model)",
+  "block.nimbus_nova.scifi_cryo_cabinet": "Cryogenic Cabinet (model)",
+  "block.nimbus_nova.scifi_hydroponic_tray": "Hydroponic Tray (model)",
+  "block.nimbus_nova.scifi_airlock_door": "Outpost Airlock Door"
 }
