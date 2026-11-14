@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "nimbus_nova",
+  "version": "${version}",
+  "name": "Nimbus Nova MC",
+  "description": "A junior astronaut mission trainer for NASA Space Apps 2026. Starter template; gameplay is in development.",
+  "authors": ["Nimbus Nova team"],
+  "contact": {
+    "sources": "https://github.com/KawaseDev/Nimbus-Nova-MC",
+    "issues": "https://github.com/KawaseDev/Nimbus-Nova-MC/issues"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["cc.nimbusnova.mc.NimbusNovaMod"],
+    "client": ["cc.nimbusnova.mc.client.NimbusNovaClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.20.1",
+    "minecraft": "26.3",
+    "java": ">=25",
+    "fabric-api": ">=0.165.2+26.3"
+  },
+  "custom": {
+    "ai_assistance": "OpenAI Codex assisted with repository scaffolding, build configuration, Java entry points, and documentation. See CREDITS.md."
+  }
+}
