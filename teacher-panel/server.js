@@ -2,6 +2,7 @@ const http = require('node:http');
 const net = require('node:net');
 const fs = require('node:fs');
 const path = require('node:path');
+const { createMissionApi } = require('./mission-api');
 
 const minecraftHost = process.env.MINECRAFT_HOST || '127.0.0.1';
 const minecraftPort = Number(process.env.MINECRAFT_PORT || 25565);
@@ -17,8 +18,10 @@ function checkServer(host, port) {
   });
 }
 
-function createServer() {
+function createServer(options = {}) {
+  const missionApi = createMissionApi(options);
   return http.createServer(async (request, response) => {
+    if (await missionApi(request, response)) return;
     if (request.method !== 'GET') {
       response.writeHead(405, { Allow: 'GET' }).end();
       return;
@@ -39,7 +42,7 @@ function createServer() {
 }
 
 if (require.main === module) {
-  createServer().listen(panelPort, '127.0.0.1', () => {
+  createServer({ teacherToken: process.env.TEACHER_TOKEN, bridgeToken: process.env.BRIDGE_TOKEN, bridgeUrl: process.env.BRIDGE_URL }).listen(panelPort, '127.0.0.1', () => {
     console.log(`Teacher panel: http://127.0.0.1:${panelPort}`);
   });
 }

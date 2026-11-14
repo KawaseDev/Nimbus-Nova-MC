@@ -17,7 +17,7 @@ See [rules.md](rules.md) for competition references. No NASA dataset, imagery, N
 
 ## AI assistance
 
-On November 14, 2026, OpenAI Codex assisted with rules research, repository scaffolding, Gradle configuration, Java initialization classes, and documentation, including expanding the team's ideas into `PLAN.md`. The team supplied the challenge choice, Minecraft mod format, Minecraft 26.3 / Java 25 requirement, teacher platform, cooperative roles, Mars exploration, NPC dialogue, and task minigame direction. Assistance is also declared in `fabric.mod.json` under `custom.ai_assistance`; this file is included in the built JAR.
+On November 14, 2026, OpenAI Codex assisted with rules research, repository scaffolding, Gradle configuration, Java initialization classes, the teacher dashboard and backend foundation, and documentation, including expanding the team's ideas into `PLAN.md`. The team supplied the challenge choice, Minecraft mod format, Minecraft 26.3 / Java 25 requirement, teacher platform, cooperative roles, Mars exploration, NPC dialogue, and task minigame direction. Assistance is also declared in `fabric.mod.json` under `custom.ai_assistance`; this file is included in the built JAR.
 
 Carry this disclosure into the competition submission's AI/SI field. Update it as work continues. Generated images/video require visible generation labels under the submission guide; none are included here.
 

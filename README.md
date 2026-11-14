@@ -43,4 +43,14 @@ With Node.js 18 or newer installed, run `node teacher-panel/server.js` and open 
 
 The connection indicator checks only whether the configured TCP port is reachable; it does not verify a Minecraft server or connect to mission state. The roster and session controls need the planned authenticated Fabric server bridge and are not implemented yet. This local development panel has no login and is not ready for public hosting or classroom use.
 
+### Mission backend foundation
+
+The local Node service also exposes a first bridge API. Configure `TEACHER_TOKEN` and `BRIDGE_TOKEN` as separate random secrets of at least 32 characters, and set `BRIDGE_URL` to the local HTTP address of the Minecraft bridge, for example `http://127.0.0.1:3001`. Keep the tokens out of source control. The service binds to loopback and only accepts a loopback bridge address; this is for local development, not remote classroom deployment.
+
+- `GET /api/mission` requires `Authorization: Bearer <TEACHER_TOKEN>` and forwards to `GET /mission` on the bridge.
+- `POST /api/commands` requires the same authorization and a JSON body with UUID strings `id` and `sessionId`, an `action` (`start`, `pause`, `resume`, `end`, or `assign_role`), and an optional `parameters` object. It forwards to `POST /commands` on the bridge.
+- The backend authenticates to the bridge with `Authorization: Bearer <BRIDGE_TOKEN>` and passes its JSON response and status back to the teacher. Missing configuration fails closed; an unreachable bridge returns an error.
+
+The Fabric bridge is not implemented. It must authenticate the backend, own mission state, validate session ownership and each action and its parameters, and reject duplicate command IDs before applying effects. The dashboard does not yet sign in or call these endpoints. The backend does not yet create or reserve sessions, assign roles, or persist reports.
+
 Original code is MIT licensed. Minecraft retains its own license. Independent student project; no NASA, Mojang, or Microsoft endorsement.

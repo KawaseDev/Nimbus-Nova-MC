@@ -25,3 +25,45 @@ test('panel serves its page and rejects requests outside its API', async () => {
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('mission API authenticates teachers and relays validated commands to the bridge', async () => {
+  const teacherToken = 't'.repeat(32);
+  const bridgeToken = 'b'.repeat(32);
+  const command = { id: '01234567-89ab-4cde-8f01-23456789abcd', sessionId: '11234567-89ab-4cde-8f01-23456789abcd', action: 'pause' };
+  let received;
+  const http = require('node:http');
+  const bridge = http.createServer(async (request, response) => {
+    assert.equal(request.headers.authorization, `Bearer ${bridgeToken}`);
+    let body = '';
+    for await (const chunk of request) body += chunk;
+    received = { path: request.url, body: body && JSON.parse(body) };
+    response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true }));
+  });
+  await new Promise((resolve) => bridge.listen(0, '127.0.0.1', resolve));
+  const server = createServer({ teacherToken, bridgeToken, bridgeUrl: `http://127.0.0.1:${bridge.address().port}` });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const headers = { Authorization: `Bearer ${teacherToken}`, 'Content-Type': 'application/json' };
+  try {
+    assert.equal((await fetch(`${base}/api/mission`)).status, 401);
+    assert.equal((await fetch(`${base}/api/mission`, { headers })).status, 200);
+    assert.equal(received.path, '/mission');
+    assert.equal((await fetch(`${base}/api/commands`, { method: 'POST', headers, body: JSON.stringify({ ...command, action: 'shell' }) })).status, 400);
+    assert.equal((await fetch(`${base}/api/commands`, { method: 'POST', headers, body: JSON.stringify(command) })).status, 200);
+    assert.deepEqual(received, { path: '/commands', body: { ...command, parameters: {} } });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    await new Promise((resolve) => bridge.close(resolve));
+  }
+});
+
+test('mission API fails closed when authentication or bridge is not configured', async () => {
+  for (const options of [{}, { teacherToken: 't'.repeat(32) }]) {
+    const server = createServer(options);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+      const response = await fetch(`http://127.0.0.1:${server.address().port}/api/mission`, { headers: { Authorization: `Bearer ${'t'.repeat(32)}` } });
+      assert.equal(response.status, 503);
+    } finally { await new Promise((resolve) => server.close(resolve)); }
+  }
+});
