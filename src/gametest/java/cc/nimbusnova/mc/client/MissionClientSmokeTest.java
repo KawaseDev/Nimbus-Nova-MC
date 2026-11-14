@@ -64,6 +64,12 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             System.out.println("Movement checks: Earth=" + earthMovement + "; Mars=" + marsMovement);
             world.getConnection().waitForChunksRender();
             GuidedMissionChecks.capture(context, "mars-outpost");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 50 88 -53 42 18");
+            world.getConnection().waitForChunksRender();
+            GuidedMissionChecks.capture(context, "dome-exterior");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 12 68 -9 35 -13");
+            world.getConnection().waitForChunksRender();
+            GuidedMissionChecks.capture(context, "dome-interior");
             GuidedMissionChecks.checkOutpost(context, world);
             if (MissionTutorial.consoleOpened)
                 throw new AssertionError("The tutorial must start with the console step unchecked");

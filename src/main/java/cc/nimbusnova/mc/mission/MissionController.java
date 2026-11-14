@@ -293,6 +293,26 @@ public final class MissionController {
         return mission.snapshot();
     }
 
+    public int backupCellsRemaining() {
+        return mission.backupCellsRemaining();
+    }
+
+    public boolean useBackupPower(final ServerPlayer player) {
+        if (!mission.useBackupPower()) return false;
+
+        progressFeedback = mission.snapshot().lastEvent();
+        broadcast(player.level().getServer());
+        return true;
+    }
+
+    public boolean cycleAirlock(final ServerPlayer player) {
+        if (!mission.cycleAirlock()) return false;
+
+        progressFeedback = mission.snapshot().lastEvent();
+        broadcast(player.level().getServer());
+        return true;
+    }
+
     public boolean interaction(final ServerPlayer player, final MissionPreparation.TaskKind kind) {
         if (!atTask(player, kind)) {
             player.sendSystemMessage(Component.literal("Move close to the marked equipment at the Mars outpost first."));

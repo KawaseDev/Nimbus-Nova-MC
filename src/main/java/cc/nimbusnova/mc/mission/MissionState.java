@@ -39,6 +39,7 @@ public final class MissionState {
     private double lowestBattery = battery, lowestOxygen = oxygen;
     private int firstResearchCutSecond = -1;
     private int canistersLeft = OXYGEN_CANISTERS;
+    private int backupCells = 2;
     private double radiationDose;
     private boolean relayFault;
     private String lastEvent = "Choose your role. Mission Control starts the simulation.";
@@ -211,6 +212,31 @@ public final class MissionState {
         canistersLeft--;
         decisions++;
         lastEvent = "An oxygen canister restored up to " + (int) CANISTER_OXYGEN + " reserve units. " + canistersLeft + " of " + OXYGEN_CANISTERS + " left.";
+        return true;
+    }
+
+    public int backupCellsRemaining() {
+        return backupCells;
+    }
+
+    public boolean useBackupPower() {
+        if (phase != Phase.ACTIVE || backupCells == 0 || battery >= 100) return false;
+
+        battery = Math.min(100, battery + 10);
+        backupCells--;
+        decisions++;
+        lastEvent = "Backup cell transferred up to 10 energy units. " + backupCells + " cells remain; this is stored energy, not new solar power.";
+        return true;
+    }
+
+    public boolean cycleAirlock() {
+        if (phase == Phase.READY) return true;
+        if (phase != Phase.ACTIVE || oxygen <= 2) return false;
+
+        oxygen -= 2;
+        lowestOxygen = Math.min(lowestOxygen, oxygen);
+        decisions++;
+        lastEvent = "Airlock cycled: 2 shared oxygen reserve units used. Plan trips together to conserve air.";
         return true;
     }
 
