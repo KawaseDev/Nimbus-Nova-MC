@@ -1,6 +1,8 @@
 package cc.nimbusnova.mc.client.guidance;
 
 import cc.nimbusnova.mc.client.GuidedMissionClient;
+import cc.nimbusnova.mc.client.ship.ShipClient;
+import cc.nimbusnova.mc.world.ship.ShipMap;
 import cc.nimbusnova.mc.client.airlock.EntranceAirlockClient;
 import cc.nimbusnova.mc.world.EntranceAirlock;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
@@ -48,6 +50,9 @@ public final class HologramGuidance {
             new Anchor("Airlock pressure lab", -0.5, 67.8, -9.5),
             new Anchor("Backup power reserve", 3.5, 67.8, 5.5),
             new Anchor("Shielding experiment", 2.5, 67.8, 25.5));
+    private static final List<Anchor> SHIP_ANCHORS = ShipMap.MARKERS.stream()
+            .map(marker -> new Anchor(marker.task().label, marker.position().getX() + 0.5,
+                    marker.position().getY() + 1.5, marker.position().getZ() + 0.5)).toList();
     private static final Color CYAN = new Color(115, 230, 237);
     private static final Color AMBER = new Color(248, 193, 108);
     private static final Color BACKGROUND = new Color(11, 25, 33, 213);
@@ -65,7 +70,7 @@ public final class HologramGuidance {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (unavailable(client) || client.player == null || client.level == null || ++particleTick % 4 != 0 || client.options.particles().get() == ParticleStatus.MINIMAL) return;
 
-            final MissionProgressPayload objective = GuidedMissionClient.progress();
+            final MissionProgressPayload objective = objective(client);
             if (objective == null || !hasWorldTarget(objective)) return;
 
             final Vec3 target = new Vec3(objective.targetX() + 0.5, objective.targetY() + 0.15, objective.targetZ() + 0.5);
@@ -84,9 +89,21 @@ public final class HologramGuidance {
 
     private static boolean unavailable(final Minecraft client) {
         return client.level == null || client.player == null || client.gui.screen() != null || client.gui.hud.isHidden()
-                || !client.level.dimension().equals(MarsTrainingMap.DIMENSION)
+                || !client.level.dimension().equals(MarsTrainingMap.DIMENSION) && !client.level.dimension().equals(ShipMap.DIMENSION)
                 || EntranceAirlockClient.scan() != null && EntranceAirlockClient.scan().stage() > 0
                 && EntranceAirlock.isChamber(client.player.blockPosition());
+    }
+
+    private static @Nullable MissionProgressPayload objective(final Minecraft client) {
+        if (client.level != null && client.level.dimension().equals(ShipMap.DIMENSION)) {
+            final var ship = ShipClient.state();
+            if (ship == null) return null;
+            final String stage = ship.phase().equals("PAUSED") ? "PAUSED"
+                    : ship.phase().equals("ACTIVE") || ship.phase().equals("READY") ? "SHIP" : "COMPLETE";
+            return new MissionProgressPayload(stage, ship.title(), ship.instruction(), "Right-click this station",
+                    ship.target().getX(), ship.target().getY(), ship.target().getZ(), 0, 0, 0, ship.feedback(), false);
+        }
+        return GuidedMissionClient.progress();
     }
 
     private static boolean hasWorldTarget(final MissionProgressPayload objective) {
@@ -105,19 +122,20 @@ public final class HologramGuidance {
         final Vec3 eye = camera.position();
         final double time = client.level.getGameTime() + deltaTracker.getGameTimeDeltaPartialTick(false);
         final float motion = client.options.screenEffectScale().get().floatValue();
-        final MissionProgressPayload objective = GuidedMissionClient.progress();
+        final MissionProgressPayload objective = objective(client);
         final List<LabelBounds> occupied = new ArrayList<>();
         Anchor active = null;
         if (objective != null && hasWorldTarget(objective)) {
             final Vec3 point = new Vec3(objective.targetX() + 0.5, objective.targetY() + 1.4, objective.targetZ() + 0.5);
-            active = ANCHORS.stream().min(Comparator.comparingDouble(anchor -> anchor.position().distanceToSqr(point)))
+            active = (client.level.dimension().equals(ShipMap.DIMENSION) ? SHIP_ANCHORS : ANCHORS).stream().min(Comparator.comparingDouble(anchor -> anchor.position().distanceToSqr(point)))
                     .filter(anchor -> anchor.position().distanceToSqr(point) < 40).orElse(null);
             final Anchor marker = active == null ? new Anchor(objective.title(), point.x, point.y, point.z) : active;
             draw(graphics, viewProjection, eye, marker, true, objective.actionHint(), time, motion, occupied);
         }
 
         final Anchor activeAnchor = active;
-        ANCHORS.stream().filter(anchor -> anchor != activeAnchor && anchor.position().distanceToSqr(eye) < 20 * 20)
+        final List<Anchor> anchors = client.level.dimension().equals(ShipMap.DIMENSION) ? SHIP_ANCHORS : ANCHORS;
+        anchors.stream().filter(anchor -> anchor != activeAnchor && anchor.position().distanceToSqr(eye) < 20 * 20)
                 .sorted(Comparator.comparingDouble(anchor -> anchor.position().distanceToSqr(eye))).limit(3)
                 .forEach(anchor -> draw(graphics, viewProjection, eye, anchor, false, "", time, motion, occupied));
     }

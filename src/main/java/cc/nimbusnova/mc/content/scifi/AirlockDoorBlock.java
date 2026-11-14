@@ -65,9 +65,9 @@ public final class AirlockDoorBlock extends DoorBlock {
                 != (facing == Direction.SOUTH || facing == Direction.WEST);
         final VoxelShape post;
         if (state.getValue(FACING).getAxis() == Direction.Axis.Z)
-            post = Block.box(left ? 0 : 12, 0, 2, left ? 4 : 16, 16, 14);
+            post = Block.box(left ? 0 : 13, 0, 2, left ? 3 : 16, 16, 14);
         else
-            post = Block.box(2, 0, left ? 0 : 12, 14, 16, left ? 4 : 16);
+            post = Block.box(2, 0, left ? 0 : 13, 14, 16, left ? 3 : 16);
 
         final int bottom = state.getValue(HALF) == DoubleBlockHalf.LOWER ? 0 : 15;
         final VoxelShape rim = facing.getAxis() == Direction.Axis.Z

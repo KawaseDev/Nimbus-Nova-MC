@@ -12,13 +12,14 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
+import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -71,7 +72,6 @@ public final class ShipController {
         }));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             final ShipController controller = get(server);
-            controller.roles.remove(handler.player.getUUID());
             controller.opened.remove(handler.player.getUUID());
         });
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -81,6 +81,23 @@ public final class ShipController {
             if (server.getPlayerList().getPlayerCount() == 0 && controller.mission.snapshot().phase() == ShipMission.Phase.ACTIVE)
                 controller.mission.pause();
             controller.mission.tickSecond();
+            final var level = server.getLevel(ShipMap.DIMENSION);
+            if (level != null && controller.mission.snapshot().phase() == ShipMission.Phase.ACTIVE) {
+                final var stage = controller.mission.snapshot().stage();
+                for (final ShipMap.Marker marker : ShipMap.MARKERS) {
+                    final var block = level.getBlockState(marker.position());
+                    final boolean active = controller.mission.activeTask(marker.task()) || controller.mission.completed(marker.task());
+                    if (block.is(ShipMap.block(marker.task())) && block.getValue(BlockStateProperties.POWERED) != active)
+                        level.setBlock(marker.position(), block.setValue(BlockStateProperties.POWERED, active), Block.UPDATE_CLIENTS);
+                    if (marker.task() != ShipTask.ENGINE) continue;
+                    if (stage == MoonMission.Stage.EMERGENCY)
+                        level.sendParticles(ParticleTypes.SMOKE, marker.position().getX() + 0.5, marker.position().getY() + 1,
+                                marker.position().getZ() + 0.5, 3, 0.15, 0.1, 0.15, 0.025);
+                    if (stage == MoonMission.Stage.RETURN && (controller.mission.board(ShipTask.PILOT) & 256) != 0)
+                        level.sendParticles(ParticleTypes.FLAME, marker.position().getX() + 0.5, marker.position().getY() + 0.5,
+                                marker.position().getZ() - 1, 6, 0.15, 0.15, 0.3, 0.08);
+                }
+            }
             controller.broadcast(server, false);
         });
         UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
@@ -88,6 +105,19 @@ public final class ShipController {
             if (ShipMap.task(level.getBlockState(hit.getBlockPos()).getBlock()) == null) return InteractionResult.PASS;
             if (player instanceof ServerPlayer serverPlayer)
                 get(serverPlayer.level().getServer()).openStation(serverPlayer, hit.getBlockPos());
+            return InteractionResult.SUCCESS;
+        });
+        AttackBlockCallback.EVENT.register((player, level, hand, position, _) -> {
+            if (!level.dimension().equals(ShipMap.DIMENSION) || hand != InteractionHand.MAIN_HAND
+                    || ShipMap.task(level.getBlockState(position).getBlock()) != ShipTask.EXERCISE) return InteractionResult.PASS;
+            if (player instanceof ServerPlayer serverPlayer) {
+                final ShipController controller = get(serverPlayer.level().getServer());
+                if (controller.mission != null && near(serverPlayer, position)) {
+                    controller.action(serverPlayer, new ShipActionPayload("task", position, controller.mission.revision(), 0));
+                    serverPlayer.level().sendParticles(ParticleTypes.CRIT, position.getX() + 0.5, position.getY() + 0.6,
+                            position.getZ() + 0.5, 4, 0.15, 0.2, 0.15, 0.03);
+                }
+            }
             return InteractionResult.SUCCESS;
         });
         PlayerBlockBreakEvents.BEFORE.register((level, player, _, _, _) ->
@@ -145,6 +175,7 @@ public final class ShipController {
                 case "ship_abort" -> mission.abort();
                 case "ship_reset" -> {
                     mission = new ShipMission();
+                    roles.clear();
                     opened.clear();
                 }
                 case "ship_end" -> {
@@ -264,8 +295,15 @@ public final class ShipController {
         final ShipTask objective = mission.objectiveTask(role);
         final BlockPos station = opened.getOrDefault(player.getUUID(), BlockPos.ZERO);
         final ShipTask task = ShipMap.task(player.level().getBlockState(station).getBlock());
-        final String summary = state.phase().ended() ? state.outcome() + " Completed " + state.completedTasks() + " tasks and " + state.decisions() + " decisions."
-                : mission.instruction();
+        final String summary;
+        if (state.phase().ended()) {
+            final String choices = String.join(" ", mission.debrief().stream()
+                    .filter(line -> line.contains("CO2 removal") || line.contains("energy units"))
+                    .limit(2).toList());
+            summary = state.outcome() + " Battery " + (int) state.battery() + ", oxygen " + (int) state.oxygen()
+                    + ", fuel " + (int) state.fuel() + ". " + choices;
+        } else
+            summary = mission.instruction();
         ServerPlayNetworking.send(player, new ShipPayload(state.phase().name(), state.stage().name(), role == null ? "" : role.name(), state.revision(), state.remaining(),
                 operator || role == MoonMission.Role.POWER ? (int) state.battery() : -1,
                 operator || role == MoonMission.Role.LIFE_SUPPORT ? (int) state.oxygen() : -1,

@@ -13,7 +13,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -131,7 +130,8 @@ public final class ShipMap {
         }
 
         for (final Marker station : MARKERS) {
-            final Direction facing = station.position.getX() < -2 ? Direction.EAST
+            final Direction facing = station.task == ShipTask.ENGINE ? Direction.SOUTH
+                    : station.position.getX() < -2 ? Direction.EAST
                     : station.position.getX() > 2 ? Direction.WEST : Direction.NORTH;
             level.setBlock(station.position, block(station.task).defaultBlockState().setValue(HorizontalDirectionalBlock.FACING, facing), Block.UPDATE_CLIENTS);
         }

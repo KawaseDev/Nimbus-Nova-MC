@@ -374,6 +374,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
                     || Math.abs(returnedMovement.jumpHeight() - earthMovement.jumpHeight()) > 0.000001
                     || returnedMovement.fallDamage() != earthMovement.fallDamage())
                 throw new AssertionError("Leaving Mars must restore ordinary movement and fall damage");
+            ShipMissionChecks.run(context, world);
         }
 
         context.runOnClient(client -> {
