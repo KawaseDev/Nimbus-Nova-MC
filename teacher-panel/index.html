@@ -22,8 +22,10 @@
     .dot { width: 9px; height: 9px; border-radius: 50%; background: #e1ac70; } .dot.online { background: #83dbcc; }
     .address { font-size: .875rem; overflow-wrap: anywhere; }
     .empty { margin-top: 24px; padding: 22px; border: 1px dashed #40546b; border-radius: 9px; color: #adc0d3; }
+    .player { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 0; }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
     button { border: 1px solid #42536a; border-radius: 8px; padding: 10px 16px; background: #26364a; color: #bac8d6; font: inherit; }
+    input { font: inherit; padding: 10px; color: inherit; background: #0c1422; border: 1px solid #42536a; border-radius: 8px; min-width: 0; flex: 1; }
     button:disabled { opacity: .65; cursor: not-allowed; }
     @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } .wide { grid-column: auto; } header .tag { display: none; } main { padding-top: 36px; } }
   </style>
@@ -33,9 +35,11 @@
 <main>
   <div class="intro"><h1>Mission Control</h1></div>
   <div class="grid">
-    <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p>Mission bridge unavailable.</p><div class="actions"><button disabled>Start mission</button><button disabled>Pause mission</button><button disabled>End mission</button></div></section>
-    <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p></section>
-    <section class="card wide" aria-labelledby="crew-title"><h2 id="crew-title">Player roster</h2><div class="empty">Roster unavailable.</div></section>
+    <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p id="mission-status" role="status">Mission unavailable.</p><div class="actions"><button id="mission-start" disabled aria-label="Start mission" title="Start mission">▶</button><button id="mission-pause" disabled aria-label="Pause mission" title="Pause mission">❚❚</button><button id="mission-end" disabled aria-label="End mission" title="End mission">■</button><button id="mission-reset" disabled>Reset</button></div><p id="mission-error" role="alert"></p></section>
+    <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p><div class="actions"><button id="power" disabled>Start server</button><button id="restart" disabled>Restart</button></div><p id="server-error" role="alert"></p></section>
+    <section class="card" aria-labelledby="world-title"><h2 id="world-title">Mars outpost</h2><div class="actions"><button id="create-world" disabled>Create outpost</button></div><p id="world-status" role="status">Server unavailable.</p></section>
+    <section class="card wide" aria-labelledby="crew-title"><h2 id="crew-title">Player roster</h2><div class="empty" id="roster" role="status" aria-live="polite">Loading roster…</div><p id="roster-error" role="alert"></p></section>
+    <section class="card wide" aria-labelledby="message-title"><h2 id="message-title">Message crew</h2><form class="actions" id="message-form"><input id="message" aria-label="Message" maxlength="200" required><button type="submit">Send</button></form><p id="message-result" role="status"></p></section>
     <section class="card" aria-labelledby="mission-title"><div class="eyebrow">Mission library</div><h2 id="mission-title">The Darkening Sky</h2><p class="tag">In development</p></section>
   </div>
 </main>
@@ -44,6 +48,25 @@
     const response = await fetch('/api/account/logout', { method: 'POST' });
     if (response.ok) location.reload();
   });
+  let serverAction = false;
+  async function serverCommand(action) {
+    if (serverAction) return;
+    serverAction = true;
+    document.getElementById('power').disabled = true;
+    document.getElementById('restart').disabled = true;
+    const error = document.getElementById('server-error');
+    error.textContent = '';
+    try {
+      const response = await fetch('/api/server', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Server operation failed.');
+      }
+    } catch (failure) { error.textContent = failure.message; }
+    finally { serverAction = false; await refreshStatus(); }
+  }
+  document.getElementById('power').addEventListener('click', event => serverCommand(event.currentTarget.dataset.action));
+  document.getElementById('restart').addEventListener('click', () => serverCommand('restart'));
   async function refreshStatus() {
     const label = document.getElementById('status');
     const dot = document.getElementById('dot');
@@ -51,14 +74,137 @@
       const response = await fetch('/api/status', { cache: 'no-store' });
       if (!response.ok) throw new Error('Status unavailable');
       const status = await response.json();
-      label.textContent = status.reachable ? 'Port reachable' : 'Port unreachable';
+      const names = { starting: 'Starting…', running: 'Running', stopping: 'Stopping…', stopped: 'Stopped', external: 'Running outside panel' };
+      label.textContent = names[status.state] || 'Status unavailable';
+      const power = document.getElementById('power');
+      const running = status.state === 'running' || status.state === 'starting';
+      power.textContent = running || status.state === 'stopping' || status.state === 'external' ? 'Stop server' : 'Start server';
+      power.dataset.action = running ? 'stop' : 'start';
+      power.disabled = serverAction || status.state === 'starting' || status.state === 'stopping' || status.state === 'external';
+      document.getElementById('restart').disabled = serverAction || status.state !== 'running';
+      if (status.error) document.getElementById('server-error').textContent = status.error;
       dot.classList.toggle('online', status.reachable);
       document.getElementById('address').textContent = `${status.host}:${status.port}`;
     } catch {
       label.textContent = 'Panel connection lost';
       dot.classList.remove('online');
+      document.getElementById('power').disabled = true;
+      document.getElementById('restart').disabled = true;
     }
   }
+  let missionBusy = false;
+  let missionPhase = '';
+  const missionButtons = ['mission-start', 'mission-pause', 'mission-end', 'mission-reset'].map(id => document.getElementById(id));
+  async function refreshMission() {
+    try {
+      const response = await fetch('/api/mission-state', { cache: 'no-store' });
+      if (!response.ok) throw new Error();
+      const state = await response.json();
+      missionPhase = state.phase;
+      document.getElementById('mission-status').textContent = `${state.phase} · ${state.elapsedSeconds}s · Power ${Math.round(state.battery)}% · Oxygen ${Math.round(state.oxygen)}%`;
+      missionButtons[0].disabled = missionBusy || state.phase !== 'READY' || state.players === 0;
+      missionButtons[1].disabled = missionBusy || !['ACTIVE', 'PAUSED'].includes(state.phase);
+      missionButtons[1].textContent = state.phase === 'PAUSED' ? '▶' : '❚❚';
+      missionButtons[1].setAttribute('aria-label', state.phase === 'PAUSED' ? 'Resume mission' : 'Pause mission');
+      missionButtons[1].title = state.phase === 'PAUSED' ? 'Resume mission' : 'Pause mission';
+      missionButtons[2].disabled = missionBusy || !['ACTIVE', 'PAUSED'].includes(state.phase);
+      missionButtons[3].disabled = missionBusy || !['SUCCESS', 'PARTIAL', 'FAILED', 'ABORTED'].includes(state.phase);
+    } catch {
+      missionPhase = '';
+      document.getElementById('mission-status').textContent = 'Mission unavailable.';
+      missionButtons.forEach(button => { button.disabled = true; });
+    }
+  }
+  async function missionAction(action) {
+    if (missionBusy) return;
+    missionBusy = true;
+    missionButtons.forEach(button => { button.disabled = true; });
+    const error = document.getElementById('mission-error');
+    error.textContent = '';
+    try {
+      const response = await fetch('/api/mission-action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: crypto.randomUUID(), action }) });
+      if (!response.ok) throw new Error(response.status === 409 ? 'Action unavailable for the current mission state.' : 'Mission connection failed.');
+    } catch (failure) { error.textContent = failure.message; }
+    finally { missionBusy = false; await refreshMission(); }
+  }
+  missionButtons[0].addEventListener('click', () => missionAction('start'));
+  missionButtons[1].addEventListener('click', () => missionAction(missionPhase === 'PAUSED' ? 'resume' : 'pause'));
+  missionButtons[2].addEventListener('click', () => missionAction('abort'));
+  missionButtons[3].addEventListener('click', () => missionAction('reset'));
+  document.getElementById('message-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const input = document.getElementById('message');
+    const result = document.getElementById('message-result');
+    const button = event.currentTarget.querySelector('button');
+    button.disabled = true;
+    result.textContent = '';
+    try {
+      const response = await fetch('/api/message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: input.value }) });
+      if (!response.ok) throw new Error(response.status === 409 ? 'No players connected.' : 'Message could not be sent.');
+      input.value = '';
+      result.textContent = 'Sent.';
+    } catch (failure) { result.textContent = failure.message; }
+    finally { button.disabled = false; }
+  });
+  refreshMission();
+  setInterval(refreshMission, 2000);
+  let worldBusy = false;
+  async function refreshWorld() {
+    const button = document.getElementById('create-world');
+    const label = document.getElementById('world-status');
+    try {
+      const response = await fetch('/api/world', { cache: 'no-store' });
+      if (!response.ok) throw new Error();
+      const { status } = await response.json();
+      const labels = { idle: '', creating: 'Creating…', ready: 'Outpost ready.', failed: 'Creation failed. Check the server console.' };
+      label.textContent = labels[status];
+      button.disabled = worldBusy || status === 'creating';
+    } catch { button.disabled = true; label.textContent = 'Server unavailable.'; }
+  }
+  document.getElementById('create-world').addEventListener('click', async () => {
+    if (worldBusy) return;
+    worldBusy = true;
+    document.getElementById('create-world').disabled = true;
+    try {
+      const response = await fetch('/api/world', { method: 'POST' });
+      if (!response.ok) throw new Error();
+      document.getElementById('world-status').textContent = 'Creating…';
+    } catch { document.getElementById('world-status').textContent = 'Could not start creation.'; }
+    finally { worldBusy = false; await refreshWorld(); }
+  });
+  refreshWorld();
+  setInterval(refreshWorld, 3000);
+  async function refreshRoster() {
+    const roster = document.getElementById('roster');
+    try {
+      const response = await fetch('/api/roster', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Roster unavailable');
+      const { players } = await response.json();
+      roster.replaceChildren();
+      if (!players.length) { roster.textContent = 'No players connected.'; return; }
+      for (const player of players) {
+        const row = document.createElement('div');
+        row.className = 'player';
+        const name = document.createElement('span');
+        name.textContent = player.name;
+        const kick = document.createElement('button');
+        kick.textContent = 'Kick';
+        kick.setAttribute('aria-label', `Kick ${player.name}`);
+        kick.addEventListener('click', async () => {
+          kick.disabled = true;
+          try {
+            const result = await fetch('/api/kick', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: player.id }) });
+            if (!result.ok) throw new Error();
+            await refreshRoster();
+          } catch { kick.disabled = false; document.getElementById('roster-error').textContent = 'Could not kick player.'; }
+        });
+        row.append(name, kick);
+        roster.appendChild(row);
+      }
+    } catch { roster.textContent = 'Roster unavailable.'; }
+  }
+  refreshRoster();
+  setInterval(refreshRoster, 5000);
   refreshStatus();
   setInterval(refreshStatus, 10000);
 </script>

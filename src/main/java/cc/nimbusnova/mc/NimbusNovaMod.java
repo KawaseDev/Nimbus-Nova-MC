@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc;
 
 import cc.nimbusnova.mc.mission.MissionController;
+import cc.nimbusnova.mc.bridge.TeacherBridge;
 import cc.nimbusnova.mc.content.ModContent;
 import cc.nimbusnova.mc.content.ModBlocks;
 import cc.nimbusnova.mc.content.OutpostContent;
@@ -21,6 +22,7 @@ public final class NimbusNovaMod implements ModInitializer {
         ModBlocks.register();
         OutpostContent.register();
         MissionController.register();
+        TeacherBridge.register();
         RoverContent.register();
         MissionNpcs.register();
         DustParticles.register();

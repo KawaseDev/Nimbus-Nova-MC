@@ -109,3 +109,190 @@ test('teacher accounts persist, protect the dashboard, and sign out', async () =
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('roster requires a teacher session and uses the authenticated bridge', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const http = require('node:http');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-roster-'));
+  const token = 'b'.repeat(32);
+  const playerId = '01234567-89ab-4cde-8f01-23456789abcd';
+  let kicked;
+  const bridge = http.createServer(async (request, response) => {
+    assert.equal(request.headers.authorization, `Bearer ${token}`);
+    if (request.url === '/kick') {
+      let body = '';
+      for await (const chunk of request) body += chunk;
+      kicked = body;
+      response.writeHead(204).end();
+      return;
+    }
+    assert.equal(request.url, '/roster');
+    response.writeHead(200, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ players: [{ id: playerId, name: 'Explorer' }] }));
+  });
+  await new Promise(resolve => bridge.listen(0, '127.0.0.1', resolve));
+  const server = createServer({ accountsFile: path.join(dir, 'users.json'), bridgeToken: token, bridgeUrl: `http://127.0.0.1:${bridge.address().port}` });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal((await fetch(`${base}/api/roster`)).status, 401);
+    const registration = await fetch(`${base}/api/account/register`, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'teacher', password: 'x' }) });
+    const cookie = registration.headers.get('set-cookie').split(';')[0];
+    const roster = await fetch(`${base}/api/roster`, { headers: { Cookie: cookie } });
+    assert.deepEqual(await roster.json(), { players: [{ id: playerId, name: 'Explorer' }] });
+    const kick = (headers, id) => fetch(`${base}/api/kick`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ id }) });
+    assert.equal((await kick({ Origin: base }, playerId)).status, 401);
+    assert.equal((await kick({ Origin: 'http://evil.example', Cookie: cookie }, playerId)).status, 403);
+    assert.equal((await kick({ Origin: base, Cookie: cookie }, 'bad-id')).status, 400);
+    assert.equal((await kick({ Origin: base, Cookie: cookie }, playerId)).status, 204);
+    assert.equal(kicked, playerId);
+    await new Promise(resolve => bridge.close(resolve));
+    assert.equal((await fetch(`${base}/api/roster`, { headers: { Cookie: cookie } })).status, 503);
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+    if (bridge.listening) await new Promise(resolve => bridge.close(resolve));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('server controls manage only their own process and stop it before restarting', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { EventEmitter } = require('node:events');
+  const { PassThrough } = require('node:stream');
+  const { createServerControl } = require('./server-control');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-control-'));
+  fs.mkdirSync(path.join(dir, 'run'));
+  fs.writeFileSync(path.join(dir, 'run', 'eula.txt'), 'eula=true\n');
+  let occupied = true, launches = 0, stops = 0;
+  const controller = createServerControl({ root: dir, checkServer: async () => occupied, spawnServer: () => {
+    launches++;
+    const child = new EventEmitter();
+    child.stdout = new PassThrough(); child.stderr = new PassThrough(); child.stdin = new PassThrough();
+    child.stdin.on('data', data => {
+      assert.equal(data.toString(), 'stop\n');
+      stops++;
+      setImmediate(() => child.emit('close', 0));
+    });
+    setImmediate(() => child.stdout.write('Done (1s)!'));
+    return child;
+  } });
+  try {
+    assert.equal((await controller.status()).state, 'external');
+    await assert.rejects(controller.command('start'), /already using/);
+    await assert.rejects(controller.command('stop'), /not started/);
+    occupied = false;
+    await controller.command('start');
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal((await controller.status()).state, 'running');
+    await controller.command('restart');
+    assert.equal(launches, 2);
+    assert.equal(stops, 1);
+    await controller.command('stop');
+    assert.equal(stops, 2);
+    assert.equal((await controller.status()).state, 'stopped');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('server power API requires a session and same-origin request', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-power-'));
+  let action;
+  const control = { status: async () => ({ state: 'stopped', reachable: false }), command: async value => { action = value; } };
+  const server = createServer({ accountsFile: path.join(dir, 'users.json'), control });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const post = (url, headers, body) => fetch(`${base}${url}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+    assert.equal((await post('/api/server', { Origin: base }, { action: 'stop' })).status, 401);
+    const registration = await post('/api/account/register', { Origin: base }, { username: 'teacher', password: 'x' });
+    const cookie = registration.headers.get('set-cookie').split(';')[0];
+    assert.equal((await post('/api/server', { Origin: 'http://evil.example', Cookie: cookie }, { action: 'stop' })).status, 403);
+    assert.equal((await post('/api/server', { Origin: base, Cookie: cookie }, { action: 'shell' })).status, 400);
+    assert.equal((await post('/api/server', { Origin: base, Cookie: cookie }, { action: 'restart' })).status, 202);
+    assert.equal(action, 'restart');
+  } finally { await new Promise(resolve => server.close(resolve)); fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('mission controls and crew messages require a teacher and forward only valid actions', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const http = require('node:http');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-mission-'));
+  const token = 'b'.repeat(32);
+  const id = '01234567-89ab-4cde-8f01-23456789abcd';
+  let received;
+  const bridge = http.createServer(async (request, response) => {
+    assert.equal(request.headers.authorization, `Bearer ${token}`);
+    if (request.url === '/mission') {
+      response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ phase: 'READY', elapsedSeconds: 0, battery: 80, oxygen: 75, players: 1, lastEvent: 'Ready' }));
+      return;
+    }
+    let body = '';
+    for await (const chunk of request) body += chunk;
+    received = { path: request.url, body };
+    response.writeHead(204).end();
+  });
+  await new Promise(resolve => bridge.listen(0, '127.0.0.1', resolve));
+  const server = createServer({ accountsFile: path.join(dir, 'users.json'), bridgeToken: token, bridgeUrl: `http://127.0.0.1:${bridge.address().port}` });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const post = (url, headers, body) => fetch(`${base}${url}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+  try {
+    assert.equal((await fetch(`${base}/api/mission-state`)).status, 401);
+    const registration = await post('/api/account/register', { Origin: base }, { username: 'teacher', password: 'x' });
+    const cookie = registration.headers.get('set-cookie').split(';')[0];
+    const headers = { Origin: base, Cookie: cookie };
+    assert.equal((await (await fetch(`${base}/api/mission-state`, { headers: { Cookie: cookie } })).json()).phase, 'READY');
+    assert.equal((await post('/api/mission-action', { Origin: 'http://evil.example', Cookie: cookie }, { id, action: 'start' })).status, 403);
+    assert.equal((await post('/api/mission-action', headers, { id, action: 'shell' })).status, 400);
+    assert.equal((await post('/api/mission-action', headers, { id, action: 'pause' })).status, 204);
+    assert.deepEqual(received, { path: '/mission-action', body: `${id} pause` });
+    assert.equal((await post('/api/message', headers, { message: 'hello\nworld' })).status, 400);
+    assert.equal((await post('/api/message', headers, { message: '  Return to base  ' })).status, 204);
+    assert.deepEqual(received, { path: '/message', body: 'Return to base' });
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+    await new Promise(resolve => bridge.close(resolve));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('world creation requires a teacher and forwards only a fixed request', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const http = require('node:http');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-world-'));
+  const token = 'b'.repeat(32);
+  let creations = 0;
+  const bridge = http.createServer((request, response) => {
+    assert.equal(request.headers.authorization, `Bearer ${token}`);
+    assert.equal(request.url, '/world');
+    if (request.method === 'POST') { creations++; response.writeHead(202).end(); }
+    else response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ status: 'idle' }));
+  });
+  await new Promise(resolve => bridge.listen(0, '127.0.0.1', resolve));
+  const server = createServer({ accountsFile: path.join(dir, 'users.json'), bridgeToken: token, bridgeUrl: `http://127.0.0.1:${bridge.address().port}` });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal((await fetch(`${base}/api/world`)).status, 401);
+    const registration = await fetch(`${base}/api/account/register`, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'teacher', password: 'x' }) });
+    const cookie = registration.headers.get('set-cookie').split(';')[0];
+    assert.equal((await (await fetch(`${base}/api/world`, { headers: { Cookie: cookie } })).json()).status, 'idle');
+    assert.equal((await fetch(`${base}/api/world`, { method: 'POST', headers: { Cookie: cookie, Origin: 'http://evil.example' } })).status, 403);
+    assert.equal((await fetch(`${base}/api/world`, { method: 'POST', headers: { Cookie: cookie, Origin: base } })).status, 202);
+    assert.equal(creations, 1);
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+    await new Promise(resolve => bridge.close(resolve));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

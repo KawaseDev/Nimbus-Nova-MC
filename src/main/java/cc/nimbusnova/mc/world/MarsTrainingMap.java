@@ -106,7 +106,7 @@ public final class MarsTrainingMap {
                 .then(Commands.literal("leave").executes(context -> leave(context.getSource().getPlayerOrException())))));
     }
 
-    private static int create(final CommandSourceStack source) throws IOException {
+    public static int create(final CommandSourceStack source) throws IOException {
         final ServerLevel level = source.getServer().getLevel(DIMENSION);
         if (level == null) {
             source.sendFailure(Component.literal("The Mars dimension is unavailable. Restart the server after installing Nimbus Nova."));

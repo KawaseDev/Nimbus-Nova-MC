@@ -141,9 +141,11 @@ Common simulation and command code lives in `src/main/java/cc/nimbusnova/mc/miss
 
 With Node.js 18 or newer installed, run `node teacher-panel/server.js` and open <http://127.0.0.1:3000>. The panel listens only on the local machine. Set `PANEL_PORT`, `MINECRAFT_HOST`, or `MINECRAFT_PORT` before starting it to change the defaults (3000, 127.0.0.1, and 25565). Run `node --test teacher-panel/server.test.js` to check the panel.
 
+The panel can start, stop, and restart a Minecraft server that it started. Start the panel with JDK 25 available in `JAVA_HOME` or `PATH`, and accept the Minecraft EULA in `run/eula.txt` before starting the server. Stop and restart send Minecraft's `stop` command so the world is saved. A server started outside the panel must be stopped separately before the panel can manage it. If the panel exits while its server is running, stop that server separately before starting it again from the panel.
+
 Create a teacher account on the sign-in screen. Usernames use 3–32 letters, digits, dots, underscores, or hyphens; a password is required. Accounts are stored in `teacher-panel/data/teachers.json` with salted password hashes. Keep a backup of that file; deleting it deletes the accounts. Sessions expire after 12 hours or when the server restarts. There is no password reset yet.
 
-The connection indicator checks only whether the configured TCP port is reachable; it does not verify a Minecraft server or connect to mission state. The roster and session controls need the planned authenticated Fabric server bridge and are not implemented yet. Registration is open to anyone with access to this local service; it is not ready for public hosting or classroom use.
+The connection indicator checks only whether the configured TCP port is reachable. To use the roster, mission controls, and crew messages, start both the Fabric server and the panel with the same `BRIDGE_TOKEN` (at least 32 characters), and start the panel with `BRIDGE_URL=http://127.0.0.1:3001`. The bridge listens only on localhost. Each signed-in teacher controls the same server and can see and kick any connected player; session isolation is not implemented. Registration is open to anyone with access to this local service; it is not ready for public hosting or classroom use.
 
 ### Mission backend foundation
 
@@ -153,6 +155,6 @@ The local Node service also exposes a first bridge API. Configure `TEACHER_TOKEN
 - `POST /api/commands` requires the same authorization and a JSON body with UUID strings `id` and `sessionId`, an `action` (`start`, `pause`, `resume`, `end`, or `assign_role`), and an optional `parameters` object. It forwards to `POST /commands` on the bridge.
 - The backend authenticates to the bridge with `Authorization: Bearer <BRIDGE_TOKEN>` and passes its JSON response and status back to the teacher. Missing configuration fails closed; an unreachable bridge returns an error.
 
-The Fabric bridge is not implemented. It must authenticate the backend, own mission state, validate session ownership and each action and its parameters, and reject duplicate command IDs before applying effects. Teacher accounts do not yet authorize these bridge endpoints; they still require the separate token. The dashboard does not yet call them. The backend does not yet create or reserve sessions, assign roles, or persist reports.
+The dashboard reads the server's mission state and can start, pause, resume, abort, or reset an ended mission. Starting requires at least one connected player. The message box sends text to all connected players. **Create outpost** runs the same guarded operation as `/mars create` in the current server world; it does not create a separate save. Command IDs are deduplicated in server memory; they do not survive a server restart. The legacy `/api/commands` endpoint described above still has no corresponding bridge route. The backend does not yet create or reserve sessions, assign roles, or persist reports.
 
 Original code is MIT licensed. Minecraft retains its own license. Independent student project; no NASA, Mojang, or Microsoft endorsement.
