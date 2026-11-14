@@ -25,6 +25,7 @@
     .player { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 0; }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
     button { border: 1px solid #42536a; border-radius: 8px; padding: 10px 16px; background: #26364a; color: #bac8d6; font: inherit; }
+    input { font: inherit; padding: 10px; color: inherit; background: #0c1422; border: 1px solid #42536a; border-radius: 8px; min-width: 0; flex: 1; }
     button:disabled { opacity: .65; cursor: not-allowed; }
     @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } .wide { grid-column: auto; } header .tag { display: none; } main { padding-top: 36px; } }
   </style>
@@ -34,9 +35,10 @@
 <main>
   <div class="intro"><h1>Mission Control</h1></div>
   <div class="grid">
-    <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p>Mission bridge unavailable.</p><div class="actions"><button disabled aria-label="Start mission" title="Start mission">▶</button><button disabled aria-label="Pause mission" title="Pause mission">❚❚</button><button disabled aria-label="End mission" title="End mission">■</button></div></section>
+    <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p id="mission-status" role="status">Mission unavailable.</p><div class="actions"><button id="mission-start" disabled aria-label="Start mission" title="Start mission">▶</button><button id="mission-pause" disabled aria-label="Pause mission" title="Pause mission">❚❚</button><button id="mission-end" disabled aria-label="End mission" title="End mission">■</button><button id="mission-reset" disabled>Reset</button></div><p id="mission-error" role="alert"></p></section>
     <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p><div class="actions"><button id="power" disabled>Start server</button><button id="restart" disabled>Restart</button></div><p id="server-error" role="alert"></p></section>
     <section class="card wide" aria-labelledby="crew-title"><h2 id="crew-title">Player roster</h2><div class="empty" id="roster" role="status" aria-live="polite">Loading roster…</div><p id="roster-error" role="alert"></p></section>
+    <section class="card wide" aria-labelledby="message-title"><h2 id="message-title">Message crew</h2><form class="actions" id="message-form"><input id="message" aria-label="Message" maxlength="200" required><button type="submit">Send</button></form><p id="message-result" role="status"></p></section>
     <section class="card" aria-labelledby="mission-title"><div class="eyebrow">Mission library</div><h2 id="mission-title">The Darkening Sky</h2><p class="tag">In development</p></section>
   </div>
 </main>
@@ -89,6 +91,62 @@
       document.getElementById('restart').disabled = true;
     }
   }
+  let missionBusy = false;
+  let missionPhase = '';
+  const missionButtons = ['mission-start', 'mission-pause', 'mission-end', 'mission-reset'].map(id => document.getElementById(id));
+  async function refreshMission() {
+    try {
+      const response = await fetch('/api/mission-state', { cache: 'no-store' });
+      if (!response.ok) throw new Error();
+      const state = await response.json();
+      missionPhase = state.phase;
+      document.getElementById('mission-status').textContent = `${state.phase} · ${state.elapsedSeconds}s · Power ${Math.round(state.battery)}% · Oxygen ${Math.round(state.oxygen)}%`;
+      missionButtons[0].disabled = missionBusy || state.phase !== 'READY' || state.players === 0;
+      missionButtons[1].disabled = missionBusy || !['ACTIVE', 'PAUSED'].includes(state.phase);
+      missionButtons[1].textContent = state.phase === 'PAUSED' ? '▶' : '❚❚';
+      missionButtons[1].setAttribute('aria-label', state.phase === 'PAUSED' ? 'Resume mission' : 'Pause mission');
+      missionButtons[1].title = state.phase === 'PAUSED' ? 'Resume mission' : 'Pause mission';
+      missionButtons[2].disabled = missionBusy || !['ACTIVE', 'PAUSED'].includes(state.phase);
+      missionButtons[3].disabled = missionBusy || !['SUCCESS', 'PARTIAL', 'FAILED', 'ABORTED'].includes(state.phase);
+    } catch {
+      missionPhase = '';
+      document.getElementById('mission-status').textContent = 'Mission unavailable.';
+      missionButtons.forEach(button => { button.disabled = true; });
+    }
+  }
+  async function missionAction(action) {
+    if (missionBusy) return;
+    missionBusy = true;
+    missionButtons.forEach(button => { button.disabled = true; });
+    const error = document.getElementById('mission-error');
+    error.textContent = '';
+    try {
+      const response = await fetch('/api/mission-action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: crypto.randomUUID(), action }) });
+      if (!response.ok) throw new Error(response.status === 409 ? 'Action unavailable for the current mission state.' : 'Mission connection failed.');
+    } catch (failure) { error.textContent = failure.message; }
+    finally { missionBusy = false; await refreshMission(); }
+  }
+  missionButtons[0].addEventListener('click', () => missionAction('start'));
+  missionButtons[1].addEventListener('click', () => missionAction(missionPhase === 'PAUSED' ? 'resume' : 'pause'));
+  missionButtons[2].addEventListener('click', () => missionAction('abort'));
+  missionButtons[3].addEventListener('click', () => missionAction('reset'));
+  document.getElementById('message-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const input = document.getElementById('message');
+    const result = document.getElementById('message-result');
+    const button = event.currentTarget.querySelector('button');
+    button.disabled = true;
+    result.textContent = '';
+    try {
+      const response = await fetch('/api/message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: input.value }) });
+      if (!response.ok) throw new Error(response.status === 409 ? 'No players connected.' : 'Message could not be sent.');
+      input.value = '';
+      result.textContent = 'Sent.';
+    } catch (failure) { result.textContent = failure.message; }
+    finally { button.disabled = false; }
+  });
+  refreshMission();
+  setInterval(refreshMission, 2000);
   async function refreshRoster() {
     const roster = document.getElementById('roster');
     try {

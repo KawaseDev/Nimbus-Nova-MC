@@ -28,6 +28,48 @@ function createServer(options = {}) {
     if (!/^(?:localhost|127\.0\.0\.1)(?::[0-9]+)?$/i.test(request.headers.host || '')) { response.writeHead(400).end(); return; }
     if (await accounts.handle(request, response)) return;
     if (await missionApi(request, response)) return;
+    if (['/api/mission-state', '/api/mission-action', '/api/message'].includes(request.url)) {
+      if (!accounts.current(request)) { response.writeHead(401).end(); return; }
+      const readOnly = request.url === '/api/mission-state';
+      if (readOnly ? request.method !== 'GET' : request.method !== 'POST' || request.headers.origin !== `http://${request.headers.host}` ||
+          !/^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] || '')) {
+        response.writeHead(403).end(); return;
+      }
+      let body;
+      if (!readOnly) {
+        try {
+          let raw = '';
+          for await (const chunk of request) { raw += chunk; if (Buffer.byteLength(raw) > 2048) throw new Error(); }
+          const data = JSON.parse(raw);
+          if (request.url === '/api/mission-action') {
+            if (!data || typeof data.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.id) ||
+                !['start', 'pause', 'resume', 'abort', 'reset'].includes(data.action)) throw new Error();
+            body = `${data.id} ${data.action}`;
+          } else {
+            if (!data || typeof data.message !== 'string' || !data.message.trim() || data.message.trim().length > 200 || /[\x00-\x1f\x7f-\x9f]/.test(data.message)) throw new Error();
+            body = data.message.trim();
+          }
+        } catch { response.writeHead(400).end(); return; }
+      }
+      const bridge = bridgeAddress(options.bridgeUrl);
+      if (!bridge || !options.bridgeToken || options.bridgeToken.length < 32) { response.writeHead(503).end(); return; }
+      try {
+        const route = readOnly ? '/mission' : request.url === '/api/message' ? '/message' : '/mission-action';
+        const result = await fetch(new URL(route, bridge), {
+          method: readOnly ? 'GET' : 'POST', headers: { Authorization: `Bearer ${options.bridgeToken}` }, body,
+          signal: AbortSignal.timeout(4000), redirect: 'error'
+        });
+        if (!readOnly) { response.writeHead(result.status === 204 ? 204 : result.status === 409 ? 409 : 503).end(); return; }
+        if (!result.ok) throw new Error();
+        const data = await result.json();
+        if (!['READY', 'ACTIVE', 'PAUSED', 'SUCCESS', 'PARTIAL', 'FAILED', 'ABORTED'].includes(data.phase) ||
+            typeof data.elapsedSeconds !== 'number' || typeof data.battery !== 'number' || typeof data.oxygen !== 'number' ||
+            typeof data.players !== 'number' || typeof data.lastEvent !== 'string') throw new Error();
+        response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        response.end(JSON.stringify(data));
+      } catch { response.writeHead(503).end(); }
+      return;
+    }
     if (request.url === '/api/server') {
       if (!accounts.current(request)) { response.writeHead(401).end(); return; }
       if (request.method !== 'POST' || request.headers.origin !== `http://${request.headers.host}` ||
