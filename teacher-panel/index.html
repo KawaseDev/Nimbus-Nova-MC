@@ -22,6 +22,7 @@
     .dot { width: 9px; height: 9px; border-radius: 50%; background: #e1ac70; } .dot.online { background: #83dbcc; }
     .address { font-size: .875rem; overflow-wrap: anywhere; }
     .empty { margin-top: 24px; padding: 22px; border: 1px dashed #40546b; border-radius: 9px; color: #adc0d3; }
+    .player { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 0; }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
     button { border: 1px solid #42536a; border-radius: 8px; padding: 10px 16px; background: #26364a; color: #bac8d6; font: inherit; }
     button:disabled { opacity: .65; cursor: not-allowed; }
@@ -35,7 +36,7 @@
   <div class="grid">
     <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p>Mission bridge unavailable.</p><div class="actions"><button disabled>Start mission</button><button disabled>Pause mission</button><button disabled>End mission</button></div></section>
     <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p></section>
-    <section class="card wide" aria-labelledby="crew-title"><h2 id="crew-title">Player roster</h2><div class="empty" id="roster" role="status" aria-live="polite">Loading roster…</div></section>
+    <section class="card wide" aria-labelledby="crew-title"><h2 id="crew-title">Player roster</h2><div class="empty" id="roster" role="status" aria-live="polite">Loading roster…</div><p id="roster-error" role="alert"></p></section>
     <section class="card" aria-labelledby="mission-title"><div class="eyebrow">Mission library</div><h2 id="mission-title">The Darkening Sky</h2><p class="tag">In development</p></section>
   </div>
 </main>
@@ -69,7 +70,21 @@
       if (!players.length) { roster.textContent = 'No players connected.'; return; }
       for (const player of players) {
         const row = document.createElement('div');
-        row.textContent = player.name;
+        row.className = 'player';
+        const name = document.createElement('span');
+        name.textContent = player.name;
+        const kick = document.createElement('button');
+        kick.textContent = 'Kick';
+        kick.setAttribute('aria-label', `Kick ${player.name}`);
+        kick.addEventListener('click', async () => {
+          kick.disabled = true;
+          try {
+            const result = await fetch('/api/kick', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: player.id }) });
+            if (!result.ok) throw new Error();
+            await refreshRoster();
+          } catch { kick.disabled = false; document.getElementById('roster-error').textContent = 'Could not kick player.'; }
+        });
+        row.append(name, kick);
         roster.appendChild(row);
       }
     } catch { roster.textContent = 'Roster unavailable.'; }

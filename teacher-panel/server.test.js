@@ -117,11 +117,20 @@ test('roster requires a teacher session and uses the authenticated bridge', asyn
   const http = require('node:http');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-roster-'));
   const token = 'b'.repeat(32);
-  const bridge = http.createServer((request, response) => {
+  const playerId = '01234567-89ab-4cde-8f01-23456789abcd';
+  let kicked;
+  const bridge = http.createServer(async (request, response) => {
     assert.equal(request.headers.authorization, `Bearer ${token}`);
+    if (request.url === '/kick') {
+      let body = '';
+      for await (const chunk of request) body += chunk;
+      kicked = body;
+      response.writeHead(204).end();
+      return;
+    }
     assert.equal(request.url, '/roster');
     response.writeHead(200, { 'Content-Type': 'application/json' });
-    response.end(JSON.stringify({ players: [{ id: 'private-id', name: 'Explorer' }] }));
+    response.end(JSON.stringify({ players: [{ id: playerId, name: 'Explorer' }] }));
   });
   await new Promise(resolve => bridge.listen(0, '127.0.0.1', resolve));
   const server = createServer({ accountsFile: path.join(dir, 'users.json'), bridgeToken: token, bridgeUrl: `http://127.0.0.1:${bridge.address().port}` });
@@ -132,7 +141,13 @@ test('roster requires a teacher session and uses the authenticated bridge', asyn
     const registration = await fetch(`${base}/api/account/register`, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'teacher', password: 'x' }) });
     const cookie = registration.headers.get('set-cookie').split(';')[0];
     const roster = await fetch(`${base}/api/roster`, { headers: { Cookie: cookie } });
-    assert.deepEqual(await roster.json(), { players: [{ name: 'Explorer' }] });
+    assert.deepEqual(await roster.json(), { players: [{ id: playerId, name: 'Explorer' }] });
+    const kick = (headers, id) => fetch(`${base}/api/kick`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ id }) });
+    assert.equal((await kick({ Origin: base }, playerId)).status, 401);
+    assert.equal((await kick({ Origin: 'http://evil.example', Cookie: cookie }, playerId)).status, 403);
+    assert.equal((await kick({ Origin: base, Cookie: cookie }, 'bad-id')).status, 400);
+    assert.equal((await kick({ Origin: base, Cookie: cookie }, playerId)).status, 204);
+    assert.equal(kicked, playerId);
     await new Promise(resolve => bridge.close(resolve));
     assert.equal((await fetch(`${base}/api/roster`, { headers: { Cookie: cookie } })).status, 503);
   } finally {

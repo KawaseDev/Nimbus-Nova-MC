@@ -6,11 +6,13 @@ import com.google.gson.JsonObject;
 import com.sun.net.httpserver.HttpServer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.network.chat.Component;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -58,6 +60,32 @@ public final class TeacherBridge {
                     exchange.getResponseBody().write(body);
                 } catch (Exception error) {
                     NimbusNovaMod.LOGGER.warn("Teacher roster request failed", error);
+                    try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
+                } finally { exchange.close(); }
+            });
+            bridge.createContext("/kick", exchange -> {
+                try {
+                    byte[] expected = ("Bearer " + token).getBytes(StandardCharsets.UTF_8);
+                    String authorization = exchange.getRequestHeaders().getFirst("Authorization");
+                    byte[] actual = authorization == null ? new byte[0] : authorization.getBytes(StandardCharsets.UTF_8);
+                    if (!MessageDigest.isEqual(expected, actual)) { exchange.sendResponseHeaders(401, -1); return; }
+                    if (!exchange.getRequestMethod().equals("POST") || !exchange.getRequestURI().getPath().equals("/kick")) {
+                        exchange.sendResponseHeaders(404, -1); return;
+                    }
+                    String id = new String(exchange.getRequestBody().readNBytes(37), StandardCharsets.UTF_8);
+                    if (!id.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
+                        exchange.sendResponseHeaders(400, -1); return;
+                    }
+                    UUID playerId = UUID.fromString(id);
+                    CompletableFuture<Boolean> kicked = new CompletableFuture<>();
+                    server.execute(() -> {
+                        var player = server.getPlayerList().getPlayer(playerId);
+                        if (player != null) player.connection.disconnect(Component.literal("Removed by the teacher"));
+                        kicked.complete(player != null);
+                    });
+                    exchange.sendResponseHeaders(kicked.get(3, TimeUnit.SECONDS) ? 204 : 404, -1);
+                } catch (Exception error) {
+                    NimbusNovaMod.LOGGER.warn("Teacher kick request failed", error);
                     try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
                 } finally { exchange.close(); }
             });

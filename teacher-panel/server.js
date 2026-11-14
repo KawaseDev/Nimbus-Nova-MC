@@ -26,6 +26,32 @@ function createServer(options = {}) {
     if (!/^(?:localhost|127\.0\.0\.1)(?::[0-9]+)?$/i.test(request.headers.host || '')) { response.writeHead(400).end(); return; }
     if (await accounts.handle(request, response)) return;
     if (await missionApi(request, response)) return;
+    if (request.url === '/api/kick') {
+      if (!accounts.current(request)) { response.writeHead(401).end(); return; }
+      if (request.method !== 'POST' || request.headers.origin !== `http://${request.headers.host}` ||
+          !/^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] || '')) {
+        response.writeHead(403).end(); return;
+      }
+      let data;
+      try {
+        let body = '';
+        for await (const chunk of request) { body += chunk; if (Buffer.byteLength(body) > 256) throw new Error(); }
+        data = JSON.parse(body);
+      } catch { response.writeHead(400).end(); return; }
+      if (!data || typeof data.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.id)) {
+        response.writeHead(400).end(); return;
+      }
+      const bridge = bridgeAddress(options.bridgeUrl);
+      if (!bridge || !options.bridgeToken || options.bridgeToken.length < 32) { response.writeHead(503).end(); return; }
+      try {
+        const result = await fetch(new URL('/kick', bridge), {
+          method: 'POST', headers: { Authorization: `Bearer ${options.bridgeToken}` }, body: data.id,
+          signal: AbortSignal.timeout(4000), redirect: 'error'
+        });
+        response.writeHead(result.status === 204 ? 204 : result.status === 404 ? 404 : 503).end();
+      } catch { response.writeHead(503).end(); }
+      return;
+    }
     if (request.method !== 'GET') {
       response.writeHead(405, { Allow: 'GET' }).end();
       return;
@@ -47,9 +73,9 @@ function createServer(options = {}) {
         });
         if (!result.ok) throw new Error('Bridge unavailable');
         const data = await result.json();
-        if (!Array.isArray(data.players) || data.players.some(player => !player || typeof player.name !== 'string')) throw new Error('Invalid roster');
+        if (!Array.isArray(data.players) || data.players.some(player => !player || typeof player.name !== 'string' || typeof player.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(player.id))) throw new Error('Invalid roster');
         response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        response.end(JSON.stringify({ players: data.players.map(player => ({ name: player.name })) }));
+        response.end(JSON.stringify({ players: data.players.map(player => ({ id: player.id, name: player.name })) }));
       } catch { response.writeHead(503).end(); }
       return;
     }
