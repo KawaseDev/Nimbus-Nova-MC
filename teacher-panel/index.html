@@ -22,8 +22,10 @@
     .dot { width: 9px; height: 9px; border-radius: 50%; background: #e1ac70; } .dot.online { background: #83dbcc; }
     .address { font-size: .875rem; overflow-wrap: anywhere; }
     .empty { margin-top: 24px; padding: 22px; border: 1px dashed #40546b; border-radius: 9px; color: #adc0d3; }
+    .view-image { width: 100%; max-width: 720px; height: auto; background: #0c1422; }
     .player { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 0; }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+    .player .actions { margin-top: 0; }
     button { border: 1px solid #42536a; border-radius: 8px; padding: 10px 16px; background: #26364a; color: #bac8d6; font: inherit; }
     input { font: inherit; padding: 10px; color: inherit; background: #0c1422; border: 1px solid #42536a; border-radius: 8px; min-width: 0; flex: 1; }
     button:disabled { opacity: .65; cursor: not-allowed; }
@@ -37,8 +39,10 @@
   <div class="grid">
     <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p id="mission-status" role="status">Mission unavailable.</p><div class="actions"><button id="mission-start" disabled aria-label="Start mission" title="Start mission">▶</button><button id="mission-pause" disabled aria-label="Pause mission" title="Pause mission">❚❚</button><button id="mission-end" disabled aria-label="End mission" title="End mission">■</button><button id="mission-reset" disabled>Reset</button></div><p id="mission-error" role="alert"></p></section>
     <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p><div class="actions"><button id="power" disabled>Start server</button><button id="restart" disabled>Restart</button></div><p id="server-error" role="alert"></p></section>
+    <section class="card" aria-labelledby="join-title"><h2 id="join-title">Student session</h2><p id="session-status" role="status">Checking…</p><div class="actions"><button id="session-toggle" disabled>Create session</button></div><p id="session-error" role="alert"></p></section>
     <section class="card" aria-labelledby="world-title"><h2 id="world-title">Mars outpost</h2><div class="actions"><button id="create-world" disabled>Create outpost</button></div><p id="world-status" role="status">Server unavailable.</p></section>
     <section class="card wide" aria-labelledby="crew-title"><h2 id="crew-title">Player roster</h2><div class="empty" id="roster" role="status" aria-live="polite">Loading roster…</div><p id="roster-error" role="alert"></p></section>
+    <section class="card wide" id="view-panel" hidden aria-labelledby="view-title"><h2 id="view-title">Student view</h2><p id="view-status" role="status">Waiting for view…</p><img class="view-image" id="view-image" alt="Student game view" hidden><div class="actions"><button id="view-close" type="button">Close view</button></div></section>
     <section class="card wide" aria-labelledby="message-title"><h2 id="message-title">Message crew</h2><form class="actions" id="message-form"><input id="message" aria-label="Message" maxlength="200" required><button type="submit">Send</button></form><p id="message-result" role="status"></p></section>
     <section class="card" aria-labelledby="mission-title"><div class="eyebrow">Mission library</div><h2 id="mission-title">The Darkening Sky</h2><p class="tag">In development</p></section>
   </div>
@@ -92,6 +96,34 @@
       document.getElementById('restart').disabled = true;
     }
   }
+  let sessionBusy = false;
+  async function refreshSession() {
+    const label = document.getElementById('session-status');
+    const button = document.getElementById('session-toggle');
+    try {
+      const response = await fetch('/api/session', { cache: 'no-store' });
+      if (!response.ok) throw new Error();
+      const session = await response.json();
+      label.textContent = session.status === 'open' ? `Code: ${session.code} · Server: ${session.discoveryAddress}` : session.status === 'occupied' ? 'Server reserved by another teacher.' : session.status === 'expired' ? 'Code expired.' : 'No session.';
+      button.textContent = session.status === 'open' ? 'End session' : 'Create session';
+      button.dataset.action = session.status === 'open' ? 'DELETE' : 'POST';
+      button.disabled = sessionBusy || session.status === 'occupied';
+    } catch { label.textContent = 'Session unavailable.'; button.disabled = true; }
+  }
+  document.getElementById('session-toggle').addEventListener('click', async event => {
+    if (sessionBusy) return;
+    sessionBusy = true;
+    const button = event.currentTarget;
+    const error = document.getElementById('session-error');
+    button.disabled = true; error.textContent = '';
+    try {
+      const result = await fetch('/api/session', { method: button.dataset.action });
+      if (!result.ok) { const data = await result.json().catch(() => ({})); throw new Error(data.error || 'Session unavailable.'); }
+    } catch (failure) { error.textContent = failure.message; }
+    finally { sessionBusy = false; await refreshSession(); }
+  });
+  refreshSession();
+  setInterval(refreshSession, 5000);
   let missionBusy = false;
   let missionPhase = '';
   const missionButtons = ['mission-start', 'mission-pause', 'mission-end', 'mission-reset'].map(id => document.getElementById(id));
@@ -174,6 +206,49 @@
   });
   refreshWorld();
   setInterval(refreshWorld, 3000);
+  let viewing = null;
+  let viewUrl = null;
+  let viewLoading = false;
+  function closeView() {
+    viewing = null;
+    document.getElementById('view-panel').hidden = true;
+    document.getElementById('view-image').hidden = true;
+    if (viewUrl) URL.revokeObjectURL(viewUrl);
+    viewUrl = null;
+  }
+  function openView(player) {
+    closeView();
+    viewing = player.id;
+    document.getElementById('view-title').textContent = `${player.name} · game view`;
+    document.getElementById('view-status').textContent = 'Waiting for view…';
+    document.getElementById('view-panel').hidden = false;
+    refreshView();
+  }
+  document.getElementById('view-close').addEventListener('click', closeView);
+  async function refreshView() {
+    if (!viewing || viewLoading) return;
+    const selected = viewing;
+    viewLoading = true;
+    try {
+      const response = await fetch(`/api/view?id=${encodeURIComponent(selected)}`, { cache: 'no-store' });
+      if (selected !== viewing) return;
+      if (response.status === 204) return;
+      if (response.status === 404) { document.getElementById('view-status').textContent = 'Player unavailable.'; return; }
+      if (!response.ok) throw new Error();
+      const image = await response.blob();
+      if (selected !== viewing) return;
+      const nextUrl = URL.createObjectURL(image);
+      const oldUrl = viewUrl;
+      viewUrl = nextUrl;
+      const element = document.getElementById('view-image');
+      element.src = nextUrl;
+      element.hidden = false;
+      if (oldUrl) URL.revokeObjectURL(oldUrl);
+      document.getElementById('view-status').textContent = 'Live view · no audio';
+    } catch { if (selected === viewing) document.getElementById('view-status').textContent = 'View unavailable.'; }
+    finally { viewLoading = false; }
+  }
+  setInterval(refreshView, 1000);
   async function refreshRoster() {
     const roster = document.getElementById('roster');
     try {
@@ -187,6 +262,12 @@
         row.className = 'player';
         const name = document.createElement('span');
         name.textContent = player.name;
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        const view = document.createElement('button');
+        view.textContent = 'View';
+        view.setAttribute('aria-label', `View ${player.name}'s game`);
+        view.addEventListener('click', () => openView(player));
         const kick = document.createElement('button');
         kick.textContent = 'Kick';
         kick.setAttribute('aria-label', `Kick ${player.name}`);
@@ -198,7 +279,8 @@
             await refreshRoster();
           } catch { kick.disabled = false; document.getElementById('roster-error').textContent = 'Could not kick player.'; }
         });
-        row.append(name, kick);
+        actions.append(view, kick);
+        row.append(name, actions);
         roster.appendChild(row);
       }
     } catch { roster.textContent = 'Roster unavailable.'; }

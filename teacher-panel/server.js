@@ -5,6 +5,7 @@ const path = require('node:path');
 const { createMissionApi, bridgeAddress } = require('./mission-api');
 const { createAccounts } = require('./accounts');
 const { createServerControl } = require('./server-control');
+const { createSessions } = require('./sessions');
 
 const minecraftHost = process.env.MINECRAFT_HOST || '127.0.0.1';
 const minecraftPort = Number(process.env.MINECRAFT_PORT || 25565);
@@ -24,9 +25,14 @@ function createServer(options = {}) {
   const missionApi = createMissionApi(options);
   const accounts = createAccounts(options.accountsFile || path.join(__dirname, 'data', 'teachers.json'));
   const control = options.control || createServerControl({ checkServer: () => checkServer(minecraftHost, minecraftPort) });
-  return http.createServer(async (request, response) => {
+  const sessions = options.sessions || createSessions({ checkServer: () => checkServer(minecraftHost, minecraftPort) });
+  const server = http.createServer(async (request, response) => {
     if (!/^(?:localhost|127\.0\.0\.1)(?::[0-9]+)?$/i.test(request.headers.host || '')) { response.writeHead(400).end(); return; }
     if (await accounts.handle(request, response)) return;
+    const teacher = accounts.current(request);
+    if (teacher && request.url !== '/api/session' && request.url.startsWith('/api/') && sessions.teacher(teacher).status === 'occupied') {
+      response.writeHead(403).end(); return;
+    }
     if (await missionApi(request, response)) return;
     if (['/api/mission-state', '/api/mission-action', '/api/message'].includes(request.url)) {
       if (!accounts.current(request)) { response.writeHead(401).end(); return; }
@@ -89,6 +95,45 @@ function createServer(options = {}) {
         response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         response.end(JSON.stringify(data));
       } catch { response.writeHead(503).end(); }
+      return;
+    }
+    if (request.url.startsWith('/api/view?')) {
+      if (!accounts.current(request)) { response.writeHead(401).end(); return; }
+      if (request.method !== 'GET') { response.writeHead(405).end(); return; }
+      const match = /^\/api\/view\?id=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.exec(request.url);
+      if (!match) { response.writeHead(400).end(); return; }
+      const bridge = bridgeAddress(options.bridgeUrl);
+      if (!bridge || !options.bridgeToken || options.bridgeToken.length < 32) { response.writeHead(503).end(); return; }
+      try {
+        const result = await fetch(new URL(`/view?id=${match[1]}`, bridge), {
+          headers: { Authorization: `Bearer ${options.bridgeToken}` }, signal: AbortSignal.timeout(4000), redirect: 'error'
+        });
+        if (result.status === 204 || result.status === 404) { response.writeHead(result.status, { 'Cache-Control': 'no-store' }).end(); return; }
+        if (!result.ok || result.headers.get('content-type') !== 'image/jpeg') throw new Error();
+        const image = Buffer.from(await result.arrayBuffer());
+        if (image.length > 200000 || image.length < 4 || image[0] !== 0xff || image[1] !== 0xd8 || image[image.length - 2] !== 0xff || image[image.length - 1] !== 0xd9) throw new Error();
+        response.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+        response.end(image);
+      } catch { response.writeHead(503).end(); }
+      return;
+    }
+    if (request.url === '/api/session') {
+      const owner = accounts.current(request);
+      if (!owner) { response.writeHead(401).end(); return; }
+      if (request.method === 'GET') {
+        response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        response.end(JSON.stringify(sessions.teacher(owner))); return;
+      }
+      if (!['POST', 'DELETE'].includes(request.method) || request.headers.origin !== `http://${request.headers.host}`) {
+        response.writeHead(403).end(); return;
+      }
+      try {
+        if (request.method === 'POST') await sessions.create(owner); else sessions.end(owner);
+        response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        response.end(JSON.stringify(sessions.teacher(owner)));
+      } catch (error) {
+        response.writeHead(409, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: error.message }));
+      }
       return;
     }
     if (request.url === '/api/server') {
@@ -178,11 +223,22 @@ function createServer(options = {}) {
     }
     response.writeHead(404).end();
   });
+  return server;
 }
 
 if (require.main === module) {
-  createServer({ teacherToken: process.env.TEACHER_TOKEN, bridgeToken: process.env.BRIDGE_TOKEN, bridgeUrl: process.env.BRIDGE_URL }).listen(panelPort, '127.0.0.1', () => {
-    console.log(`Teacher panel: http://127.0.0.1:${panelPort}`);
+  const discoveryHost = process.env.SESSION_BIND || '127.0.0.1';
+  const discoveryPort = 3002;
+  const discoveryAddress = process.env.SESSION_ADDRESS || '127.0.0.1:3002';
+  const gameAddress = process.env.SESSION_GAME_ADDRESS || `127.0.0.1:${minecraftPort}`;
+  if (!['127.0.0.1', 'localhost', '::1'].includes(discoveryHost) && !process.env.SESSION_ADDRESS)
+    throw new Error('Set SESSION_ADDRESS to the LAN address and port 3002');
+  const sessions = createSessions({ gameAddress, discoveryAddress, checkServer: () => checkServer(minecraftHost, minecraftPort) });
+  const listener = sessions.listener();
+  listener.listen(discoveryPort, discoveryHost, () => {
+    createServer({ sessions, teacherToken: process.env.TEACHER_TOKEN, bridgeToken: process.env.BRIDGE_TOKEN, bridgeUrl: process.env.BRIDGE_URL }).listen(panelPort, '127.0.0.1', () => {
+      console.log(`Teacher panel: http://127.0.0.1:${panelPort}`);
+    });
   });
 }
 module.exports = { checkServer, createServer };

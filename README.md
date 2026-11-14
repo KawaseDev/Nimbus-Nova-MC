@@ -27,7 +27,7 @@ The distributable is `build/libs/nimbus-nova-mc-0.1.0.jar`; the `-sources.jar` i
 
 `./gradlew runServer` starts a development server. Read and accept Minecraft's EULA yourself in `run/eula.txt` before running it.
 
-The title screen has a **Join session** screen for the planned nickname and session code flow. Joining is disabled until session creation, code resolution, and the Minecraft server bridge are implemented.
+Students can use **Join session** on the title screen. Enter a nickname, the teacher's session code, and the session server address shown in the teacher panel.
 
 ## Play The Darkening Sky
 
@@ -128,7 +128,7 @@ This applies the Mars/Earth gravity ratio to Minecraft physics; it is a gameplay
 - The prototype counts a fixed crew demand rather than deriving oxygen use from individual suits or player count.
 - Equipment uses normalized game units. Only the dust storm's sunlight curve comes from NASA data. There is no claim of a calibrated habitat or radiation model.
 - The mission drives both solar supply and a bounded dust-particle effect; atmosphere, pressure, radiation, and a physically calibrated storm model remain outside the simulation.
-- Teacher session codes, browser controls, persistent reports, task minigames, suit life support, rover resource costs, and controllable spacecraft remain roadmap work unless their status is explicitly completed in [TODO.md](TODO.md). NPC dialogue and basic rover driving are implemented.
+- Persistent reports, task minigames, suit life support, rover resource costs, and controllable spacecraft remain roadmap work unless their status is explicitly completed in [TODO.md](TODO.md). NPC dialogue and basic rover driving are implemented.
 - Minecraft's proprietary dependency remains an organizer eligibility question. Public mod source alone does not resolve it.
 
 ## Project documents
@@ -147,9 +147,24 @@ With Node.js 18 or newer installed, run `node teacher-panel/server.js` and open 
 
 The panel can start, stop, and restart a Minecraft server that it started. Start the panel with JDK 25 available in `JAVA_HOME` or `PATH`, and accept the Minecraft EULA in `run/eula.txt` before starting the server. Stop and restart send Minecraft's `stop` command so the world is saved. A server started outside the panel must be stopped separately before the panel can manage it. If the panel exits while its server is running, stop that server separately before starting it again from the panel.
 
+To test student joining on this computer, start the server in the panel and select **Create session**. Enter the displayed code and `127.0.0.1:3002` in the mod. The nickname appears in the teacher roster and is linked to the player's Minecraft identity while the server is running.
+
+For a local network, set the server computer's LAN address in `run/server.properties` as `server-ip`, keep `online-mode=true`, and start the panel with these variables set to that same address:
+
+```sh
+export SESSION_BIND=192.168.1.10
+export SESSION_ADDRESS=192.168.1.10:3002
+export SESSION_GAME_ADDRESS=192.168.1.10:25565
+export MINECRAFT_HOST=192.168.1.10
+```
+
+Replace `192.168.1.10` with the server computer's actual LAN address, and allow TCP ports 3002 and 25565 through its firewall. Students need Minecraft Java Edition, a valid Minecraft account, Fabric, and the mod. The session code is only for locating the server; it does not replace Minecraft authentication or restrict direct server connections. The code expires after one hour; the owning teacher can renew it or end the reservation. Reservations and nicknames are held in memory and are lost when the corresponding process restarts. Creating a session does not reset the world.
+
 Create a teacher account on the sign-in screen. Usernames use 3–32 letters, digits, dots, underscores, or hyphens; a password is required. Accounts are stored in `teacher-panel/data/teachers.json` with salted password hashes. Keep a backup of that file; deleting it deletes the accounts. Sessions expire after 12 hours or when the server restarts. There is no password reset yet.
 
 The connection indicator checks only whether the configured TCP port is reachable. To use the roster, mission controls, and crew messages, start both the Fabric server and the panel with the same `BRIDGE_TOKEN` (at least 32 characters), and start the panel with `BRIDGE_URL=http://127.0.0.1:3001`. The bridge listens only on localhost. Each signed-in teacher controls the same server and can see and kick any connected player; session isolation is not implemented. Registration is open to anyone with access to this local service; it is not ready for public hosting or classroom use.
+
+**View** on a player displays their Minecraft game as refreshed images, without audio. The student sees an in-game notice while their view is requested. Frames are kept in server memory until the player disconnects and are not saved to disk. Close the view to stop requesting frames. The student must have the updated mod installed.
 
 ### Mission backend foundation
 
@@ -159,6 +174,6 @@ The local Node service also exposes a first bridge API. Configure `TEACHER_TOKEN
 - `POST /api/commands` requires the same authorization and a JSON body with UUID strings `id` and `sessionId`, an `action` (`start`, `pause`, `resume`, `end`, or `assign_role`), and an optional `parameters` object. It forwards to `POST /commands` on the bridge.
 - The backend authenticates to the bridge with `Authorization: Bearer <BRIDGE_TOKEN>` and passes its JSON response and status back to the teacher. Missing configuration fails closed; an unreachable bridge returns an error.
 
-The dashboard reads the server's mission state and can start, pause, resume, abort, or reset an ended mission. Starting requires at least one connected player. The message box sends text to all connected players. **Create outpost** runs the same guarded operation as `/mars create` in the current server world; it does not create a separate save. Command IDs are deduplicated in server memory; they do not survive a server restart. The legacy `/api/commands` endpoint described above still has no corresponding bridge route. The backend does not yet create or reserve sessions, assign roles, or persist reports.
+The dashboard reads the server's mission state and can start, pause, resume, abort, or reset an ended mission. Starting requires at least one connected player. The message box sends text to all connected players. **Create outpost** runs the same guarded operation as `/mars create` in the current server world; it does not create a separate save. Command IDs are deduplicated in server memory; they do not survive a server restart. The legacy `/api/commands` endpoint described above still has no corresponding bridge route. Role assignment and persistent reports are not yet available in the panel.
 
 Original code is MIT licensed. Minecraft retains its own license. Independent student project; no NASA, Mojang, or Microsoft endorsement.

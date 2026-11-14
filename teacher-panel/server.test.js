@@ -296,3 +296,102 @@ test('world creation requires a teacher and forwards only a fixed request', asyn
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('student view requires a teacher and only returns valid bounded images', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const http = require('node:http');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-view-'));
+  const token = 'b'.repeat(32);
+  const id = '01234567-89ab-4cde-8f01-23456789abcd';
+  let invalid = false;
+  const bridge = http.createServer((request, response) => {
+    assert.equal(request.headers.authorization, `Bearer ${token}`);
+    assert.equal(request.url, `/view?id=${id}`);
+    response.writeHead(200, { 'Content-Type': 'image/jpeg' });
+    response.end(invalid ? 'not an image' : Buffer.from([0xff, 0xd8, 0, 0xff, 0xd9]));
+  });
+  await new Promise(resolve => bridge.listen(0, '127.0.0.1', resolve));
+  const server = createServer({ accountsFile: path.join(dir, 'users.json'), bridgeToken: token, bridgeUrl: `http://127.0.0.1:${bridge.address().port}` });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal((await fetch(`${base}/api/view?id=${id}`)).status, 401);
+    const registration = await fetch(`${base}/api/account/register`, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'teacher', password: 'x' }) });
+    const cookie = registration.headers.get('set-cookie').split(';')[0];
+    assert.equal((await fetch(`${base}/api/view?id=bad`, { headers: { Cookie: cookie } })).status, 400);
+    const response = await fetch(`${base}/api/view?id=${id}`, { headers: { Cookie: cookie } });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'image/jpeg');
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    invalid = true;
+    assert.equal((await fetch(`${base}/api/view?id=${id}`, { headers: { Cookie: cookie } })).status, 503);
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+    await new Promise(resolve => bridge.close(resolve));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('session codes resolve only while active and reserve one server per teacher', async () => {
+  const { createSessions } = require('./sessions');
+  let online = false;
+  const sessions = createSessions({ gameAddress: '127.0.0.1:25565', discoveryAddress: '127.0.0.1:3002', checkServer: async () => online });
+  const listener = sessions.listener();
+  await new Promise(resolve => listener.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${listener.address().port}`;
+  const resolveCode = code => fetch(`${base}/resolve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
+  try {
+    await assert.rejects(sessions.create('teacher'), /Start the Minecraft server/);
+    online = true;
+    const session = await sessions.create('teacher');
+    assert.match(session.code, /^[A-HJ-NP-Z2-9]{8}$/);
+    assert.equal((await sessions.create('teacher')).code, session.code);
+    await assert.rejects(sessions.create('other'), /reserved/);
+    assert.equal(sessions.teacher('other').status, 'occupied');
+    assert.equal((await resolveCode('AAAAAAAA')).status, 404);
+    const result = await resolveCode(session.code.toLowerCase());
+    assert.deepEqual(await result.json(), { address: '127.0.0.1:25565' });
+    online = false;
+    assert.equal((await resolveCode(session.code)).status, 503);
+    online = true;
+    assert.throws(() => sessions.end('other'), /reserved/);
+    session.expires = Date.now() - 1;
+    assert.equal((await resolveCode(session.code)).status, 404);
+    assert.equal(sessions.teacher('teacher').status, 'expired');
+    await assert.rejects(sessions.create('other'), /reserved/);
+    const renewed = await sessions.create('teacher');
+    assert.equal((await resolveCode(renewed.code)).status, 200);
+    sessions.end('teacher');
+    assert.equal((await resolveCode(renewed.code)).status, 404);
+    for (let i = 0; i < 6; i++) await resolveCode('AAAAAAAA');
+    assert.equal((await resolveCode('AAAAAAAA')).status, 429);
+  } finally { await new Promise(resolve => listener.close(resolve)); }
+});
+
+test('session management requires a teacher and same-origin mutations', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { createSessions } = require('./sessions');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-session-'));
+  const sessions = createSessions({ checkServer: async () => true });
+  const server = createServer({ accountsFile: path.join(dir, 'users.json'), sessions });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal((await fetch(`${base}/api/session`)).status, 401);
+    const registration = await fetch(`${base}/api/account/register`, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'teacher', password: 'x' }) });
+    const cookie = registration.headers.get('set-cookie').split(';')[0];
+    assert.equal((await fetch(`${base}/api/session`, { method: 'POST', headers: { Cookie: cookie, Origin: 'http://evil.example' } })).status, 403);
+    const created = await fetch(`${base}/api/session`, { method: 'POST', headers: { Cookie: cookie, Origin: base } });
+    assert.equal((await created.json()).status, 'open');
+    const otherRegistration = await fetch(`${base}/api/account/register`, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'otherteacher', password: 'x' }) });
+    const otherCookie = otherRegistration.headers.get('set-cookie').split(';')[0];
+    assert.equal((await (await fetch(`${base}/api/session`, { headers: { Cookie: otherCookie } })).json()).status, 'occupied');
+    assert.equal((await fetch(`${base}/api/status`, { headers: { Cookie: otherCookie } })).status, 403);
+    assert.equal((await fetch(`${base}/api/session`, { method: 'DELETE', headers: { Cookie: otherCookie, Origin: base } })).status, 409);
+    assert.equal((await fetch(`${base}/api/session`, { method: 'DELETE', headers: { Cookie: cookie, Origin: base } })).status, 200);
+  } finally { await new Promise(resolve => server.close(resolve)); fs.rmSync(dir, { recursive: true, force: true }); }
+});
