@@ -10,6 +10,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.DoubleHighBlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HalfTransparentBlock;
@@ -49,8 +50,9 @@ public final class ScifiBlocks {
         final Block block = Registry.register(BuiltInRegistries.BLOCK, key, factory.apply(BlockBehaviour.Properties.of()
                 .setId(key).mapColor(MapColor.COLOR_LIGHT_GRAY).sound(SoundType.METAL).strength(3.0F).lightLevel(_ -> light)));
         final ResourceKey<Item> itemKey = ResourceKey.create(Registries.ITEM, identifier);
-        Registry.register(BuiltInRegistries.ITEM, itemKey, new BlockItem(block,
-                new Item.Properties().setId(itemKey).useBlockDescriptionPrefix()));
+        final Item.Properties itemProperties = new Item.Properties().setId(itemKey).useBlockDescriptionPrefix();
+        Registry.register(BuiltInRegistries.ITEM, itemKey, block instanceof AirlockDoorBlock
+                ? new DoubleHighBlockItem(block, itemProperties) : new BlockItem(block, itemProperties));
         return block;
     }
 

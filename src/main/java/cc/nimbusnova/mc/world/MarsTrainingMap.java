@@ -2,6 +2,7 @@ package cc.nimbusnova.mc.world;
 
 import cc.nimbusnova.mc.content.ModBlocks;
 import cc.nimbusnova.mc.content.OutpostContent;
+import cc.nimbusnova.mc.content.ScienceStations;
 import cc.nimbusnova.mc.content.ScifiBlocks;
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
@@ -223,7 +224,10 @@ public final class MarsTrainingMap {
                 new EquipmentSite(SAMPLE_DEPOSIT, OutpostContent.SAMPLE_DEPOSIT, Blocks.COPPER_ORE),
                 new EquipmentSite(SAMPLE_ANALYZER, OutpostContent.SAMPLE_ANALYZER, Blocks.AIR),
                 new EquipmentSite(SUPPLY_LOCKER, OutpostContent.SUPPLY_LOCKER, Blocks.AIR),
-                new EquipmentSite(WEATHER_STATION, OutpostContent.WEATHER_TERMINAL, Blocks.AIR)
+                new EquipmentSite(WEATHER_STATION, OutpostContent.WEATHER_TERMINAL, Blocks.AIR),
+                new EquipmentSite(new BlockPos(-1, 66, -10), ScienceStations.AIRLOCK_CONTROL, Blocks.AIR),
+                new EquipmentSite(new BlockPos(3, 66, 5), ScienceStations.BACKUP_POWER, Blocks.AIR),
+                new EquipmentSite(new BlockPos(2, 66, 25), ScienceStations.SHIELD_BENCH, Blocks.AIR)
         };
         for (final EquipmentSite site : equipment) {
             final var current = level.getBlockState(site.position);
@@ -640,6 +644,9 @@ public final class MarsTrainingMap {
         level.setBlock(SUPPLY_LOCKER, OutpostContent.SUPPLY_LOCKER.defaultBlockState(), Block.UPDATE_CLIENTS);
         fill(level, 12, FLOOR_Y, -6, 16, FLOOR_Y, -2, Blocks.CONCRETE.lightGray());
         level.setBlock(WEATHER_STATION, OutpostContent.WEATHER_TERMINAL.defaultBlockState(), Block.UPDATE_CLIENTS);
+        level.setBlock(new BlockPos(-1, 66, -10), ScienceStations.AIRLOCK_CONTROL.defaultBlockState(), Block.UPDATE_CLIENTS);
+        level.setBlock(new BlockPos(3, 66, 5), ScienceStations.BACKUP_POWER.defaultBlockState(), Block.UPDATE_CLIENTS);
+        level.setBlock(new BlockPos(2, 66, 25), ScienceStations.SHIELD_BENCH.defaultBlockState(), Block.UPDATE_CLIENTS);
 
 
 

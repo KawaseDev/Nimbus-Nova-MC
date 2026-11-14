@@ -85,14 +85,28 @@ Items appear in the **Tools & Utilities** creative tab, or operators can use `/g
 | `mission_tablet` | Right-click to open the real mission console |
 | `oxygen_canister` | Life-support engineer/operator restores up to 8 shared oxygen units during an active mission, from a pool of two canisters per mission; consumes one on a successful survival-mode use |
 | `engineering_tool` | Iron-grade pickaxe with original multitool artwork |
-| `mars_sample` | Collectible sample; analysis mechanics remain planned |
+| `mars_sample` | Collect at the marked exterior deposit and deliver to the analyzer during preparation |
 | `space_helmet`, `space_chestplate`, `space_leggings`, `space_boots` | Wearable expedition armor with original item and worn textures; suit oxygen, pressure, and radiation protection remain planned |
 
-The greenhouse and radiation shelter are scenery for future systems; they do not yet grow crops or model radiation. The new rover is driveable: right-click to board, use movement keys to steer/drive, jump to brake, and sneak to exit. It stops when unoccupied. There is no fuel, energy, cargo, or expedition-objective simulation for the rover yet.
+The greenhouse has decorative hydroponic trays; crop growth remains planned. The reinforced crew shelter is the protected zone during the authored solar-particle event. Its protection uses a fixed game zone, not calibrated radiation transport. The new rover is driveable: right-click to board, use movement keys to steer/drive, jump to brake, and sneak to exit. It stops when unoccupied. There is no fuel, energy, cargo, or expedition-objective simulation for the rover yet.
 
-Commander Vega and Engineer Sol are original astronaut NPCs with idle/head-look behavior and paginated, mission-state-aware conversation. Right-click to talk. Their briefing and hints support the existing mission; a task minigame and NPC-controlled quest progression remain planned.
+Commander Vega and Engineer Sol are original astronaut NPCs with idle/head-look behavior and paginated, mission-state-aware conversation. Right-click to talk. Their briefing and hints support the guided preparation, physical tasks, and active mission.
 
 The Fabric runtime test checks tablet opening, canister consumption/refusal at full reserve, suit/item rendering, map travel, equipment-block power interactions, rover movement/stopping, NPC dialogue, and denial of unauthorized equipment changes/reset. Captures show the rendered UI and content. This is a single-client game test, not a two-player classroom test.
+
+### Domed outpost and science labs
+
+Fresh `/mars create` worlds include a transparent demonstration dome, continuous structural ribs, custom metallic double doors, animated floor/service lights, hull panels, cable trunks, battery racks, tanks, cabinets, and hydroponic models. Four exits preserve access to exterior panels, the sample site, and rover routes. Solar arrays sit outside the dome. The 14 `scifi_*` blocks are available in Tools & Utilities; tank/rack/crop props are visual models, while the three `lesson_*` stations below have gameplay.
+
+| Station | Location (x, y, z) | What students do and learn |
+| --- | --- | --- |
+| Airlock pressure lab | −1, 66, −10 | Seal the model hatches, vent/pump in steps to match the target, then cycle. Unsafe pressure differences reject cycling. Preparation is free practice; active cycles cost 2 shared oxygen units. This lab is separate from automatic walk-through doors. |
+| Backup power reserve | 3, 66, 5 | Decide when to spend one of two shared reserve cells, each adding up to 10 energy units. Full batteries reject transfers. Practice spends no cells. Stored power cannot restore sunlight lost to dust. |
+| Shielding experiment | 2, 66, 25 | Compare three material layers and watch the illustrative detector index and carried mass change. Glass is different from substantial shielding; values are authored teaching indices, not dosimetry or engineering specifications. |
+
+The dome is fictional architecture with open passage portals. It does not simulate an airtight pressure vessel or provide radiation safety. The reinforced shelter remains the mission's protected game zone. Real engineering background is linked in [CREDITS.md](CREDITS.md).
+
+Existing saves are preserved: `/mars upgrade` changes only recognized equipment/door anchors after checking them. `/mars dome` adds a shell only when its entire footprint is empty or already consists of that shell's blocks; it refuses occupied footprints. Use a fresh test world for the complete layout rather than deleting teammates' builds.
 
 ### Interface and rendering
 

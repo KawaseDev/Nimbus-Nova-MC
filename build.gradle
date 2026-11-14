@@ -153,3 +153,12 @@ tasks.register('domeGeometryTest', JavaExec) {
 }
 
 check.dependsOn scifiAssetTest, domeGeometryTest
+
+tasks.register('lessonModelTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.lesson.LessonModelTest'
+    enableAssertions = true
+}
+
+check.dependsOn lessonModelTest

@@ -62,3 +62,9 @@ The [NASA Mars Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsf
 ## Guided mission update
 
 The cable-routing puzzle, coupled-valve model, holographic guidance, projector assets, and additional outpost models are original Codex-assisted implementation/artwork. These gameplay systems and the relay fault are authored teaching abstractions; they do not add NASA measurements beyond the cited environmental sources.
+
+## Dome kit and equipment lessons
+
+The sci-fi kit, three experiment stations, and associated pixel textures/model meshes are original Codex-assisted assets. The glass dome and walk-through doors are fictional architecture; pressure is demonstrated by a separate training console. Backup capacities (+10 units, two cells), airlock costs (2 reserve units), detector indices, and material mass values are authored game assumptions.
+
+The airlock lesson uses the isolation/equalization principle described in NASA's [EVA Airlocks and Alternate Ingress/Egress Methods](https://www.nasa.gov/wp-content/uploads/2017/02/2018-_eva_airlocks_and_alternate_ingressegress_methods_document.pdf). The [ISS Systems Engineering Case Study](https://www.nasa.gov/wp-content/uploads/2015/05/design_iss_systems_engineering_case_study.pdf) describes recovering air with a compressor before depressurization; this game does not simulate that hardware. NASA's [Radiation Shielding Optimization on Mars](https://ntrs.nasa.gov/citations/20130012456) supplies context for shielding trade-offs and secondary particle production. The bench's simple monotonically decreasing index is not a physical radiation transport calculation and cannot rank real shielding designs. Sources checked 14 November 2026.

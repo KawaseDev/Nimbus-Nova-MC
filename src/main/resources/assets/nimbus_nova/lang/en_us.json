@@ -37,5 +37,8 @@
   "block.nimbus_nova.scifi_air_tank": "Air Cylinder (model)",
   "block.nimbus_nova.scifi_cryo_cabinet": "Cryogenic Cabinet (model)",
   "block.nimbus_nova.scifi_hydroponic_tray": "Hydroponic Tray (model)",
-  "block.nimbus_nova.scifi_airlock_door": "Outpost Airlock Door"
+  "block.nimbus_nova.scifi_airlock_door": "Outpost Airlock Door",
+  "block.nimbus_nova.lesson_airlock_control": "Airlock Pressure Lab",
+  "block.nimbus_nova.lesson_backup_power": "Backup Power Reserve",
+  "block.nimbus_nova.lesson_shield_bench": "Shielding Experiment"
 }

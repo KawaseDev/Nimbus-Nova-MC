@@ -252,15 +252,6 @@
         14
       ],
       "faces": {
-        "up": {
-          "texture": "#body",
-          "uv": [
-            0,
-            0,
-            16,
-            16
-          ]
-        },
         "north": {
           "texture": "#body",
           "uv": [
@@ -311,15 +302,6 @@
         8
       ],
       "faces": {
-        "up": {
-          "texture": "#body",
-          "uv": [
-            0,
-            0,
-            16,
-            16
-          ]
-        },
         "north": {
           "texture": "#body",
           "uv": [

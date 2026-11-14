@@ -7,11 +7,12 @@ public final class DomeGeometryTest {
         /* w */
     }
 
-    public static void main(final String[] arguments) {
+    public static void main(final String[] ignoredArguments) {
         final var occupied = new HashSet<String>();
         int glass = 0, structure = 0;
         for (final var panel : OutpostDome.panels()) {
-            assert occupied.add(panel.x() + "," + panel.y() + "," + panel.z()) : "Duplicate shell voxel";
+            if (!occupied.add(panel.x() + "," + panel.y() + "," + panel.z()))
+                throw new AssertionError("Duplicate shell voxel");
             assert panel.y() >= 0 && panel.y() <= OutpostDome.HEIGHT;
             assert Math.abs(panel.x() - 2) <= OutpostDome.RADIUS && Math.abs(panel.z()) <= OutpostDome.RADIUS;
             assert !OutpostDome.portal(panel.x(), panel.y(), panel.z()) : "An exit was blocked";

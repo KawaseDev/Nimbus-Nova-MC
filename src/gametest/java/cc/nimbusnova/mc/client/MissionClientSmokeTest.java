@@ -65,11 +65,29 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             world.getConnection().waitForChunksRender();
             GuidedMissionChecks.capture(context, "mars-outpost");
             world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 50 88 -53 42 18");
+            context.waitFor(client -> client.player != null && client.player.getY() > 80);
+            context.waitTicks(5);
             world.getConnection().waitForChunksRender();
             GuidedMissionChecks.capture(context, "dome-exterior");
             world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 12 68 -9 35 -13");
+            context.waitFor(client -> client.player != null && client.player.getX() < 15);
+            context.waitTicks(5);
             world.getConnection().waitForChunksRender();
             GuidedMissionChecks.capture(context, "dome-interior");
+            context.runOnClient(client -> client.gui.hud.toggle());
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p -7 66 -7 -35 -8");
+            context.waitTicks(10);
+            GuidedMissionChecks.capture(context, "geometry-habitat-wall");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p -10 66 1 -90 10");
+            context.waitTicks(10);
+            GuidedMissionChecks.capture(context, "geometry-life-support");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 12 66 -7 -15 10");
+            context.waitTicks(10);
+            GuidedMissionChecks.capture(context, "geometry-weather-greenhouse");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 0 66 15 0 -5");
+            context.waitTicks(10);
+            GuidedMissionChecks.capture(context, "geometry-shelter");
+            context.runOnClient(client -> client.gui.hud.toggle());
             GuidedMissionChecks.checkOutpost(context, world);
             if (MissionTutorial.consoleOpened)
                 throw new AssertionError("The tutorial must start with the console step unchecked");
@@ -85,9 +103,12 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
                 throw new AssertionError("Opening the console must tick the tutorial's first step");
 
             GuidedMissionChecks.prepare(context, world);
+            ScienceStationChecks.practice(context, world);
             context.setScreen(MissionConsoleScreen::new);
             context.clickScreenButton("Start mission");
             context.waitFor(client -> NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.ACTIVE);
+            context.setScreen(() -> null);
+            ScienceStationChecks.active(context, world);
             context.setScreen(MissionConsoleScreen::new);
             GuidedMissionChecks.capture(context, "mission-overview");
             context.clickScreenButton("Crew");
