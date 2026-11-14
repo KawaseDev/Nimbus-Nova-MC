@@ -2,7 +2,7 @@
 
 A cooperative Minecraft Mars mission trainer for NASA Space Apps 2026's **Build a Junior Astronaut Mission Trainer** challenge.
 
-The first mod batch adds a shared power/oxygen simulation, power and life-support roles, mission commands, and a synchronized HUD/console. The Java build and simulation self-check pass; visual and two-client checks remain pending. The current four-minute dust event uses **authored game balance**, not NASA measurements. Custom Mars terrain, items, and textures are a separate batch; see [TODO.md](TODO.md) for their verified status.
+The mod includes an authored Mars outpost, shared power/oxygen simulation, two crew roles, a responsive HUD/console, functional equipment stations, and eight original space items with custom textures. Build, simulation, asset checks, and a single-client Fabric runtime smoke test pass. The current four-minute dust event uses **authored game balance**, not NASA measurements. Two-client testing and NASA evidence integration remain pending; see [TODO.md](TODO.md).
 
 The teacher backend and admin panel belong to another teammate. Local mod development uses operator commands and does not depend on that platform being available.
 
@@ -19,7 +19,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./gradlew runClient
 ```
 
-`build` includes the assert-based mission simulation self-check. Run it separately with `./gradlew missionSelfTest`.
+`build` includes `missionSelfTest` and `contentAssetTest`. Run `./gradlew runClientGameTest` for the isolated single-client runtime test and render captures. It creates its own disposable test world and writes screenshots under `build/run/clientGameTest/screenshots`; it does not use your normal saves. The client test uses the version-pinned experimental Fabric test API and requires a graphical environment.
 
 Elsewhere, set `JAVA_HOME` to your JDK 25 installation. Windows uses `gradlew.bat build` and `gradlew.bat runClient`. In IntelliJ, open this folder as a Gradle project and select JDK 25 for both the project and Gradle JVM.
 
@@ -30,12 +30,14 @@ The distributable is `build/libs/nimbus-nova-mc-0.1.0.jar`; the `-sources.jar` i
 ## Try the prototype mission
 
 1. Join a world/server with Nimbus Nova installed. Use a test world with cheats enabled, or a server account with gamemaster/operator permission, for Mission Control commands.
-2. Press **J** to open the mission console. The key is rebindable in Minecraft's controls.
+2. As an operator, run `/mars create` once to build Aster Outpost. Use `/mars join` to enter and `/mars leave` to return. Then press **J** to open the mission console. The key is rebindable in Minecraft's controls.
 3. Before starting, choose **Power engineer** or **Life support** in the Systems tab. Two players can take different roles; an operator can control both systems for solo testing.
 4. Start from the console or run `/mission start`.
 5. Keep battery and oxygen above zero for four minutes. The dust event reduces solar generation from **01:15 to 03:15**.
 6. Complete at least **90 seconds of powered research** for full success. Survival with insufficient research earns partial success; switching research off forever cannot earn full success.
 7. Pause to discuss decisions, resume to continue, and reset before another attempt.
+
+The map contains a habitat, landing pad, power yard, greenhouse, shelter, static rover workshop, and marked paths. Research and oxygen consoles are bound automatically. `/mars create` preserves an existing outpost; an interrupted construction claim blocks automatic rebuilding. The map has authored terrain and no NASA geographic-accuracy claim.
 
 The HUD shows shared reserves, net energy rate, research progress, your role, the remaining mission time, and warnings. The console has Overview, Systems, and Briefing tabs. Equipment controls affect the server simulation; they are not separate client-side resource values.
 
@@ -59,14 +61,30 @@ The HUD shows shared reserves, net energy rate, research progress, your role, th
 
 A station binding uses an existing block within five blocks and replaces no terrain. Its permitted engineer can right-click it to toggle the associated system. Choose plain blocks so normal container or redstone interactions do not confuse the demonstration.
 
+## Mars map and equipment
+
+`/mars create` requires operator permission. `/mars join` and `/mars leave` are available to students after creation. The map lives in the separate `nimbus_nova:mars_training` dimension. Construction checks for existing blocks before editing and stores a world-local marker. Keep normal world backups. If the server restarts during a visit, `/mars leave` searches for a safe location near the overworld spawn when the original return position is unavailable.
+
+Items appear in the **Tools & Utilities** creative tab, or operators can use `/give @s nimbus_nova:<id>`:
+
+| ID | Current behavior |
+| --- | --- |
+| `mission_tablet` | Right-click to open the real mission console |
+| `oxygen_canister` | Life-support engineer/operator restores up to 25 shared oxygen units during an active mission; consumes one on a successful survival-mode use |
+| `engineering_tool` | Iron-grade pickaxe with original multitool artwork |
+| `mars_sample` | Collectible sample; analysis mechanics remain planned |
+| `space_helmet`, `space_chestplate`, `space_leggings`, `space_boots` | Wearable expedition armor with original item and worn textures; suit oxygen, pressure, and radiation protection remain planned |
+
+The greenhouse, radiation shelter, and static rover are authored scenery for future systems. They do not yet grow crops, model radiation, or drive. The runtime smoke test checks tablet opening, canister consumption/refusal at full reserve, suit/item rendering, map travel, station callbacks, and denial of an unauthorized equipment change/reset. It is not a two-player classroom test.
+
 ## Current limits
 
-- One transient mission runs per server. Resource state, roles, and station bindings do not survive a server restart.
+- One transient mission runs per server. Resource state, roles, and manually bound stations do not survive a server restart. The authored outpost persists; joining it rebinds its built-in consoles.
 - Rejoining the same running server retains the player's role in memory. The mission pauses when no players remain; an operator resumes it.
 - The prototype counts a fixed crew demand rather than deriving oxygen use from individual suits or player count.
 - Equipment uses normalized game units. There is no claim of a calibrated habitat or radiation model.
 - The current dust event changes the resource model; a visual weather effect is a separate feature.
-- Teacher session codes, browser controls, persistent reports, NPC dialogue, task minigames, functional suits, and vehicles remain roadmap work unless their status is explicitly completed in [TODO.md](TODO.md).
+- Teacher session codes, browser controls, persistent reports, NPC dialogue, task minigames, suit life support, and controllable vehicles remain roadmap work unless their status is explicitly completed in [TODO.md](TODO.md).
 - Minecraft's proprietary dependency remains an organizer eligibility question. Public mod source alone does not resolve it.
 
 ## Project documents
