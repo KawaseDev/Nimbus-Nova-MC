@@ -51,11 +51,11 @@ final class MissionUi implements MissionPalette {
     }
 
     static long sunPercent(final MissionState.Snapshot state) {
-        return Math.round(DustStormProfile.solarFactor(state.elapsedSeconds()) * 100);
+        return Math.round(DustStormProfile.solarFactor(state.dustStorm(), state.elapsedSeconds()) * 100);
     }
 
     static long forecastPercent(final MissionState.Snapshot state) {
-        return Math.round(DustStormProfile.forecastFactor(state.elapsedSeconds()) * 100);
+        return Math.round(DustStormProfile.forecastFactor(state.dustStorm(), state.elapsedSeconds()) * 100);
     }
 
     static boolean seesWeather(final MissionSnapshotPayload packet) {

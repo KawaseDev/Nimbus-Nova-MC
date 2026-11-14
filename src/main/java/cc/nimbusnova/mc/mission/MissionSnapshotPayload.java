@@ -16,7 +16,8 @@ public record MissionSnapshotPayload(MissionState.Snapshot state, CrewRole role,
         this(new MissionState.Snapshot(MissionState.Phase.valueOf(buffer.readUtf(16)), buffer.readVarInt(),
                         buffer.readDouble(), buffer.readDouble(), buffer.readBoolean(), buffer.readBoolean(),
                         buffer.readDouble(), buffer.readDouble(), buffer.readVarInt(), buffer.readVarInt(), buffer.readUtf(512),
-                        buffer.readDouble(), buffer.readDouble(), buffer.readVarInt(), buffer.readVarInt()),
+                        buffer.readDouble(), buffer.readDouble(), buffer.readVarInt(), buffer.readVarInt(),
+                        DustStorm.byId(buffer.readUtf(8))),
                 CrewRole.valueOf(buffer.readUtf(16)), buffer.readBoolean(), buffer.readVarInt());
     }
 
@@ -36,6 +37,7 @@ public record MissionSnapshotPayload(MissionState.Snapshot state, CrewRole role,
         buffer.writeDouble(state.lowestOxygen());
         buffer.writeVarInt(state.firstResearchCutSecond());
         buffer.writeVarInt(state.canistersLeft());
+        buffer.writeUtf(state.dustStorm().id, 8);
         buffer.writeUtf(role.name(), 16);
         buffer.writeBoolean(operator);
         buffer.writeVarInt(crew);

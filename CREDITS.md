@@ -17,15 +17,16 @@ See [rules.md](rules.md) for competition references. No NASA imagery, NASA brand
 
 ## NASA data: The Darkening Sky
 
-The solar supply in `DustStormProfile.java` follows the Opportunity rover's record of the 2018 Mars dust storm. Retrieved November 14, 2026. The numbers are typed into the code; no dataset file is bundled, and nothing is live.
+The solar supply in `DustStormProfile.java` follows one of two real storms Opportunity lived through, defined in `DustStorm.java`. Each reset picks one at random unless Mission Control pins it with `/mission storm 2018|2007`. Retrieved November 14, 2026. The numbers are typed into the code; no dataset file is bundled, and nothing is live.
 
 | Value | Source | Used for |
 | --- | --- | --- |
 | 21 Wh of solar energy and tau 10.5 on June 10, 2018 (sol 5111) | NASA Science, [On Mars, Light Is Energy](https://science.nasa.gov/resource/on-mars-light-is-energy/) (June 13, 2018) | Storm peak and the tau shown to players |
 | About 645 Wh on June 1, 2018 | The Planetary Society, [Opportunity Pummeled by Massive Dust Storm](https://www.planetary.org/articles/06-mer-update-opportunity-dust-storm-sleep) (June 14, 2018) | Clear-sky reference |
-| Storm detected May 30; last signal June 10; JPL reported tau 10.8 | NASA JPL, [Opportunity Hunkers Down During Dust Storm](https://www.jpl.nasa.gov/news/opportunity-hunkers-down-during-dust-storm/) (updated to July 26, 2018) | Mission timeline and debrief text |
+| Storm detected May 30; last signal June 10; JPL reported tau 10.8; the 2007 storm reached tau above 5.5 | NASA JPL, [Opportunity Hunkers Down During Dust Storm](https://www.jpl.nasa.gov/news/opportunity-hunkers-down-during-dust-storm/) (updated to July 26, 2018) | Mission timeline, debrief text, 2007 opacity |
+| About 700 Wh per day before the 2007 storms; 128 Wh on July 18, 2007; the team skipped communications to save energy | NASA JPL, [NASA Mars Rovers Braving Severe Dust Storms](https://www.jpl.nasa.gov/news/nasa-mars-rovers-braving-severe-dust-storms) (July 20, 2007, updated July 23) | 2007 storm peak and debrief text |
 
-**Observed:** the ratio 21 / 645 ≈ 3% sets how much sunlight remains at the storm peak. NASA's graphic gives tau 10.5 and JPL's article gives 10.8 for the same day; the game shows 10.5 from the graphic.
+**Observed:** the ratios 21 / 645 ≈ 3% (2018) and 128 / 700 ≈ 18% (2007) set how much sunlight remains at each storm's peak. Opportunity survived the 2007 storm and was lost in 2018, which the debrief tells players. NASA's graphic gives tau 10.5 and JPL's article gives 10.8 for the same day; the game shows 10.5 from the graphic.
 
 **Game assumptions, not measurements:** about 10 sols of dimming compressed into 60 seconds with a straight-line fall, battery and oxygen capacities, every energy rate, the 0.15 backup generator (inspired by nuclear-powered Curiosity working through the same storm), and the recovery to 50% sunlight. Opportunity did not recover from this storm.
 

@@ -21,6 +21,7 @@ public final class MissionState {
         OXYGEN, RESEARCH
     }
 
+    private final DustStorm storm;
     private Phase phase = Phase.READY;
     private int elapsedSeconds;
     private double battery = 80, oxygen = 75;
@@ -32,6 +33,14 @@ public final class MissionState {
     private int firstResearchCutSecond = -1;
     private int canistersLeft = OXYGEN_CANISTERS;
     private String lastEvent = "Choose your role. Mission Control starts the simulation.";
+
+    public MissionState() {
+        this(DustStorm.OPPORTUNITY_2018);
+    }
+
+    public MissionState(final DustStorm storm) {
+        this.storm = storm;
+    }
 
     public void start() {
         if (phase != Phase.READY)
@@ -90,7 +99,7 @@ public final class MissionState {
 
         elapsedSeconds++;
         // Solar supply follows Opportunity's 2018 record; battery size and demand are authored game units.
-        final double generation = DustStormProfile.generation(elapsedSeconds);
+        final double generation = DustStormProfile.generation(storm, elapsedSeconds);
         final double demand = 0.15 + (oxygenOnline ? 0.45 : 0) + (researchOnline ? 0.65 : 0);
         battery = Math.clamp(battery + generation - demand, 0, 100);
         oxygen = Math.clamp(oxygen + (oxygenOnline && battery > 0 ? 0.55 : 0) - 0.4, 0, 100);
@@ -107,10 +116,11 @@ public final class MissionState {
             lastEvent = "Dust front arrived. The sky is darkening and solar output is falling. Rebalance power with your crew.";
 
         if (elapsedSeconds == DustStormProfile.PEAK_START_SECONDS)
-            lastEvent = "Storm peak: the sun gives only 3% of its usual energy, like Opportunity's 21 Wh on June 10, 2018.";
+            lastEvent = "Storm peak: the sun gives only " + storm.peakPercent() + "% of its usual energy, like Opportunity's "
+                    + (int) storm.peakWattHours + " Wh on " + storm.peakDate + ".";
 
         if (elapsedSeconds == STORM_END_SECONDS)
-            lastEvent = "The dust is thinning and solar output is slowly recovering. Opportunity never woke up after its storm.";
+            lastEvent = "The dust is thinning and solar output is slowly recovering.";
 
         if (battery <= 0 || oxygen <= 0) {
             phase = Phase.FAILED;
@@ -137,14 +147,15 @@ public final class MissionState {
 
     public Snapshot snapshot() {
         return new Snapshot(phase, elapsedSeconds, battery, oxygen, oxygenOnline, researchOnline,
-                DustStormProfile.generation(elapsedSeconds), 0.15 + (oxygenOnline ? 0.45 : 0) + (researchOnline ? 0.65 : 0),
-                decisions, researchSeconds, lastEvent, lowestBattery, lowestOxygen, firstResearchCutSecond, canistersLeft);
+                DustStormProfile.generation(storm, elapsedSeconds), 0.15 + (oxygenOnline ? 0.45 : 0) + (researchOnline ? 0.65 : 0),
+                decisions, researchSeconds, lastEvent, lowestBattery, lowestOxygen, firstResearchCutSecond, canistersLeft, storm);
     }
 
     public record Snapshot(Phase phase, int elapsedSeconds, double battery, double oxygen,
                            boolean oxygenOnline, boolean researchOnline, double generation, double demand,
                            int decisions, int researchSeconds, String lastEvent,
-                           double lowestBattery, double lowestOxygen, int firstResearchCutSecond, int canistersLeft) {
+                           double lowestBattery, double lowestOxygen, int firstResearchCutSecond, int canistersLeft,
+                           DustStorm dustStorm) {
         public boolean storm() {
             return elapsedSeconds >= STORM_START_SECONDS && elapsedSeconds < STORM_END_SECONDS;
         }

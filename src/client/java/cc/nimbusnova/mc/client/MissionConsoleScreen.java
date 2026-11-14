@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.mission.CrewRole;
+import cc.nimbusnova.mc.mission.DustStorm;
 import cc.nimbusnova.mc.mission.MissionDebrief;
 import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
 import cc.nimbusnova.mc.mission.MissionState;
@@ -173,22 +174,23 @@ public final class MissionConsoleScreen extends Screen implements MissionPalette
                             line += 24;
                         }
 
-                        MissionUi.wrap(graphics, MissionDebrief.REAL_STORY, contentX, line + 2, contentWidth, 3, MUTED);
+                        MissionUi.wrap(graphics, MissionDebrief.realStory(state), contentX, line + 2, contentWidth, 3, MUTED);
                         if (panelHeight >= 290)
                             MissionUi.wrap(graphics, MissionDebrief.REFLECTION, contentX, line + 40, contentWidth, 2, TEXT);
                     }
                 }
                 default -> {
                     MissionUi.text(graphics, "Crew briefing", contentX, contentY, ACCENT);
-                    MissionUi.wrap(graphics, "A dust storm starts dimming the sun at 01:15. By 02:15 only 3% of the sunlight is left, "
-                                    + "and the dust starts to thin at 03:15. Keep battery and oxygen above zero until 04:00; "
-                                    + "finish 90 seconds of research for full success. The storm follows NASA's Opportunity rover "
-                                    + "in June 2018: 645 Wh of solar energy per day before the storm, 21 Wh on June 10 (dust opacity tau 10.5).",
+                    final DustStorm storm = state.dustStorm();
+                    MissionUi.wrap(graphics, "A dust storm starts dimming the sun at 01:15. By 02:15 only " + storm.peakPercent()
+                                    + "% of the sunlight is left, and the dust starts to thin at 03:15. Keep battery and oxygen above zero "
+                                    + "until 04:00; finish 90 seconds of research for full success. This storm is real: " + storm.summary(),
                             contentX, contentY + 18, contentWidth, panelHeight >= 290 ? 8 : 6, TEXT);
 
                     if (panelHeight >= 290) {
-                        MissionUi.wrap(graphics, "Real data: the 3% sunlight ratio and tau. Game assumptions: battery size, energy use, "
-                                        + "10 Mars days squeezed into 1 minute, the backup generator and the recovery. Opportunity never recovered.",
+                        MissionUi.wrap(graphics, "Real data: the sunlight drop and dust opacity (tau: how much dust blocks the sun). "
+                                        + "Game assumptions: battery size, energy use, about 10 sols (Mars days) squeezed into 1 minute, "
+                                        + "the backup generator, and the recovery. Each reset may bring a different real storm.",
                                 contentX, contentY + 116, contentWidth, 5, MUTED);
                     }
                 }

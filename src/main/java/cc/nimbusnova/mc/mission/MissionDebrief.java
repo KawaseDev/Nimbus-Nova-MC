@@ -9,13 +9,17 @@ import java.util.Locale;
  * it never guesses why the crew decided something.
  */
 public final class MissionDebrief {
-    public static final String REAL_STORY = "In June 2018 Opportunity's solar power fell from 645 Wh to 21 Wh a day. "
-            + "It went silent on June 10 and never woke up. Curiosity, powered by a nuclear generator, kept working through the same storm.";
     public static final String REFLECTION = "Talk about it: Which resource limited you? "
             + "What did the weather forecast change? What would you do differently next time?";
 
     private MissionDebrief() {
         /* w */
+    }
+
+    public static String realStory(final MissionState.Snapshot state) {
+        final DustStorm storm = state.dustStorm();
+        return "Your storm was the real " + storm.label + ": Opportunity's solar power fell from "
+                + (int) storm.clearSkyWattHours + " Wh to " + (int) storm.peakWattHours + " Wh a day. " + storm.realOutcome;
     }
 
     public static List<String> facts(final MissionState.Snapshot state) {
@@ -44,7 +48,7 @@ public final class MissionDebrief {
         else
             lines.add("Research was first switched off at " + time(state.firstResearchCutSecond()) + " "
                     + stormStage(state.firstResearchCutSecond()) + " (sun "
-                    + Math.round(DustStormProfile.solarFactor(state.firstResearchCutSecond()) * 100) + "%).");
+                    + Math.round(DustStormProfile.solarFactor(state.dustStorm(), state.firstResearchCutSecond()) * 100) + "%).");
 
         return lines;
     }

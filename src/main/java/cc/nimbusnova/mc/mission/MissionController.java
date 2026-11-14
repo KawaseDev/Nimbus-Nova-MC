@@ -45,7 +45,9 @@ public final class MissionController {
     private static final Map<MinecraftServer, MissionController> SESSIONS = new IdentityHashMap<>();
 
     // shortcut: one transient mission per server, add session persistence when the backend integrates.
-    private MissionState mission = new MissionState();
+    // Each reset draws one of the real storms so repeat attempts differ, unless Mission Control pins one.
+    private DustStorm pinnedStorm;
+    private MissionState mission = new MissionState(nextStorm());
     private final Map<UUID, CrewRole> roles = new HashMap<>();
     private final Map<GlobalPos, Station> stations = new HashMap<>();
     private int ticks;
@@ -116,6 +118,13 @@ public final class MissionController {
             }
 
             root.then(role);
+            final LiteralArgumentBuilder<CommandSourceStack> storms = Commands.literal("storm")
+                    .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS));
+            for (final DustStorm storm : DustStorm.values())
+                storms.then(Commands.literal(storm.id).executes(context -> get(context.getSource().getServer()).pinStorm(context.getSource(), storm)));
+
+            storms.then(Commands.literal("random").executes(context -> get(context.getSource().getServer()).pinStorm(context.getSource(), null)));
+            root.then(storms);
             root.then(Commands.literal("forecast").executes(context -> get(context.getSource().getServer()).forecast(context.getSource())));
             final var assign = Commands.argument("player", EntityArgument.player());
             for (final CrewRole crewRole : CrewRole.values()) {
@@ -233,6 +242,25 @@ public final class MissionController {
         }
     }
 
+    private DustStorm nextStorm() {
+        if (pinnedStorm != null) return pinnedStorm;
+
+        final DustStorm[] storms = DustStorm.values();
+        return storms[java.util.concurrent.ThreadLocalRandom.current().nextInt(storms.length)];
+    }
+
+    private int pinStorm(final CommandSourceStack source, final DustStorm storm) {
+        pinnedStorm = storm;
+        if (mission.snapshot().phase() == MissionState.Phase.READY)
+            mission = new MissionState(nextStorm());
+
+        broadcast(source.getServer());
+        source.sendSuccess(() -> Component.literal(storm == null
+                ? "Each reset now picks a random real storm. Current: " + mission.snapshot().dustStorm().label
+                : "Next missions use the " + storm.label + "."), false);
+        return 1;
+    }
+
     private int forecast(final CommandSourceStack source) {
         if (!source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)
                 && !(source.getEntity() instanceof ServerPlayer player
@@ -247,7 +275,7 @@ public final class MissionController {
             return 0;
         }
 
-        final Component message = Component.literal("[Weather] " + DustStormProfile.forecast(state.elapsedSeconds()));
+        final Component message = Component.literal("[Weather] " + DustStormProfile.forecast(state.dustStorm(), state.elapsedSeconds()));
         for (final ServerPlayer crew : source.getServer().getPlayerList().getPlayers())
             crew.sendSystemMessage(message);
 
@@ -296,7 +324,7 @@ public final class MissionController {
                 case "pause" -> mission.pause();
                 case "resume" -> mission.resume();
                 case "abort" -> mission.abort();
-                case "reset" -> mission = new MissionState();
+                case "reset" -> mission = new MissionState(nextStorm());
                 default -> throw new IllegalArgumentException("Unknown mission action: " + action);
             }
 

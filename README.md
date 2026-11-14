@@ -35,7 +35,7 @@ The title screen has a **Join session** screen for the planned nickname and sess
 2. As an operator, run `/mars create` once to build Aster Outpost. Use `/mars join` to enter and `/mars leave` to return. Then press **J** to open the mission console. The key is rebindable in Minecraft's controls.
 3. Before starting, choose **Power engineer**, **Life support**, or **Weather officer** in the Systems tab. Each player takes a different role; an operator can control every system for solo testing.
 4. Start from the console or run `/mission start`.
-5. Keep battery and oxygen above zero for four minutes. From **01:15** the dust dims the sun to 3% by 02:15, as Opportunity measured in June 2018, and it starts clearing at **03:15**. Only the weather officer sees the sunlight and a 30-second forecast, so the crew must talk.
+5. Keep battery and oxygen above zero for four minutes. From **01:15** the dust dims the sun, reaching its lowest point at 02:15, and it starts clearing at **03:15**. Each mission uses one of two real Opportunity storms: June 2018 (3% sunlight, the rover was lost) or July 2007 (18%, the rover survived). Only the weather officer sees the sunlight and a 30-second forecast, so the crew must talk.
 6. Complete at least **90 seconds of powered research** for full success. Survival with insufficient research earns partial success; switching research off forever cannot earn full success.
 7. When the mission ends, every console opens on the **Debrief** tab: outcome, lowest reserves, decisions, consequences, the real Opportunity story, and reflection questions. Reset before another attempt.
 
@@ -53,6 +53,7 @@ The HUD shows shared reserves, net energy rate, research progress, your role, th
 | `/mission role weather` | Choose weather officer before start |
 | `/mission role observer` | Choose observer before start |
 | `/mission forecast` | Weather officer or operator; broadcast the current sunlight and 30-second forecast |
+| `/mission storm 2018` / `2007` / `random` | Operator; pin the real Opportunity storm for the next missions, or pick one at random on each reset (default) |
 | `/mission assign <player> <role>` | Operator assignment before start or while paused |
 | `/mission start` | Operator; begin a ready mission |
 | `/mission pause` / `/mission resume` | Operator; freeze/unfreeze simulation time and resources |

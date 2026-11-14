@@ -59,8 +59,10 @@ public final class MissionStateTest {
         assert survivalOnly.snapshot().phase() == MissionState.Phase.PARTIAL : "Disabling research forever is not full success";
         assert survivalOnly.snapshot().researchSeconds() == 0;
 
+        final DustStorm storm2018 = DustStorm.OPPORTUNITY_2018;
         final double peak = DustStormProfile.BACKUP_OUTPUT + DustStormProfile.SOLAR_OUTPUT * 21 / 645;
-        assert DustStormProfile.solarFactor(0) == 1 && DustStormProfile.solarFactor(MissionState.DURATION_SECONDS)
+        assert storm2018.peakPercent() == 3 && DustStorm.OPPORTUNITY_2007.peakPercent() == 18 : "Peaks come from observed Wh drops";
+        assert DustStormProfile.solarFactor(storm2018, 0) == 1 && DustStormProfile.solarFactor(storm2018, MissionState.DURATION_SECONDS)
                 == DustStormProfile.RECOVERY_SOLAR_FACTOR : "Solar curve starts clear and ends at the authored recovery";
 
         final MissionState greedy = new MissionState();
@@ -139,8 +141,31 @@ public final class MissionStateTest {
         assert !CrewRole.OBSERVER.canControl(MissionState.Equipment.RESEARCH);
         assert CrewRole.WEATHER.seesWeather() && !CrewRole.POWER.seesWeather() : "Only the weather officer reads the sky";
         assert !CrewRole.WEATHER.canControl(MissionState.Equipment.RESEARCH) && !CrewRole.WEATHER.canControl(MissionState.Equipment.OXYGEN);
-        assert DustStormProfile.forecast(MissionState.STORM_START_SECONDS).contains("falling") : "Forecast warns before the peak";
-        assert DustStormProfile.forecast(0).contains("steady");
+        assert DustStormProfile.forecast(storm2018, MissionState.STORM_START_SECONDS).contains("falling") : "Forecast warns before the peak";
+        assert DustStormProfile.forecast(storm2018, 0).contains("steady");
+
+        // The milder real 2007 storm is easier but still punishes running everything.
+        final MissionState mild = new MissionState(DustStorm.OPPORTUNITY_2007);
+        mild.start();
+        for (int second = 0; second < MissionState.DURATION_SECONDS; second++)
+            mild.tickSecond();
+
+        assert mild.snapshot().phase() == MissionState.Phase.FAILED : "Even the 2007 storm cannot power everything";
+        final MissionState mildManaged = new MissionState(DustStorm.OPPORTUNITY_2007);
+        mildManaged.start();
+        for (int second = 0; second < MissionState.DURATION_SECONDS; second++) {
+            if (second == 110)
+                mildManaged.setEquipment(MissionState.Equipment.RESEARCH, false);
+
+            if (second == MissionState.STORM_END_SECONDS)
+                mildManaged.setEquipment(MissionState.Equipment.RESEARCH, true);
+
+            mildManaged.tickSecond();
+        }
+
+        assert mildManaged.snapshot().phase() == MissionState.Phase.SUCCESS : "A late cut that fails in 2018 survives the 2007 storm";
+        assert MissionDebrief.realStory(mildManaged.snapshot()).contains("survived");
+        assert DustStorm.byId("2018") == storm2018;
         System.out.println("Mission self-check passed: resource balance, phases, dust, outcomes, idempotency and roles.");
     }
 }
