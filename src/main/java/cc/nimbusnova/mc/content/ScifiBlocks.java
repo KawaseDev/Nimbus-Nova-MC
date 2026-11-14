@@ -31,9 +31,9 @@ public final class ScifiBlocks {
     public static final Block FLOOR_TILE = register("floor_tile", Block::new, 0);
     public static final Block FLOOR_LIGHT = register("floor_light", Block::new, 12);
     public static final Block STRIP_LIGHT = register("strip_light", properties -> new ScifiPropBlock(properties, 0, 0, 0, 16, 3, 16), 13);
-    public static final Block SUPPORT_BEAM = register("support_beam", properties -> new ScifiPropBlock(properties, 3, 0, 3, 13, 16, 13), 0);
+    public static final Block SUPPORT_BEAM = register("support_beam", Block::new, 0);
     public static final Block CABLE_TRUNK = register("cable_trunk", properties -> new ScifiPropBlock(properties, 0, 0, 0, 16, 7, 16), 0);
-    public static final Block VENT = register("vent", properties -> new ScifiPropBlock(properties, 0, 0, 0, 16, 5, 16), 0);
+    public static final Block VENT = register("vent", properties -> new ScifiPropBlock(properties, 0, 11, 0, 16, 16, 16), 0);
     public static final Block BATTERY_BANK = register("battery_bank", properties -> new ScifiPropBlock(properties, 0, 0, 0, 16, 16, 16), 3);
     public static final Block AIR_TANK = register("air_tank", properties -> new ScifiPropBlock(properties, 2, 0, 2, 14, 16, 14), 0);
     public static final Block CRYO_CABINET = register("cryo_cabinet", properties -> new ScifiPropBlock(properties, 0, 0, 0, 16, 16, 16), 4);

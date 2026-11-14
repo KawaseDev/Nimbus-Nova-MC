@@ -41,18 +41,20 @@ public final class OutpostDome {
             for (int z = -RADIUS; z <= RADIUS; z++) {
                 for (int y = 0; y <= HEIGHT; y++) {
                     if (!inside(x, y, z) || portal(x, y, z)) continue;
-                    if (inside(x - 1, y, z) && inside(x + 1, y, z) && inside(x, y + 1, z)
-                            && inside(x, y, z - 1) && inside(x, y, z + 1)) continue;
-
                     final double angle = Math.atan2(z, x - 2.0);
-                    final double meridianDistance = Math.abs(Math.sin(angle * 6)) * Math.hypot(x - 2, z) / 6;
+                    final double meridianDistance = Math.abs(Math.sin(angle * 4)) * Math.hypot(x - 2, z) / 4;
                     final Kind kind;
                     if (y == 0)
                         kind = Math.floorMod(x + z, 6) == 0 ? Kind.LIGHT : Kind.RIM;
-                    else if (meridianDistance < 0.42 || y == 15 || y == 24)
+                    else if (meridianDistance < 0.85 || y == 15 || y == 24)
                         kind = y % 8 == 0 ? Kind.LIGHT : Kind.RIB;
                     else
                         kind = Kind.GLASS;
+
+                    // Two-voxel structural depth bridges the stair steps of the curved shell.
+                    final int depth = kind == Kind.GLASS ? 1 : 2;
+                    if (inside(x - depth, y, z) && inside(x + depth, y, z) && inside(x, y + depth, z)
+                            && inside(x, y, z - depth) && inside(x, y, z + depth)) continue;
 
                     panels.add(new Panel(x, y, z, kind));
                 }

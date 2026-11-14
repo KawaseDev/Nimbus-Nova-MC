@@ -516,8 +516,8 @@ public final class MarsTrainingMap {
         fill(level, 4, FLOOR_Y + 1, 4, 7, FLOOR_Y + 1, 6, Blocks.POLISHED_DEEPSLATE);
         place(level, 5, FLOOR_Y + 2, 5, Blocks.SEA_LANTERN);
         place(level, 7, FLOOR_Y + 2, 5, ScifiBlocks.CRYO_CABINET);
-        for (final int tankX : new int[] { -8, -6, -4 })
-            place(level, tankX, FLOOR_Y + 1, 7, ScifiBlocks.AIR_TANK);
+        for (final int tankZ : new int[] { 2, 4, 6 })
+            place(level, -9, FLOOR_Y + 1, tankZ, ScifiBlocks.AIR_TANK);
 
         for (final int ventX : new int[] { -6, 6 })
             place(level, ventX, FLOOR_Y + 4, 0, ScifiBlocks.VENT);
