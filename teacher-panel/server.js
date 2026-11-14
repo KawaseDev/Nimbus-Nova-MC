@@ -76,22 +76,22 @@ function createServer(options = {}) {
       } catch { response.writeHead(503).end(); }
       return;
     }
-    if (request.url === '/api/world') {
+    if (request.url === '/api/world' || request.url === '/api/world/upgrade') {
       if (!accounts.current(request)) { response.writeHead(401).end(); return; }
-      if (request.method !== 'GET' && (request.method !== 'POST' || request.headers.origin !== `http://${request.headers.host}`)) {
+      if (request.url === '/api/world/upgrade' && request.method !== 'POST' || request.method !== 'GET' && (request.method !== 'POST' || request.headers.origin !== `http://${request.headers.host}`)) {
         response.writeHead(403).end(); return;
       }
       const bridge = bridgeAddress(options.bridgeUrl);
       if (!bridge || !options.bridgeToken || options.bridgeToken.length < 32) { response.writeHead(503).end(); return; }
       try {
-        const result = await fetch(new URL('/world', bridge), {
+        const result = await fetch(new URL(request.url === '/api/world/upgrade' ? '/world/upgrade' : '/world', bridge), {
           method: request.method, headers: { Authorization: `Bearer ${options.bridgeToken}` },
           signal: AbortSignal.timeout(4000), redirect: 'error'
         });
         if (request.method === 'POST') { response.writeHead(result.status === 202 ? 202 : result.status === 409 ? 409 : 503).end(); return; }
         if (!result.ok) throw new Error();
         const data = await result.json();
-        if (!['idle', 'creating', 'ready', 'failed'].includes(data.status)) throw new Error();
+        if (!['idle', 'creating', 'upgrading', 'ready', 'failed'].includes(data.status)) throw new Error();
         response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         response.end(JSON.stringify(data));
       } catch { response.writeHead(503).end(); }
@@ -125,11 +125,11 @@ function createServer(options = {}) {
         const status = await control.status();
         if (!status.reachable && !status.managed && status.state === 'stopped') sessions.clear();
         let session = sessions.teacher(owner);
-        if (status.reachable && !['starting', 'stopping'].includes(status.state) && ['available', 'expired'].includes(session.status)) {
+        if (status.reachable && !['starting', 'stopping', 'updating'].includes(status.state) && ['available', 'expired'].includes(session.status)) {
           try { await sessions.create(owner); } catch { /* Another teacher may have claimed it. */ }
           session = sessions.teacher(owner);
         }
-        if ((!status.reachable || ['starting', 'stopping'].includes(status.state)) && session.status !== 'occupied') session = { status: 'offline' };
+        if ((!status.reachable || ['starting', 'stopping', 'updating'].includes(status.state)) && session.status !== 'occupied') session = { status: 'offline' };
         response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         response.end(JSON.stringify(session));
       } catch { response.writeHead(503).end(); }
@@ -146,11 +146,11 @@ function createServer(options = {}) {
         let body = '';
         for await (const chunk of request) { body += chunk; if (Buffer.byteLength(body) > 256) throw new Error(); }
         action = JSON.parse(body).action;
-        if (!['start', 'stop', 'restart'].includes(action)) throw new Error();
+        if (!['start', 'stop', 'restart', 'update'].includes(action)) throw new Error();
       } catch { response.writeHead(400).end(); return; }
       try {
-        if (action === 'start') sessions.reserve(teacher);
-        if (action === 'restart') sessions.expire(teacher);
+        if (action === 'start' || action === 'update') sessions.reserve(teacher);
+        if (action === 'restart' || action === 'update') sessions.expire(teacher);
         await control.command(action);
         if (action === 'stop') sessions.clear();
         response.writeHead(202).end();

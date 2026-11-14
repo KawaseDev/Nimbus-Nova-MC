@@ -216,7 +216,68 @@ test('server power API requires a session and same-origin request', async () => 
     assert.equal((await post('/api/server', { Origin: base, Cookie: cookie }, { action: 'shell' })).status, 400);
     assert.equal((await post('/api/server', { Origin: base, Cookie: cookie }, { action: 'restart' })).status, 202);
     assert.equal(action, 'restart');
+    assert.equal((await post('/api/server', { Origin: base, Cookie: cookie }, { action: 'update' })).status, 202);
+    assert.equal(action, 'update');
   } finally { await new Promise(resolve => server.close(resolve)); fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('server update saves and stops before building, preserves worlds, and leaves a failed build stopped', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { EventEmitter } = require('node:events');
+  const { PassThrough } = require('node:stream');
+  const { createServerControl } = require('./server-control');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-update-'));
+  fs.mkdirSync(path.join(dir, 'run', 'world'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'run', 'eula.txt'), 'eula=true\n');
+  fs.writeFileSync(path.join(dir, 'run', 'world', 'player-build'), 'keep');
+  const events = [];
+  let occupied = false, failBuild = false, failStop = false;
+  const controller = createServerControl({ root: dir, checkServer: async () => occupied, spawnServer: (_command, args) => {
+    const child = new EventEmitter();
+    child.stdout = new PassThrough(); child.stderr = new PassThrough(); child.stdin = new PassThrough();
+    if (args[0] === 'build') {
+      events.push('build');
+      setImmediate(() => child.emit('close', failBuild ? 1 : 0));
+    } else {
+      events.push('start');
+      child.stdin.on('data', data => {
+        assert.equal(data.toString(), 'stop\n');
+        events.push('stop');
+        setImmediate(() => { occupied = false; child.emit('close', failStop ? 1 : 0); });
+      });
+      setImmediate(() => { occupied = true; child.stdout.write('Done (1s)!'); });
+    }
+    return child;
+  } });
+  try {
+    await controller.command('start');
+    await new Promise(resolve => setImmediate(resolve));
+    await controller.command('update');
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(events, ['start', 'stop', 'build', 'start']);
+    assert.equal(fs.readFileSync(path.join(dir, 'run', 'world', 'player-build'), 'utf8'), 'keep');
+    failBuild = true;
+    await assert.rejects(controller.command('update'), /Build failed/);
+    assert.equal((await controller.status()).state, 'stopped');
+    assert.equal(fs.readFileSync(path.join(dir, 'run', 'world', 'player-build'), 'utf8'), 'keep');
+    failBuild = false;
+    await controller.command('start');
+    await new Promise(resolve => setImmediate(resolve));
+    failStop = true;
+    const eventCount = events.length;
+    await assert.rejects(controller.command('update'), /did not stop cleanly/);
+    assert.deepEqual(events.slice(eventCount), ['stop']);
+    occupied = true;
+    await assert.rejects(controller.command('update'), /outside this panel/);
+    occupied = false; failStop = false;
+    const stoppedEvents = events.length;
+    await controller.command('update');
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(events.slice(stoppedEvents), ['build', 'start']);
+    assert.equal(fs.readFileSync(path.join(dir, 'run', 'world', 'player-build'), 'utf8'), 'keep');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
 test('mission controls and crew messages require a teacher and forward only valid actions', async () => {
@@ -280,11 +341,12 @@ test('world creation requires a teacher and forwards only a fixed request', asyn
   const http = require('node:http');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-world-'));
   const token = 'b'.repeat(32);
-  let creations = 0;
+  let creations = 0, upgrades = 0;
   const bridge = http.createServer((request, response) => {
     assert.equal(request.headers.authorization, `Bearer ${token}`);
-    assert.equal(request.url, '/world');
-    if (request.method === 'POST') { creations++; response.writeHead(202).end(); }
+    assert.ok(['/world', '/world/upgrade'].includes(request.url));
+    if (request.url === '/world/upgrade') { upgrades++; response.writeHead(202).end(); }
+    else if (request.method === 'POST') { creations++; response.writeHead(202).end(); }
     else response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ status: 'idle' }));
   });
   await new Promise(resolve => bridge.listen(0, '127.0.0.1', resolve));
@@ -299,6 +361,9 @@ test('world creation requires a teacher and forwards only a fixed request', asyn
     assert.equal((await fetch(`${base}/api/world`, { method: 'POST', headers: { Cookie: cookie, Origin: 'http://evil.example' } })).status, 403);
     assert.equal((await fetch(`${base}/api/world`, { method: 'POST', headers: { Cookie: cookie, Origin: base } })).status, 202);
     assert.equal(creations, 1);
+    assert.equal((await fetch(`${base}/api/world/upgrade`, { method: 'POST', headers: { Cookie: cookie, Origin: 'http://evil.example' } })).status, 403);
+    assert.equal((await fetch(`${base}/api/world/upgrade`, { method: 'POST', headers: { Cookie: cookie, Origin: base } })).status, 202);
+    assert.equal(upgrades, 1);
   } finally {
     await new Promise(resolve => server.close(resolve));
     await new Promise(resolve => bridge.close(resolve));
@@ -427,9 +492,10 @@ test('server start, restart, stop and unexpected exit control the session code',
   fs.writeFileSync(path.join(dir, 'run', 'eula.txt'), 'eula=true\n');
   let online = false, current;
   const sessions = createSessions({ checkServer: async () => online });
-  const control = createServerControl({ root: dir, checkServer: async () => online, onExit: () => sessions.clear(), spawnServer: () => {
+  const control = createServerControl({ root: dir, checkServer: async () => online, onExit: () => sessions.clear(), spawnServer: (_command, args) => {
     const child = new EventEmitter(); current = child;
     child.stdout = new PassThrough(); child.stderr = new PassThrough(); child.stdin = new PassThrough();
+    if (args[0] === 'build') { setImmediate(() => child.emit('close', 0)); return child; }
     child.stdin.on('data', () => setImmediate(() => { online = false; child.emit('close', 0); }));
     setImmediate(() => { online = true; child.stdout.write('Done (1s)!'); });
     return child;
@@ -450,6 +516,9 @@ test('server start, restart, stop and unexpected exit control the session code',
     assert.equal((await post('/api/server', headers, { action: 'restart' })).status, 202);
     await new Promise(resolve => setImmediate(resolve));
     const second = await session(); assert.equal(second.status, 'open'); assert.notEqual(second.code, first.code);
+    assert.equal((await post('/api/server', headers, { action: 'update' })).status, 202);
+    await new Promise(resolve => setImmediate(resolve));
+    const updated = await session(); assert.equal(updated.status, 'open'); assert.notEqual(updated.code, second.code);
     assert.equal((await post('/api/server', headers, { action: 'stop' })).status, 202);
     assert.equal((await session()).status, 'offline');
     assert.equal((await post('/api/server', headers, { action: 'start' })).status, 202);

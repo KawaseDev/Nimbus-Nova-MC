@@ -310,7 +310,10 @@ public final class TeacherBridge {
                     }
                     if (!exchange.getRequestURI().getPath().equals("/world")) { exchange.sendResponseHeaders(404, -1); return; }
                     if (exchange.getRequestMethod().equals("POST")) {
-                        if (worldStatus.getAndSet("creating").equals("creating")) { exchange.sendResponseHeaders(409, -1); return; }
+                        String previous = worldStatus.get();
+                        if (previous.equals("creating") || previous.equals("upgrading") || !worldStatus.compareAndSet(previous, "creating")) {
+                            exchange.sendResponseHeaders(409, -1); return;
+                        }
                         server.execute(() -> {
                             try {
                                 worldStatus.set(MarsTrainingMap.create(server.createCommandSourceStack()) == 1 ? "ready" : "failed");
@@ -332,6 +335,33 @@ public final class TeacherBridge {
                     exchange.getResponseBody().write(body);
                 } catch (Exception error) {
                     NimbusNovaMod.LOGGER.warn("Teacher world request failed", error);
+                    try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
+                } finally { exchange.close(); }
+            });
+            bridge.createContext("/world/upgrade", exchange -> {
+                try {
+                    String authorization = exchange.getRequestHeaders().getFirst("Authorization");
+                    if (!MessageDigest.isEqual(("Bearer " + token).getBytes(StandardCharsets.UTF_8),
+                            authorization == null ? new byte[0] : authorization.getBytes(StandardCharsets.UTF_8))) {
+                        exchange.sendResponseHeaders(401, -1); return;
+                    }
+                    if (!exchange.getRequestMethod().equals("POST") || !exchange.getRequestURI().getPath().equals("/world/upgrade")) {
+                        exchange.sendResponseHeaders(404, -1); return;
+                    }
+                    String previous = worldStatus.get();
+                    if (previous.equals("creating") || previous.equals("upgrading") || !worldStatus.compareAndSet(previous, "upgrading")) {
+                        exchange.sendResponseHeaders(409, -1); return;
+                    }
+                    server.execute(() -> {
+                        try { worldStatus.set(MarsTrainingMap.upgrade(server.createCommandSourceStack()) == 1 ? "ready" : "failed"); }
+                        catch (Exception error) {
+                            NimbusNovaMod.LOGGER.warn("Mars outpost update failed", error);
+                            worldStatus.set("failed");
+                        }
+                    });
+                    exchange.sendResponseHeaders(202, -1);
+                } catch (Exception error) {
+                    NimbusNovaMod.LOGGER.warn("Teacher world update request failed", error);
                     try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
                 } finally { exchange.close(); }
             });

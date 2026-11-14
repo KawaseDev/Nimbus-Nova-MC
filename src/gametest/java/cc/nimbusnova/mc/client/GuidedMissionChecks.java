@@ -8,6 +8,7 @@ import cc.nimbusnova.mc.npc.MissionAstronaut;
 import cc.nimbusnova.mc.npc.MissionNpcs;
 import cc.nimbusnova.mc.content.OutpostContent;
 import cc.nimbusnova.mc.content.ScifiBlocks;
+import cc.nimbusnova.mc.world.MarsTrainingMap;
 import cc.nimbusnova.mc.client.npc.NpcDialogueScreen;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -84,6 +85,20 @@ final class GuidedMissionChecks {
         });
         world.getServer().runCommand("mars upgrade");
         world.getServer().runCommand("mars upgrade");
+        world.getServer().runOnServer(server -> {
+            final var level = world.getConnection().getServerLevel();
+            level.setBlock(new BlockPos(-3, 66, -38), Blocks.GOLD_BLOCK.defaultBlockState(), Block.UPDATE_CLIENTS);
+            level.setBlock(MarsTrainingMap.WEATHER_STATION, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+        });
+        world.getServer().runCommand("mars upgrade");
+        world.getServer().runOnServer(server -> {
+            final var level = world.getConnection().getServerLevel();
+            if (!level.getBlockState(new BlockPos(-3, 66, -38)).is(Blocks.GOLD_BLOCK)
+                    || !level.getBlockState(MarsTrainingMap.WEATHER_STATION).isAir())
+                throw new AssertionError("An entrance conflict must stop the update before changing the outpost");
+            level.setBlock(new BlockPos(-3, 66, -38), ScifiBlocks.REINFORCED_HULL.defaultBlockState(), Block.UPDATE_CLIENTS);
+            level.setBlock(MarsTrainingMap.WEATHER_STATION, OutpostContent.WEATHER_TERMINAL.defaultBlockState(), Block.UPDATE_CLIENTS);
+        });
         world.getServer().runOnServer(server -> {
             final var level = world.getConnection().getServerLevel();
             if (!level.getBlockState(playerBuild).is(Blocks.GOLD_BLOCK))
