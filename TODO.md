@@ -42,7 +42,7 @@ Status: integrated; build, asset checks, and single-client runtime smoke test pa
 - [ ] Check map persistence and safe return after a full server restart; explore the complete site manually.
 - [x] Run the build and relevant checks, commit the batch, and confirm the push.
 
-Evidence: `build` passes including simulation and eight-item resource checks. `runClientGameTest` creates the outpost, preserves a repeated creation, travels in/out, starts via console, toggles research, checks canister consumption/full-reserve refusal, opens the tablet, captures equipment rendering, exercises station role validation, rejects non-operator reset, and verifies pause/reset. Rover/greenhouse/shelter mechanics and suit pressure/radiation remain planned.
+Evidence: `build` passes including simulation and eight-item resource checks. `runClientGameTest` creates the outpost, preserves a repeated creation, travels in/out, starts via console, toggles research, checks canister consumption/full-reserve refusal, opens the tablet, captures equipment rendering, exercises station role validation, rejects non-operator reset, and verifies pause/reset. The original batch contained scenic vehicle structures. Basic custom rover driving has since passed the tests described in batch 7; greenhouse/shelter mechanics and suit pressure/radiation remain planned.
 
 Commit: `ce5b1fb` (map/equipment and client smoke test), integrated through `93a7e11`. Push to `origin/main` confirmed.
 
@@ -80,13 +80,13 @@ Only the sunlight curve comes from NASA data; the four-minute event, rates, and 
 
 ## Batch 5: NPCs and task minigames
 
-Status: planned after the complete core lesson.
+Status: two astronaut NPCs and their state-aware dialogue are implemented and runtime-tested. Task minigames remain planned.
 
-- [ ] Add one authored NPC guide with short role instructions, state-aware dialogue, and replayable hints.
+- [x] Add Commander Vega and Engineer Sol with original skins, idle/head-look animation, paginated dialogue, and mission-state-aware guidance; verify the conversation in the client game test.
 - [ ] Build one original task minigame and connect completion to a real equipment/resource consequence.
 - [ ] Validate role, distance, phase, supplies, and completion server-side; reject duplicate rewards.
 - [ ] Provide readable text, color-independent cues, forgiving input targets, and optional timing assistance.
-- [ ] Expand to the maintenance robot and connection/routing, checklist, and inspection/matching tasks as justified.
+- [ ] Add task-linked quest progression and connection/routing, checklist, and inspection/matching tasks as justified. The implemented engineer is an astronaut, not a maintenance robot.
 - [ ] Add the remaining food/water, safety/maintenance, and commander/pilot roles with meaningful work.
 
 ## Batch 6: teacher platform integration and expanded space gameplay
@@ -96,9 +96,42 @@ Status: roadmap; teacher backend/admin panel has a separate teammate owner.
 - [ ] Agree on mission snapshots, lifecycle actions, player identity, and report data with the backend owner.
 - [ ] Connect authenticated teacher controls and session-code joining without duplicating resource calculations.
 - [ ] Add multiple isolated crews and persistent session/report recovery when needed.
-- [ ] Add functional suit oxygen, airlocks, outdoor hazards, and a controllable rover.
+- [x] Implement and runtime-test basic six-wheel rover boarding, driving/steering, braking, stopping, and dismounting.
+- [ ] Add rover energy/fuel/cargo and meaningful mission costs; add functional suit oxygen, airlocks, and outdoor hazards.
 - [ ] Add bounded controllable shuttle flight before claiming free spacecraft piloting.
 - [ ] Implement additional missions, then expose them as playable choices in the teacher library.
+
+## Batch 7: custom rendering, equipment, NPCs, rover, and terrain
+
+Status: implemented and pushed as `f556b0d`, integrated with the teammate tutorial through `40d78ca`. Build and client game test passed on the merged code. Physical two-client testing remains open.
+
+- [x] Add the native Nova renderer and primitives for rounded surfaces, strokes, glow, and bundled Geist MTSDF typography; retain the font's OFL license.
+- [x] Apply native once-per-screen blur and custom text fields with cursor/selection support to the mod UI.
+- [x] Add interactive research and oxygen blocks with directional 3D models and animated on/off displays.
+- [x] Add a custom six-wheel rover and `/rover spawn`; verify movement and stopping in the client game test.
+- [x] Add two original astronaut NPCs and `/npc spawn guide|engineer`; verify paginated dialogue in the client game test.
+- [x] Add bounded, mission-driven 3D dust particles with a dedicated soft/fog/transparency shader and reduced-particle support.
+- [x] Add authored procedural hills/craters for new chunks while preserving existing generated terrain.
+- [x] Run the integrated build/client game test, including content interactions and render captures. The lead reports a passing 27-second run and successful final dust-shader compilation/runtime.
+- [x] Confirm the commit and remote push for this batch.
+- [ ] Test the same experience with two physical clients, rebound inputs, and classroom hardware.
+
+Evidence: the integrated Fabric client test covers rendered content, rover movement/stopping, NPC dialogue, equipment-block power interactions, and dust rendering. These automated interactions and captures do not establish physical two-player input or classroom performance.
+
+Commit/push: `f556b0d` and merge `40d78ca` reached `origin/main`. The earlier UI renderer batch is `7bcbb25`; this batch adds the world/gameplay/effect integration above.
+
+## Batch 8: bounded local terrain import
+
+Status: local extraction, format tests, and imported-world runtime passed. Source archive and derived patch remain unpublished and excluded from Git; server permission is unresolved.
+
+- [x] Validate the bounded archive extraction and height conversion with provenance and range checks.
+- [x] Load the selected patch in a disposable runtime world and inspect its actual placement and relief.
+- [x] Document final patch dimensions, coordinate transform, clipping, and fictional base-pad changes after verification.
+- [x] Confirm that default authored terrain still works when the local patch is absent.
+- [x] Keep external source files and derived local terrain outside the repository's MIT asset claim.
+- [ ] Obtain the required creator permission before public classroom/server use or redistribution.
+
+Source and permission detail: [README terrain-import note](README.md#optional-local-terrain-import). Evidence: importer self-check, loader validation, and `build runClientGameTest -PmarsHeightmap=.local/marscraft/marscraft-heights.nms.gz` passed. Runtime `/mars` reported the imported source and offset −121. One source region produced a 512², 50,094-byte local grid; source/transform details are in the README and ignored provenance file.
 
 ## Submission and eligibility
 

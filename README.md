@@ -2,7 +2,7 @@
 
 A cooperative Minecraft Mars mission trainer for NASA Space Apps 2026's **Build a Junior Astronaut Mission Trainer** challenge.
 
-The mod includes an authored Mars outpost, a shared power/oxygen simulation, three crew roles, a responsive HUD/console with an end-of-mission debrief, functional equipment stations, and eight original space items with custom textures. The dust storm's solar supply follows NASA's record of the Opportunity rover in the 2018 Mars dust storm; battery, oxygen, and energy rates are authored game balance. See [CREDITS.md](CREDITS.md) for sources and [TODO.md](TODO.md) for remaining work such as two-client testing.
+The mod includes an authored Mars outpost, a shared power/oxygen simulation, three crew roles, a custom HUD/console with an end-of-mission debrief, interactive equipment blocks, a driveable six-wheel rover, two astronaut NPCs, and original space items with custom textures. The dust storm's solar supply follows real Opportunity dust-storm records; battery, oxygen, and energy rates are authored game balance. See [CREDITS.md](CREDITS.md) for sources and [TODO.md](TODO.md) for remaining work such as two-client testing.
 
 The teacher backend and admin panel belong to another teammate. Local mod development uses operator commands and does not depend on that platform being available.
 
@@ -19,7 +19,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./gradlew runClient
 ```
 
-`build` includes `missionSelfTest` and `contentAssetTest`. Run `./gradlew runClientGameTest` for the isolated single-client runtime test and render captures. It creates its own disposable test world and writes screenshots under `build/run/clientGameTest/screenshots`; it does not use your normal saves. The client test uses the version-pinned experimental Fabric test API and requires a graphical environment.
+`build` includes mission, content, terrain, imported-format, dust-profile, and NPC-dialogue self-checks. Run `./gradlew runClientGameTest` for the isolated single-client runtime test and render captures. It creates its own disposable test world and writes screenshots under `build/run/clientGameTest/screenshots`; it does not use your normal saves. The client test uses the version-pinned experimental Fabric test API and requires a graphical environment.
 
 Elsewhere, set `JAVA_HOME` to your JDK 25 installation. Windows uses `gradlew.bat build` and `gradlew.bat runClient`. In IntelliJ, open this folder as a Gradle project and select JDK 25 for both the project and Gradle JVM.
 
@@ -39,9 +39,9 @@ The title screen has a **Join session** screen for the planned nickname and sess
 6. Complete at least **90 seconds of powered research** for full success. Survival with insufficient research earns partial success; switching research off forever cannot earn full success.
 7. When the mission ends, every console opens on the **Debrief** tab: outcome, lowest reserves, decisions, consequences, the real Opportunity story, and reflection questions. Reset before another attempt.
 
-The map contains a habitat, landing pad, power yard, greenhouse, shelter, static rover workshop, and marked paths. Research and oxygen consoles are bound automatically. `/mars create` preserves an existing outpost; an interrupted construction claim blocks automatic rebuilding. The map has authored terrain and no NASA geographic-accuracy claim.
+The map contains a habitat, landing pad, power yard, greenhouse, shelter, rover workshop, and marked paths. Research and oxygen consoles are interactive custom blocks with directional 3D models and animated on/off displays. `/mars create` preserves an existing outpost; an interrupted construction claim blocks automatic rebuilding. New chunks use authored procedural hills and craters while existing terrain/builds remain intact. This default terrain has no geographic-accuracy claim.
 
-The HUD shows shared reserves, net energy rate, research progress, your role, the remaining mission time, and warnings. The console has Overview, Systems, Briefing, and Debrief tabs. Only the weather officer and operators see sunlight readings. Equipment controls affect the server simulation; they are not separate client-side resource values.
+The HUD shows shared reserves, net energy rate, research progress, your role, the remaining mission time, and warnings. A bounded 3D dust effect follows the mission storm and respects reduced particle settings. The console has Overview, Systems, Briefing, and Debrief tabs. Only the weather officer and operators see sunlight readings. Equipment controls affect the server simulation; they are not separate client-side resource values.
 
 ### Commands
 
@@ -65,6 +65,8 @@ The HUD shows shared reserves, net energy rate, research progress, your role, th
 | `/mission station oxygen` | Operator; bind the block you are looking at as an oxygen toggle station |
 | `/mission station canister` | Operator; bind the block you are looking at as an emergency oxygen canister station |
 | `/mission station clear` | Operator; remove every station binding |
+| `/rover spawn` | Operator; place a rover on nearby clear, dry ground |
+| `/npc spawn guide` / `/npc spawn engineer` | Operator; place an astronaut NPC on nearby clear, dry ground |
 
 A station binding uses an existing block within five blocks and replaces no terrain. Its permitted engineer can right-click it to toggle the associated system. Choose plain blocks so normal container or redstone interactions do not confuse the demonstration. Bindings are saved to `nimbus_nova_stations.txt` in the world folder and reload on server start.
 
@@ -82,7 +84,32 @@ Items appear in the **Tools & Utilities** creative tab, or operators can use `/g
 | `mars_sample` | Collectible sample; analysis mechanics remain planned |
 | `space_helmet`, `space_chestplate`, `space_leggings`, `space_boots` | Wearable expedition armor with original item and worn textures; suit oxygen, pressure, and radiation protection remain planned |
 
-The greenhouse, radiation shelter, and static rover are authored scenery for future systems. They do not yet grow crops, model radiation, or drive. The runtime smoke test checks tablet opening, canister consumption/refusal at full reserve, suit/item rendering, map travel, station callbacks, and denial of an unauthorized equipment change/reset. It is not a two-player classroom test.
+The greenhouse and radiation shelter are scenery for future systems; they do not yet grow crops or model radiation. The new rover is driveable: right-click to board, use movement keys to steer/drive, jump to brake, and sneak to exit. It stops when unoccupied. There is no fuel, energy, cargo, or expedition-objective simulation for the rover yet.
+
+Commander Vega and Engineer Sol are original astronaut NPCs with idle/head-look behavior and paginated, mission-state-aware conversation. Right-click to talk. Their briefing and hints support the existing mission; a task minigame and NPC-controlled quest progression remain planned.
+
+The Fabric runtime test checks tablet opening, canister consumption/refusal at full reserve, suit/item rendering, map travel, equipment-block power interactions, rover movement/stopping, NPC dialogue, and denial of unauthorized equipment changes/reset. Captures show the rendered UI and content. This is a single-client game test, not a two-player classroom test.
+
+### Interface and rendering
+
+Mod screens use the Nova renderer for rounded surfaces, strokes, restrained glow, and Geist distance-field typography. Screen backgrounds apply native blur once, and custom text fields support cursor/selection behavior. The dust particles use a dedicated soft-particle shader with fog and transparency support. These paths have passed a runtime render test; physical two-client interaction remains an open check.
+
+### Optional local terrain import
+
+The optional local landscape uses a **cropped, scaled Minecraft interpretation of Mars MOLA elevation data**, through [MarsCraft](https://www.planetminecraft.com/project/mars-4521195/) by proteinguy. The creator states a 1:600 scale and requests credit, noncommercial use, and permission for servers. This is not a raw scan or a 1:1 reconstruction. Our 512×512 crop comes from source region `(17,18)`, containing the creator-captioned Valles Marineris coordinate `(9000,9250)`. The camp pad, block coloring, boundary transitions, and terrain outside the crop are authored. The derived data remains local and outside MIT; creator permission is still required for classroom/server use.
+
+The importer reads one 7.89 MiB region entry, not the whole archive, and writes a 50,094-byte height file plus provenance. Original surface values span 59–230 blocks. A constant −121 vertical offset preserves that relative relief within the destination world; the camp is flattened within radius 80 and blended out to radius 128. The outer 16 cells blend into procedural terrain. No source player data or entities are imported.
+
+For a fresh, private local preview using the downloaded archive:
+
+```sh
+python3 tools/import_marscraft.py --self-test
+python3 tools/import_marscraft.py --archive "$HOME/Downloads/Marscraft Updated.zip" --region 17 18 --output .local/marscraft
+./gradlew runClient -PmarsHeightmap=.local/marscraft/marscraft-heights.nms.gz
+```
+
+Create a **new test world**, then run `/mars create` and `/mars join`. `/mars` reports the active terrain source. For the isolated imported-world smoke test, run `./gradlew runClientGameTest -PmarsHeightmap=.local/marscraft/marscraft-heights.nms.gz`. Without the option, the mod uses its procedural fallback. Existing chunks and saves are never regenerated automatically; changing generation sources mid-world can create seams.
+
 
 ## Current limits
 
@@ -90,8 +117,8 @@ The greenhouse, radiation shelter, and static rover are authored scenery for fut
 - Rejoining the same running server retains the player's role in memory. The mission pauses when no players remain; an operator resumes it.
 - The prototype counts a fixed crew demand rather than deriving oxygen use from individual suits or player count.
 - Equipment uses normalized game units. Only the dust storm's sunlight curve comes from NASA data. There is no claim of a calibrated habitat or radiation model.
-- The current dust event changes the resource model; a visual weather effect is a separate feature.
-- Teacher session codes, browser controls, persistent reports, NPC dialogue, task minigames, suit life support, and controllable vehicles remain roadmap work unless their status is explicitly completed in [TODO.md](TODO.md).
+- The mission drives both solar supply and a bounded dust-particle effect; atmosphere, pressure, radiation, and a physically calibrated storm model remain outside the simulation.
+- Teacher session codes, browser controls, persistent reports, task minigames, suit life support, rover resource costs, and controllable spacecraft remain roadmap work unless their status is explicitly completed in [TODO.md](TODO.md). NPC dialogue and basic rover driving are implemented.
 - Minecraft's proprietary dependency remains an organizer eligibility question. Public mod source alone does not resolve it.
 
 ## Project documents

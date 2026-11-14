@@ -5,7 +5,9 @@ import cc.nimbusnova.mc.client.render.NovaScreen;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.NullMarked;
 
+@NullMarked
 final class JoinSessionScreen extends NovaScreen implements MissionPalette {
     private final Screen parent;
 

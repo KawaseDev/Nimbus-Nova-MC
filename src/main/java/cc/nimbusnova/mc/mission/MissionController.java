@@ -25,6 +25,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.HitResult;
@@ -41,6 +42,7 @@ import java.util.IdentityHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class MissionController {
     private static final Map<MinecraftServer, MissionController> SESSIONS = new IdentityHashMap<>();
@@ -195,7 +197,7 @@ public final class MissionController {
                 if (parts.length != 5) continue;
 
                 try {
-                    final ResourceKey<net.minecraft.world.level.Level> dimension =
+                    final ResourceKey<Level> dimension =
                             ResourceKey.create(Registries.DIMENSION, Identifier.parse(parts[0]));
                     stations.put(GlobalPos.of(dimension, new BlockPos(Integer.parseInt(parts[1]),
                             Integer.parseInt(parts[2]), Integer.parseInt(parts[3]))), Station.valueOf(parts[4]));
@@ -255,7 +257,7 @@ public final class MissionController {
         if (pinnedStorm != null) return pinnedStorm;
 
         final DustStorm[] storms = DustStorm.values();
-        return storms[java.util.concurrent.ThreadLocalRandom.current().nextInt(storms.length)];
+        return storms[ThreadLocalRandom.current().nextInt(storms.length)];
     }
 
     private int pinStorm(final CommandSourceStack source, final DustStorm storm) {
@@ -372,7 +374,7 @@ public final class MissionController {
         lastBroadcastPhase = state.phase();
         for (final var station : stations.entrySet()) {
             final var level = server.getLevel(station.getKey().dimension());
-            if (level == null || !level.hasChunkAt(station.getKey().pos()) || station.getValue() == Station.CANISTER) continue;
+            if (level == null || !level.getChunkSource().hasChunk(station.getKey().pos().getX() >> 4, station.getKey().pos().getZ() >> 4) || station.getValue() == Station.CANISTER) continue;
 
             ModBlocks.updateState(level, station.getKey().pos(), state.battery() > 0
                     && (station.getValue() == Station.OXYGEN ? state.oxygenOnline() : state.researchOnline()));

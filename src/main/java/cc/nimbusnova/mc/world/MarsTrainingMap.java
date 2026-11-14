@@ -63,7 +63,8 @@ public final class MarsTrainingMap {
         ServerLifecycleEvents.SERVER_STOPPED.register(RETURN_POINTS::remove);
         CommandRegistrationCallback.EVENT.register((dispatcher, _, _) -> dispatcher.register(Commands.literal("mars")
                 .executes(context -> {
-                    context.getSource().sendSuccess(() -> Component.literal("Mars training: /mars create (operator), /mars join, /mars leave"), false);
+                    context.getSource().sendSuccess(() -> Component.literal("Mars training: /mars create (operator), /mars join, /mars leave. "
+                            + MarsTerrain.terrainDescription()), false);
                     return 1;
                 })
                 .then(Commands.literal("create").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))

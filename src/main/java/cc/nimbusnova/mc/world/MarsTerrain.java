@@ -1,6 +1,8 @@
 package cc.nimbusnova.mc.world;
 
 public final class MarsTerrain {
+    private static final ImportedMarsTerrain IMPORTED = ImportedMarsTerrain.loadConfigured();
+
     private MarsTerrain() {
         /* w */
     }
@@ -14,7 +16,23 @@ public final class MarsTerrain {
         final double ridge = Math.pow(1 - Math.abs(noise(x / 92.0, z / 92.0)), 3);
         final double height = 65 + noise(x / 180.0, z / 180.0) * 28 + ridge * 34
                 + noise(x / 31.0, z / 31.0) * 5 + crater(x, z);
-        return (int) Math.round(Math.clamp(64 + (height - 64) * smoothBlend, 32, 145));
+        final int procedural = (int) Math.round(Math.clamp(64 + (height - 64) * smoothBlend, 32, 145));
+        if (IMPORTED == null) return procedural;
+
+        final double influence = IMPORTED.influence(x, z);
+        if (influence == 0) return procedural;
+
+        final double imported = 64 + (IMPORTED.normalizedHeight(x, z) - 64) * smoothBlend;
+        return (int) Math.round(procedural + (imported - procedural) * influence);
+    }
+
+    public static boolean usesImportedHeightmap() {
+        return IMPORTED != null;
+    }
+
+    public static String terrainDescription() {
+        return IMPORTED == null ? "Authored procedural Mars ridges and craters"
+                : "Local imported Mars crop / vertical offset " + IMPORTED.verticalOffset() + " / authored outpost pad";
     }
 
     private static double crater(final int x, final int z) {

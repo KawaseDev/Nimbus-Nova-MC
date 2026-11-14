@@ -4,8 +4,10 @@ import cc.nimbusnova.mc.client.render.NovaRenderer;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.NullMarked;
 import java.awt.Color;
 
+@NullMarked
 public final class MissionButton extends Button implements MissionPalette {
     public boolean selected;
 

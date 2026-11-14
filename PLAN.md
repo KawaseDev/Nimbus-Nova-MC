@@ -4,7 +4,7 @@ Version: November 14, 2026. Working plan for a five-person team.
 
 Platform: Minecraft Java Edition 26.3, Fabric, Java 25, and a teacher web application.
 
-Status: the first server-owned mission loop, role controls, HUD, and console are in development. The mod currently uses authored prototype rates; NASA observations are not integrated. Custom Mars terrain and items are a separate implementation batch. The teacher backend/admin panel belongs to another teammate and must not block local mod development. See [README.md](README.md) for usage, [TODO.md](TODO.md) for actual batch status, [JUDGE_REVIEW.md](JUDGE_REVIEW.md) for the provisional idea review, and [rules.md](rules.md) for competition requirements.
+Status: the mod now has a server-owned mission loop, three roles, a custom rendered HUD/console, a debrief, interactive equipment blocks, original items, astronaut NPC dialogue, and basic rover driving. The solar curve uses the teammate's documented Opportunity storm profiles; habitat rates remain authored game balance. New default terrain includes procedural hills and craters. The optional bounded terrain import has passed private local runtime validation; its derived data remains unpublished and server permission is unresolved; see [README.md](README.md#optional-local-terrain-import) for its provenance and permission limits. The teacher backend/admin panel belongs to another teammate and must not block local mod development. See [README.md](README.md) for usage, [TODO.md](TODO.md) for actual batch status, [JUDGE_REVIEW.md](JUDGE_REVIEW.md) for the provisional idea review, and [rules.md](rules.md) for competition requirements.
 
 ## 1. Product and learning goal
 
@@ -35,12 +35,12 @@ The full vision includes a teacher mission library, several crews, NPCs with bra
 | Class size | One teacher and one crew of up to five | Several isolated crews in one class |
 | Hosting | Run one prepared Fabric server; use operator commands until the teammate's backend connects | Teacher session allocation, then capacity-limited server provisioning |
 | Missions | One complete Mars dust-storm mission | Multiple playable missions and difficulty presets |
-| Roles | Two active roles, power and life support; other participants can observe | Five useful specialist roles, rotation, combined roles for small groups |
-| NPCs | One short state-aware guide after the core loop works | Mission specialist, maintenance robot, and mission-specific branching dialogue |
+| Roles | Power engineer, life support, and weather officer; other participants can observe | Additional useful specialist roles, rotation, combined roles for small groups |
+| NPCs | Two original astronaut NPCs with paginated, state-aware dialogue | Richer quest progression, task-linked dialogue, and mission-specific choices |
 | Minigames | One physical task with a visible equipment/resource effect | Three reusable task types, cooperative puzzles, accessibility variants |
 | Mars | One authored map with habitat and nearby expedition site | Larger regions and additional sites |
 | Suits | Original equipment assets and a clear prototype boundary | Functional suit oxygen, airlock checks, outdoor safety, and repairs |
-| Vehicles | Authored landing/vehicle areas; rover only after the resource lesson is complete | Controllable rover, then bounded shuttle flight, docking, and inter-location travel |
+| Vehicles | Basic six-wheel rover driving, steering, braking, and dismounting | Rover energy/cargo/objectives, then bounded shuttle flight, docking, and inter-location travel |
 | Spacecraft presentation | Static or scripted arrival, labeled according to actual behavior | Interactive launch, flight, and landing |
 | NASA evidence | One curated, attributed historical scenario | More observations and optional refreshed scenarios |
 | Teacher report | Decision timeline and mission outcome | Cross-attempt comparison and additional lesson material |
@@ -88,11 +88,12 @@ Students see the outcome, important decisions, historical context, and a short r
 | --- | --- | --- | --- |
 | Power engineer | Generation, consumption, battery forecast | Connect circuits, inspect solar equipment, allocate power | Reserve capacity versus equipment availability |
 | Life-support engineer | Oxygen reserve, production, habitat conditions | Diagnose a leak, service oxygen equipment, prepare airlocks | Immediate safety versus electricity and spare parts |
+| Weather officer (implemented) | Current sunlight and 30-second forecast | Share forecast updates with the crew | Acting on specialist information versus continuing the current plan |
 | Food and water specialist | Water reserve, greenhouse demand, growth progress | Route water, inspect pumps, choose lighting allocation | Future supplies versus today's power and water |
 | Safety and maintenance engineer | Exposure warnings, shelter readiness, damaged equipment | Inspect shelter, repair machinery, prepare safe routes | Protection versus materials, time, and outdoor work |
 | Expedition commander / pilot | Route, expedition objectives, vehicle range, crew readiness | Drive, navigate, collect samples, coordinate return | Science progress versus return reserves and exposure |
 
-Detailed controls belong to the assigned role. Everyone sees critical crew warnings and a small shared status display. Students can inspect another station's purpose without gaining its control permissions.
+The current role set is power, life support, and weather. The additional specialist roles below are expansion work; later crews can combine forecasting with the commander to stay within five students. Detailed controls belong to the assigned role. Everyone sees critical crew warnings and a small shared status display. Students can inspect another station's purpose without gaining its control permissions.
 
 Use role assignment to distribute responsibility, not to prevent help. Later cooperative tasks can require a specialist to authorize equipment while a teammate performs a nearby action. For the first build, each role must remain useful without requiring five simultaneous button presses.
 
@@ -102,7 +103,7 @@ Text communication and in-person conversation are sufficient initially. Integrat
 
 Use this sequence: lobby, briefing, practice, active mission, outcome, debrief. Store the current phase on the server and define which actions are legal in each phase.
 
-The current prototype lasts four minutes, with an authored dust event from 01:15 to 03:15. Full success requires keeping battery and oxygen above zero until 04:00 and operating research for at least 90 seconds. Survival without sufficient research earns partial success. This prevents “turn research off forever” from becoming the dominant full-success strategy. These timing and resource values are game balance, not NASA measurements.
+The current prototype lasts four minutes, with dust dimming from 01:15 and clearing from 03:15. Its solar profile uses the teammate's documented 2018 or 2007 Opportunity observations; [CREDITS.md](CREDITS.md) records the sources, normalization, and interpolation limits. Full success requires keeping battery and oxygen above zero until 04:00 and operating research for at least 90 seconds. Survival without sufficient research earns partial success. This prevents “turn research off forever” from becoming the dominant full-success strategy. Time compression, equipment rates, and capacities remain game balance, not NASA measurements. A bounded visual dust effect follows the storm without claiming a calibrated atmospheric simulation.
 
 A later classroom mission may last 10–15 minutes, excluding discussion; validate duration through playtesting. Simulated Martian time may run faster than classroom time. Display the scale and explain it in the debrief.
 
@@ -126,7 +127,7 @@ Define success, partial success, and mission abort. Students should receive a wa
 
 ## 6. NPCs and dialogue
 
-NPCs should give students reasons to explore, explain unfamiliar equipment, and react to mission decisions. Keep initial dialogue authored and tied to mission state so science explanations remain reviewable and sessions work without an external language model.
+NPCs should give students reasons to explore, explain unfamiliar equipment, and react to mission decisions. Commander Vega and Engineer Sol now provide authored, paginated dialogue tied to mission state, with original skins and idle/head-look animation. Their conversation path has passed the single-client runtime test. Quest progression and task minigames remain planned. Keeping dialogue authored makes science explanations reviewable and sessions independent of an external language model.
 
 | Character | Purpose | Initial interactions |
 | --- | --- | --- |
@@ -195,7 +196,7 @@ The server owns the task instance, valid actions, completion state, and resource
 
 Build one authored Mars site with a habitat, greenhouse, power area, equipment workshop, shelter, rover bay, landing zone, and a nearby sampling destination. Use paths, signs, and recognizable equipment silhouettes to help young players navigate.
 
-Use a controlled mission area or dimension with a prepared world. Full procedural planet generation can wait. Terrain can draw from a named Mars location, but label invented geography and stylized scale. Do not claim a scientifically accurate reconstruction without supporting data.
+Use a controlled mission area or dimension with a prepared world. Full procedural planet generation can wait. Terrain can draw from a named Mars location, but label invented geography and stylized scale. Do not claim a scientifically accurate reconstruction without supporting data. The current default generator creates original hills/craters only in new chunks; existing worlds remain intact. The optional bounded import is validated for private local preview, separately from the default generator; use the provenance and restrictions in [README.md](README.md#optional-local-terrain-import).
 
 The environment should communicate mission state through visibility, equipment activity, readable warnings, and sound cues with text equivalents. Provide reduced flashing and a clear way to distinguish warning severity.
 
@@ -207,7 +208,7 @@ Begin with an identifiable suit model/texture and a simple safety mechanic. Pres
 
 ### Rover
 
-The first rover needs boarding, steering, stopping, a limited operating reserve, and dismounting. The server owns movement constraints and reserves. Give the pilot a meaningful route choice and a reason to coordinate with power and safety specialists.
+The current custom six-wheel rover supports boarding, movement-key driving/steering, jump braking, sneak dismounting, and stopping when unoccupied. Its movement and stopping passed the single-client runtime test. Fuel, energy, cargo, and mission-objective consequences are not implemented. Add an operating reserve and useful route choice before presenting rover driving as an engineering trade-off. The server must own those future costs and movement constraints.
 
 Keep routes short enough for the classroom session. Provide a recovery action for a stuck vehicle and define safe behavior if the driver disconnects.
 
@@ -243,7 +244,7 @@ Use food and water as reserve/planning concerns in this short mission. Introduce
 
 | Mission | Main decision | Candidate task/NPC content | Evidence work still needed |
 | --- | --- | --- | --- |
-| The Darkening Sky | Exploration and equipment demand versus falling solar supply | Power routing, rover preparation, maintenance hints | Select a usable documented dust/solar record and validate the transformation |
+| The Darkening Sky | Exploration and equipment demand versus falling solar supply | Power routing, rover preparation, maintenance hints | Keep the implemented Opportunity source/transformation limits explicit; validate new evidence before expanding |
 | Shelter Before the Event | Complete outdoor work or move crew to protection | Shelter inspection, suit checks, safety briefing | Select Mars-relevant radiation observations and define justified simplifications |
 | The Long Night | Heating and life support versus limited reserves | Checklist, battery allocation, route recall | Select a named site's environmental observations |
 | Greenhouse Emergency | Water/food planning versus immediate energy demand | Pipe routing, crop inspection, scientist dialogue | Choose relevant plant research and a defensible accelerated model |
@@ -263,7 +264,7 @@ Separate three layers in both content and UI:
 2. Simulation: the documented transformation that changes a game system.
 3. Fiction: the student crew, habitat, equipment capacities, and story.
 
-The first science deliverable is finding and extracting usable evidence for the dust scenario. The historical article establishes context; it does not by itself provide a complete calibrated time series. If only a documented event sequence is used, call it a historically grounded scenario and explain the invented balance values.
+The teammate's Opportunity storm profiles now connect documented 2018/2007 solar-energy observations to visible solar-supply changes and the debrief. [CREDITS.md](CREDITS.md) identifies sources and assumptions. These sparse observations and interpolated curves are not a complete calibrated time series. Preserve the measured/transformed/fictional distinction when adding scenarios. The optional terrain import has a separate provenance and permission status described in README; the opt-in local mode runs on the documented cropped elevation derivative, while the published default remains procedural. Do not describe either mode as a raw, full-scale Mars scan.
 
 Do not combine measurements from different dates or landing sites and call them one observed Martian day. Document resampling, missing values, and any time compression. Missing evidence should produce an explicit limitation or a labeled authored event, not a fabricated measurement.
 
@@ -394,7 +395,7 @@ Done when students can complete the interaction and explain its effect without a
 
 Add the authored base, original item textures, role-specific station interactions, and a clear route to the expedition site. Confirm that a reconnect and permitted role reassignment do not strand the mission. Label decorative vehicle/suit assets according to their actual functionality.
 
-Done for the first map batch when students can enter the map safely, navigate the important stations, and perform the resource interaction without a developer moving them around. Functional suit safety, airlocks, and rover traversal are the next gameplay expansion.
+Done for the first map batch when students can enter the map safely, navigate the important stations, and perform the resource interaction without a developer moving them around. Basic rover traversal is now implemented and runtime-tested. Functional suit safety, airlocks, and resource-linked expedition objectives are the next gameplay expansion.
 
 ### Milestone D: the dust scenario
 
@@ -406,7 +407,7 @@ Done when a complete mission produces an understandable report and students can 
 
 Run a complete integrated rehearsal, fix blocking problems, prepare setup instructions, and produce the required public demo and source references. Verify the judging links without a signed-in session. Use [rules.md](rules.md) for the applicable submission limits and deadline.
 
-If time runs short, reduce map size, optional art, extra task variants, and cinematic length. Preserve two active roles, one meaningful task, a shared resource trade-off, source attribution, and debrief. Use the operator-controlled mod flow until the external teacher platform is ready. Do not claim that a local command demonstration proves working teacher hosting.
+If time runs short, reduce map size, optional art, extra task variants, and cinematic length. Preserve the small active-role set, one meaningful task, a shared resource trade-off, source attribution, and debrief. Use the operator-controlled mod flow until the external teacher platform is ready. Do not claim that a local command demonstration proves working teacher hosting.
 
 ### After the hackathon
 
@@ -440,13 +441,13 @@ Use the result as a small usability/learning observation, with participant count
 
 ### Science evidence gate
 
-Before marking NASA integration complete, identify an exact observation or documented condition, its dates and site, and the transformation into a visible game effect. Put this chain in the mission, source register, and demonstration: source observation → environmental change → crew decision → resource consequence → explanation. A historical article can support context; it does not establish a calibrated measurement series. Keep the authored prototype label until that evidence exists.
+Before marking NASA integration complete, identify an exact observation or documented condition, its dates and site, and the transformation into a visible game effect. Put this chain in the mission, source register, and demonstration: source observation → environmental change → crew decision → resource consequence → explanation. A historical article can support context; it does not establish a calibrated measurement series. Keep labels precise as evidence is added: the Opportunity solar profiles are source-backed, while habitat capacities, time compression, default terrain, and equipment behavior remain simplified. Do not generalize one supported solar curve into a claim that the entire habitat or world is scientifically calibrated.
 
 
 Hackathon acceptance checklist:
 
 - [ ] Minecraft 26.3 / Java 25 build and multiplayer startup work.
-- [ ] Two players join the prepared server and receive the two active roles.
+- [ ] Multiple players join the prepared server and receive the active roles, including the weather officer's distinct information.
 - [ ] Operator commands start, pause, resume, reset, and abort the mission correctly.
 - [ ] Power and life-support roles each control a meaningful resource decision.
 - [ ] One physical task operates through server-validated actions; NPC guidance supports its consequences when included.

@@ -13,6 +13,13 @@ loom {
     }
 }
 
+if (providers.gradleProperty('marsHeightmap').isPresent()) {
+    def terrainPath = file(providers.gradleProperty('marsHeightmap').get()).absolutePath
+    loom.runs.configureEach {
+        property 'nimbusnova.marsHeightmap', terrainPath
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
@@ -86,6 +93,15 @@ tasks.register('npcDialogueTest', JavaExec) {
 }
 
 check.dependsOn terrainSelfTest, dustStormProfileTest, npcDialogueTest
+
+tasks.register('importedTerrainTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.world.ImportedMarsTerrainTest'
+    enableAssertions = true
+}
+
+check.dependsOn importedTerrainTest
 
 fabricApi {
     configureTests {

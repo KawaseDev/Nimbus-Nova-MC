@@ -35,6 +35,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             world.getServer().runOnServer(server -> server.getPlayerList().op(new NameAndId(world.getConnection().getServerPlayer().getGameProfile())));
             world.getServer().runCommand("mars create");
             world.getServer().runCommand("mars create");
+            world.getServer().runCommand("mars");
             world.getServer().runCommand("execute as @p run mars join");
             context.waitFor(client -> client.level != null && client.level.dimension().equals(MarsTrainingMap.DIMENSION));
             world.getConnection().waitForChunksRender();
@@ -182,8 +183,8 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             world.getConnection().waitForClientboundPackets();
             context.waitTicks(5);
             context.takeScreenshot("aster-rover");
-            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 180 "
-                    + (MarsTerrain.surfaceHeight(180, 180) + 15) + " 180 -135 15");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 211 "
+                    + (MarsTerrain.surfaceHeight(211, -155) + 35) + " -155 90 5");
             world.getConnection().waitForChunksRender();
             context.takeScreenshot("mars-terrain");
             world.getServer().runCommand("mission start");
