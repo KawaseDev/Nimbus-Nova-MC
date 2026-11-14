@@ -23,6 +23,8 @@ The distributable is `build/libs/nimbus-nova-mc-0.1.0.jar`; the `-sources.jar` i
 
 `./gradlew runServer` starts a development server. Read and accept Minecraft's EULA yourself in `run/eula.txt` before running a server.
 
+The title screen has a **Join session** screen for the planned nickname and session code flow. Joining is disabled until session creation, code resolution, and the Minecraft server bridge are implemented.
+
 ## Layout
 
 - `src/main/java/cc/nimbusnova/mc/NimbusNovaMod.java`: shared entry point.
