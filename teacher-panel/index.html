@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mission Control | Nimbus Nova</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #0c1422; color: #edf3fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    header { border-bottom: 1px solid #28394c; padding: 20px max(24px, calc((100% - 1100px)/2)); display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+    .brand { font-weight: 750; letter-spacing: .04em; } .brand span { color: #83dbcc; }
+    .tag, .eyebrow { color: #9bafc4; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    main { max-width: 1100px; margin: 0 auto; padding: 54px 24px; }
+    h1 { font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -.04em; margin: 10px 0; }
+    h2 { font-size: 1.1rem; margin: 0; } p { line-height: 1.6; color: #aec0d3; }
+    .intro { max-width: 650px; margin-bottom: 36px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .card { background: #142236; border: 1px solid #2a3b50; border-radius: 14px; padding: 24px; min-width: 0; }
+    .wide { grid-column: span 2; } .card p { margin-bottom: 0; }
+    .status { display: inline-flex; gap: 9px; align-items: center; margin-top: 22px; font-weight: 650; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #e1ac70; } .dot.online { background: #83dbcc; }
+    .address { font-size: .875rem; overflow-wrap: anywhere; }
+    .empty { margin-top: 24px; padding: 22px; border: 1px dashed #40546b; border-radius: 9px; color: #adc0d3; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+    button { border: 1px solid #42536a; border-radius: 8px; padding: 10px 16px; background: #26364a; color: #bac8d6; font: inherit; }
+    button:disabled { opacity: .65; cursor: not-allowed; }
+    .note { border-left: 3px solid #83dbcc; padding-left: 14px; margin-top: 24px; font-size: .9rem; }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } .wide { grid-column: auto; } header .tag { display: none; } main { padding-top: 36px; } }
+  </style>
+</head>
+<body>
+<header><div class="brand"><span>✦</span> NIMBUS NOVA</div><div class="tag">Teacher workspace</div></header>
+<main>
+  <div class="intro"><div class="eyebrow">Mission Control / Dashboard</div><h1>Ready for launch.</h1><p>Monitor your server and prepare for your crew’s next mission.</p></div>
+  <div class="grid">
+    <section class="card wide" aria-labelledby="session-title"><div class="eyebrow">Current session</div><h2 id="session-title">Mission controls</h2><p>Session controls will be available when the Minecraft mission bridge is connected.</p><div class="actions"><button disabled>Start mission</button><button disabled>Pause mission</button><button disabled>End mission</button></div><p class="note">No mission session is connected. The server status check does not connect the panel to mission controls.</p></section>
+    <section class="card" aria-labelledby="server-title"><div class="eyebrow">Connection</div><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p><p>Checks whether the configured server port is reachable.</p></section>
+    <section class="card wide" aria-labelledby="crew-title"><div class="eyebrow">Crew</div><h2 id="crew-title">Player roster</h2><div class="empty">The roster will appear here when the mission bridge is available.</div></section>
+    <section class="card" aria-labelledby="mission-title"><div class="eyebrow">Mission library</div><h2 id="mission-title">The Darkening Sky</h2><p>A planned Mars mission about adapting to falling solar power during a dust storm.</p><p class="tag">In development</p></section>
+  </div>
+</main>
+<script>
+  async function refreshStatus() {
+    const label = document.getElementById('status');
+    const dot = document.getElementById('dot');
+    try {
+      const response = await fetch('/api/status', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Status unavailable');
+      const status = await response.json();
+      label.textContent = status.reachable ? 'Port reachable' : 'Port unreachable';
+      dot.classList.toggle('online', status.reachable);
+      document.getElementById('address').textContent = `${status.host}:${status.port}`;
+    } catch {
+      label.textContent = 'Panel connection lost';
+      dot.classList.remove('online');
+    }
+  }
+  refreshStatus();
+  setInterval(refreshStatus, 10000);
+</script>
+</body>
+</html>

@@ -37,4 +37,10 @@ The distributable is `build/libs/nimbus-nova-mc-0.1.0.jar`; the `-sources.jar` i
 
 Connect the teacher session, two Minecraft clients, and one role action that changes a shared resource. Then build the first Mars dust-storm mission with NPC guidance, task minigames, suits, a rover, and a decision debrief. See [PLAN.md](PLAN.md) for milestones and the expanded spaceflight roadmap. This describes future work.
 
+## Teacher panel (early development)
+
+With Node.js 18 or newer installed, run `node teacher-panel/server.js` and open <http://127.0.0.1:3000>. The panel listens only on the local machine. Set `PANEL_PORT`, `MINECRAFT_HOST`, or `MINECRAFT_PORT` before starting it to change the defaults (3000, 127.0.0.1, and 25565). Run `node --test teacher-panel/server.test.js` to check the panel.
+
+The connection indicator checks only whether the configured TCP port is reachable; it does not verify a Minecraft server or connect to mission state. The roster and session controls need the planned authenticated Fabric server bridge and are not implemented yet. This local development panel has no login and is not ready for public hosting or classroom use.
+
 Original code is MIT licensed. Minecraft retains its own license. Independent student project; no NASA, Mojang, or Microsoft endorsement.
