@@ -15,6 +15,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -129,6 +130,23 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             ScienceStationChecks.practice(context, world);
             context.setScreen(MissionConsoleScreen::new);
             context.clickScreenButton("Start mission");
+            context.waitFor(client -> NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.ACTIVE);
+            world.getServer().runOnServer(server -> {
+                final MissionController controller = MissionController.get(server);
+                for (int tick = 0; tick < 400 && controller.education().incident() == null; tick++)
+                    ServerTickEvents.END_SERVER_TICK.invoker().onEndTick(server);
+                if (controller.education().incident() == null || controller.snapshot().phase() != MissionState.Phase.PAUSED)
+                    throw new AssertionError("The solar warning must open an educational pause");
+            });
+            context.waitFor(client -> NimbusNovaClient.snapshot != null && !NimbusNovaClient.snapshot.educationIncident().isEmpty());
+            context.waitForScreen(MissionConsoleScreen.class);
+            GuidedMissionChecks.capture(context, "solar-education-pause");
+            context.clickScreenButton("Next lesson");
+            GuidedMissionChecks.capture(context, "solar-education-hazards");
+            context.clickScreenButton("Next lesson");
+            GuidedMissionChecks.capture(context, "solar-education-source");
+            world.getServer().runCommand("mission acknowledge");
+            world.getServer().runCommand("mission resume");
             context.waitFor(client -> NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.ACTIVE);
             context.setScreen(() -> null);
             ScienceStationChecks.active(context, world);

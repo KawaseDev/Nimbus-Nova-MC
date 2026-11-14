@@ -37,7 +37,7 @@
 <main>
   <div class="intro"><h1>Mission Control</h1></div>
   <div class="grid">
-    <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p id="mission-status" role="status">Mission unavailable.</p><div class="actions"><button id="mission-start" disabled aria-label="Start mission" title="Start mission">▶</button><button id="mission-pause" disabled aria-label="Pause mission" title="Pause mission">❚❚</button><button id="mission-end" disabled aria-label="End mission" title="End mission">■</button><button id="mission-reset" disabled>Reset</button></div><p id="mission-error" role="alert"></p></section>
+    <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p id="mission-status" role="status">Mission unavailable.</p><div class="actions"><button id="mission-start" disabled aria-label="Start mission" title="Start mission">▶</button><button id="mission-pause" disabled aria-label="Pause mission" title="Pause mission">❚❚</button><button id="mission-end" disabled aria-label="End mission" title="End mission">■</button><button id="mission-reset" disabled>Reset</button></div><div id="education" hidden><h3 id="education-title"></h3><p id="education-observation"></p><p id="education-explanation"></p><p id="education-hazard"></p><p id="education-question"></p><p id="education-evidence"></p><p><a id="education-source" target="_blank" rel="noopener noreferrer">NASA source</a></p><button id="education-confirm" disabled>Confirm understanding</button></div><p id="mission-error" role="alert"></p></section>
     <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p><div class="actions"><button id="power" disabled>Start server</button><button id="restart" disabled>Restart</button></div><p id="server-error" role="alert"></p></section>
     <section class="card" aria-labelledby="join-title"><h2 id="join-title">Student session</h2><p id="session-status" role="status">Checking…</p></section>
     <section class="card" aria-labelledby="world-title"><h2 id="world-title">Mars outpost</h2><div class="actions"><button id="create-world" disabled>Create outpost</button></div><p id="world-status" role="status">Server unavailable.</p></section>
@@ -119,7 +119,22 @@
       missionPhase = state.phase;
       document.getElementById('mission-status').textContent = `${state.phase} · ${state.elapsedSeconds}s · Power ${Math.round(state.battery)}% · Oxygen ${Math.round(state.oxygen)}%`;
       missionButtons[0].disabled = missionBusy || state.phase !== 'READY' || state.players === 0;
-      missionButtons[1].disabled = missionBusy || !['ACTIVE', 'PAUSED'].includes(state.phase);
+      const lesson = state.education;
+      const panel = document.getElementById('education');
+      panel.hidden = !lesson;
+      if (lesson) {
+        for (const key of ['title', 'observation', 'explanation', 'hazard', 'question', 'evidence'])
+          document.getElementById(`education-${key}`).textContent = lesson[key];
+        const source = document.getElementById('education-source');
+        try {
+          const url = new URL(lesson.source);
+          if (url.protocol !== 'https:' || !(url.hostname === 'nasa.gov' || url.hostname.endsWith('.nasa.gov'))) throw new Error();
+          source.href = url.href; source.hidden = false;
+        } catch { source.hidden = true; source.removeAttribute('href'); }
+        document.getElementById('education-confirm').disabled = missionBusy || lesson.confirmed;
+        document.getElementById('education-confirm').textContent = lesson.confirmed ? 'Understanding confirmed' : 'Confirm understanding';
+      }
+      missionButtons[1].disabled = missionBusy || !['ACTIVE', 'PAUSED'].includes(state.phase) || !!lesson && !lesson.confirmed;
       missionButtons[1].textContent = state.phase === 'PAUSED' ? '▶' : '❚❚';
       missionButtons[1].setAttribute('aria-label', state.phase === 'PAUSED' ? 'Resume mission' : 'Pause mission');
       missionButtons[1].title = state.phase === 'PAUSED' ? 'Resume mission' : 'Pause mission';
@@ -143,6 +158,7 @@
     } catch (failure) { error.textContent = failure.message; }
     finally { missionBusy = false; await refreshMission(); }
   }
+  document.getElementById('education-confirm').addEventListener('click', () => missionAction('acknowledge'));
   missionButtons[0].addEventListener('click', () => missionAction('start'));
   missionButtons[1].addEventListener('click', () => missionAction(missionPhase === 'PAUSED' ? 'resume' : 'pause'));
   missionButtons[2].addEventListener('click', () => missionAction('abort'));

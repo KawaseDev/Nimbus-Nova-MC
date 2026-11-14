@@ -138,6 +138,14 @@ jar {
     from('CREDITS.md')
 }
 
+tasks.register('educationPauseTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.mission.EducationPauseTest'
+    enableAssertions = true
+}
+
+check.dependsOn educationPauseTest
 tasks.register('scifiAssetTest', JavaExec) {
     dependsOn missionTestClasses
     classpath = sourceSets.missionTest.runtimeClasspath

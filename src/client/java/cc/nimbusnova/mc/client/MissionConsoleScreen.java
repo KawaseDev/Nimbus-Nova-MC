@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.mission.CrewRole;
+import cc.nimbusnova.mc.mission.EducationPause;
 import cc.nimbusnova.mc.mission.DustStorm;
 import cc.nimbusnova.mc.mission.MissionDebrief;
 import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
@@ -9,9 +10,11 @@ import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.render.NovaScreen;
 import java.awt.Color;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.NonNull;
 
@@ -19,7 +22,9 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
     private int tab;
     private int panelX, panelY, panelWidth, panelHeight;
     private MissionButton start, pause, reset, oxygen, research, forecast, powerRole, lifeRole, weatherRole;
-    private MissionButton previousDebrief, nextDebrief;
+    private MissionButton previousDebrief, nextDebrief, previousLesson, nextLesson, lessonSource;
+    private int lessonPage;
+    private String lessonId = "";
     private int debriefPage, debriefLinesPerPage;
     private MissionState.Snapshot debriefState;
     private final List<DebriefLine> debriefLines = new ArrayList<>();
@@ -76,7 +81,10 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
             if (!ObjectiveGuidance.onMars() && NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.READY) {
                 if (minecraft.getConnection() != null)
                     minecraft.getConnection().sendCommand("mars create");
-            } else
+            } else if (NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.PAUSED
+                    && !NimbusNovaClient.snapshot.educationIncident().isEmpty() && !NimbusNovaClient.snapshot.educationConfirmed())
+                command("acknowledge");
+            else
                 command(NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.PAUSED ? "resume" : "pause");
         }));
         reset = addRenderableWidget(new MissionButton(panelX + 24 + controlWidth * 2, footerY, controlWidth, 22, "Restart", () -> command("reset")));
@@ -84,6 +92,17 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
                 "Previous", () -> changeDebriefPage(-1)));
         nextDebrief = addRenderableWidget(new MissionButton(panelX + panelWidth - 92, footerY - 28, 78, 22,
                 "Next", () -> changeDebriefPage(1)));
+        previousLesson = addRenderableWidget(new MissionButton(panelX + 14, footerY - 28, 78, 22,
+                "Previous lesson", () -> { lessonPage--; updateControls(); }));
+        nextLesson = addRenderableWidget(new MissionButton(panelX + panelWidth - 92, footerY - 28, 78, 22,
+                "Next lesson", () -> { lessonPage++; updateControls(); }));
+        lessonSource = addRenderableWidget(new MissionButton(panelX + (panelWidth - 130) / 2, footerY - 28, 130, 22,
+                "NASA source", () -> {
+                    if (NimbusNovaClient.snapshot != null && !NimbusNovaClient.snapshot.educationIncident().isEmpty()) {
+                        final var incident = EducationPause.Incident.valueOf(NimbusNovaClient.snapshot.educationIncident());
+                        ConfirmLinkScreen.confirmLinkNow(this, URI.create(incident.source));
+                    }
+                }));
 
         final int systemWidth = (panelWidth - 36) / 3;
         powerRole = addRenderableWidget(new MissionButton(panelX + 12, panelY + 94, systemWidth, 22, "Power engineer", () -> command("role power")));
@@ -118,7 +137,17 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
         start.active = connected && (!ObjectiveGuidance.onMars() || !canLaunch || operator);
         final boolean prepareOutpost = !ObjectiveGuidance.onMars() && phase == MissionState.Phase.READY;
         pause.active = operator && (prepareOutpost || phase == MissionState.Phase.ACTIVE || phase == MissionState.Phase.PAUSED);
-        pause.setMessage(Component.literal(prepareOutpost ? "Prepare outpost" : phase == MissionState.Phase.PAUSED ? "Resume" : "Pause"));
+        final boolean lesson = connected && !packet.educationIncident().isEmpty();
+        pause.setMessage(Component.literal(prepareOutpost ? "Prepare outpost" : phase != MissionState.Phase.PAUSED ? "Pause"
+                : lesson && !packet.educationConfirmed() ? "Confirm learning" : "Resume"));
+        if (connected && !packet.educationIncident().equals(lessonId)) {
+            lessonId = packet.educationIncident();
+            lessonPage = 0;
+        }
+        previousLesson.visible = nextLesson.visible = lesson && tab == 2;
+        lessonSource.visible = lesson && tab == 2 && lessonPage == 2;
+        previousLesson.active = lessonPage > 0;
+        nextLesson.active = lessonPage < 2;
         reset.active = operator && phase != MissionState.Phase.ACTIVE;
         powerRole.visible = lifeRole.visible = weatherRole.visible = oxygen.visible = research.visible = forecast.visible = tab == 1 && connected;
         powerRole.active = lifeRole.active = weatherRole.active = connected && phase == MissionState.Phase.READY;
@@ -280,12 +309,28 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
                     }
                 }
                 default -> {
+                    if (!packet.educationIncident().isEmpty()) {
+                        final EducationPause.Incident incident = EducationPause.Incident.valueOf(packet.educationIncident());
+                        MissionUi.text(graphics, incident.title, contentX, contentY, ACCENT);
+                        if (lessonPage == 0) {
+                            MissionUi.wrap(graphics, incident.observation, contentX, contentY + 20, contentWidth, 2, TEXT);
+                            MissionUi.wrap(graphics, incident.explanation, contentX, contentY + 47, contentWidth, 3, TEXT);
+                        } else if (lessonPage == 1) {
+                            MissionUi.wrap(graphics, incident.hazard, contentX, contentY + 20, contentWidth, 3, TEXT);
+                            MissionUi.wrap(graphics, incident.question, contentX, contentY + 58, contentWidth, 2, ACCENT);
+                        } else {
+                            MissionUi.wrap(graphics, incident.evidence, contentX, contentY + 20, contentWidth, 4, TEXT);
+                            MissionUi.wrap(graphics, "Open the source or ask Mission Control to share it.",
+                                    contentX, contentY + 72, contentWidth, 2, MUTED);
+                        }
+                        break;
+                    }
                     MissionUi.text(graphics, "Crew briefing", contentX, contentY, ACCENT);
                     final DustStorm storm = state.dustStorm();
                     MissionUi.wrap(graphics, "A dust storm starts dimming the sun at 01:15. By 02:15 only " + storm.peakPercent()
                                     + "% of the sunlight is left, and the dust starts to thin at 03:15. Keep battery and oxygen above zero "
                                     + "until 04:00; finish 90 seconds of research for full success. This storm is real: " + storm.summary()
-                                    + " At 00:25 a solar storm alert gives you 15 seconds to reach the crew shelter, south of the habitat; "
+                                    + " At 00:10 a solar storm alert gives you 30 seconds to reach the crew shelter, south of the habitat; "
                                     + "stay inside until 01:05.",
                             contentX, contentY + 18, contentWidth, panelHeight >= 290 ? 8 : 6, TEXT);
 
