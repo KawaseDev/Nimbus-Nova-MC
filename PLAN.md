@@ -6,6 +6,20 @@ Platform: Minecraft Java Edition 26.3, Fabric, Java 25, and a teacher web applic
 
 Status: the mod now has a server-owned mission loop, three roles, a custom rendered HUD/console, a debrief, interactive equipment blocks, original items, astronaut NPC dialogue, and basic rover driving. The solar curve uses the teammate's documented Opportunity storm profiles; habitat rates remain authored game balance. New default terrain includes procedural hills and craters. The optional bounded terrain import has passed private local runtime validation; its derived data remains unpublished and server permission is unresolved; see [README.md](README.md#optional-local-terrain-import) for its provenance and permission limits. The teacher backend/admin panel belongs to another teammate and must not block local mod development. See [README.md](README.md) for usage, [TODO.md](TODO.md) for actual batch status, [JUDGE_REVIEW.md](JUDGE_REVIEW.md) for the provisional idea review, and [rules.md](rules.md) for competition requirements.
 
+## Platform decision: retain Minecraft
+
+Decision recorded November 14, 2026: keep Nimbus Nova as a Minecraft mod. This is a conceptual product choice, independent of migration effort or unconfirmed classroom device access. Minecraft fits a crew that inhabits, changes, repairs, and explores a shared outpost. The platform should contribute familiar spatial play, inventory, construction, and cooperation to the engineering lesson.
+
+The originality claim belongs to the combination of specialist information, a shared resource budget, NASA-based conditions, and visible consequences. Do not claim that all competitors use Unity or that Minecraft space education is unprecedented. NASA already developed [Artemis learning worlds with Minecraft](https://www.nasa.gov/learning-resources/take-the-next-giant-leap-with-nasa-and-minecraft/). The [Space Apps rubric](https://www.spaceappschallenge.org/resources/judging-awards-guide/) evaluates impact, creativity, validity, relevance, and presentation without preferring an engine.
+
+Learning should follow from useful game actions. [Habgood and Ainsworth](https://www.tandfonline.com/doi/abs/10.1080/10508406.2010.508029) provide evidence for embedding subject matter into gameplay. [Minecraft classroom research](https://pmc.ncbi.nlm.nih.gov/articles/PMC10170428/) supports the engagement hypothesis, while a [larger randomized trial](https://doi.org/10.1016/j.learninstruc.2024.102003) found no overall spatial-thinking improvement. These findings support testing our design; they do not prove Minecraft teaches better than Unity.
+
+Use Minecraft's strengths: physical repairs, equipment placement, consequential exploration, limited supplies, and communication across locations. Keep instruments and dialogue readable, and let the world carry the task. NPCs should explain choices and provide replayable hints. Failure should be understandable and recoverable. A brief debrief should help students explain the trade-off they experienced.
+
+Reconsider Unity if the defining product becomes a tightly directed, non-block spacecraft simulator requiring a different world grammar and physical interaction model. Better graphics alone do not establish that need. Organizer clarification of the host-game licensing requirement remains separate from this conceptual decision.
+
+Current priority: finish one child-readable Mars mission. Preparation must teach interactions before hazards run. At each step, show one concrete objective, its location, the interaction to perform, and visible feedback. Complete a real crew task loop before expanding to another mission.
+
 ## 1. Product and learning goal
 
 Nimbus Nova is an educational, cooperative Minecraft space mod. A teacher acts as Mission Control and sends student crews on Mars missions. Each student operates a different system, while the crew shares power, supplies, and responsibility for returning safely.

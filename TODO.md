@@ -150,3 +150,21 @@ See [rules.md](rules.md) for governing official sources and [JUDGE_REVIEW.md](JU
 - [x] Verify higher jumps, longer airtime, item gravity, no-gravity behavior, client/server agreement, and ordinary physics after leaving Mars in the runtime test.
 
 Build and client game test passed. Physical multiplayer movement testing remains open.
+
+## First-mission usability and interaction batch
+
+Status: in progress. The platform decision is recorded in PLAN.md.
+
+- [x] Record the conceptual Minecraft/Unity decision and research limitations.
+- [ ] Add a guided, server-owned preparation flow before starting the hazard timer.
+- [ ] Give each role a clear task with a destination, interaction hint, and progress feedback.
+- [ ] Add interactive power/oxygen repair sequences and sample collection/delivery.
+- [ ] Give the timed mission an active relay repair and fair shelter response time.
+- [ ] Replace the dense default HUD/console with a child-readable objective-first presentation.
+- [ ] Add functional doors, airlock signage, routes, and additional functional custom models.
+- [ ] Support safe upgrades of known legacy outpost anchors without resetting player builds.
+- [ ] Test a full preparation-to-outcome mission and invalid/duplicate task actions.
+- [ ] Inspect the rendered task UI, navigation, doors, and first-mission report.
+- [ ] Commit and push working batches, preserving teammate changes.
+
+Two-child observation remains necessary before claiming age-appropriate usability or educational effectiveness.
