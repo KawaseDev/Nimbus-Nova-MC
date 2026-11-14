@@ -33,6 +33,22 @@ The distributable is `build/libs/nimbus-nova-mc-0.1.0.jar`; the `-sources.jar` i
 - [PLAN.md](PLAN.md): detailed product plan, roles, NPC dialogue, task minigames, missions, and five-person delivery roadmap.
 - [CREDITS.md](CREDITS.md): references, licenses, and AI assistance disclosure.
 
+## Running a mission
+
+Mission Control is any operator. Press **J** for the mission console.
+
+1. **Set up the map once.** Look at a block and run `/mission station oxygen`, `/mission station research`, or `/mission station canister`. Bindings are saved in the world folder (`nimbus_nova_stations.txt`); `/mission station clear` removes them.
+2. **Choose roles.** Each player runs `/mission role power`, `life_support`, or `weather`, or uses the console's Systems tab. An operator can run `/mission assign <player> <role>`.
+3. **Start.** `/mission start`. Then use `pause`, `resume`, `abort`, and `reset` as needed.
+
+| Role | Sees | Does |
+| --- | --- | --- |
+| Power engineer | Battery and energy balance | Switches research on and off |
+| Life-support engineer | Oxygen reserve and canisters | Switches oxygen production; uses the 2 emergency canisters |
+| Weather officer | Sunlight now and a 30-second forecast (hidden from others) | Shares forecasts with `/mission forecast` |
+
+The mission lasts four minutes. Survive with battery and oxygen above zero, and finish 90 seconds of research for full success. When it ends, every console opens on the **Debrief** tab with measured results, consequences, the real Opportunity story, and reflection questions.
+
 ## Next milestone
 
 Connect the teacher session, two Minecraft clients, and one role action that changes a shared resource. Then build the first Mars dust-storm mission with NPC guidance, task minigames, suits, a rover, and a decision debrief. See [PLAN.md](PLAN.md) for milestones and the expanded spaceflight roadmap. This describes future work.
