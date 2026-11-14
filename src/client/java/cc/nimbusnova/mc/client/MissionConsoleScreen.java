@@ -3,11 +3,14 @@ package cc.nimbusnova.mc.client;
 import cc.nimbusnova.mc.mission.CrewRole;
 import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
 import cc.nimbusnova.mc.mission.MissionState;
+import cc.nimbusnova.mc.client.render.NovaRenderer;
+import cc.nimbusnova.mc.client.render.NovaScreen;
+import java.awt.Color;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-public final class MissionConsoleScreen extends Screen implements MissionPalette {
+public final class MissionConsoleScreen extends NovaScreen implements MissionPalette {
     private int tab;
     private int panelX, panelY, panelWidth, panelHeight;
     private MissionButton start, pause, reset, oxygen, research, powerRole, lifeRole;
@@ -87,9 +90,9 @@ public final class MissionConsoleScreen extends Screen implements MissionPalette
     @Override
     public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
         updateControls();
-        graphics.fill(0, 0, width, height, 0xB010151C);
+        NovaRenderer.rect(graphics, 0, 0, width, height, 0, new Color(10, 15, 22, 155));
         MissionUi.panel(graphics, panelX, panelY, panelWidth, panelHeight);
-        graphics.fill(panelX, panelY, panelX + 3, panelY + 35, ACCENT.getRGB());
+        NovaRenderer.rect(graphics, panelX + 12, panelY + 10, 2, 23, 1, ACCENT);
         MissionUi.text(graphics, "NIMBUS NOVA", panelX + 14, panelY + 12, TEXT);
         MissionUi.text(graphics, "Prototype / authored game units", panelX + 14, panelY + 26, MUTED);
 

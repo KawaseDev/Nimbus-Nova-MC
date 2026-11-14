@@ -2,6 +2,7 @@ package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
 import cc.nimbusnova.mc.mission.OpenConsolePayload;
+import cc.nimbusnova.mc.client.render.NovaRenderer;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
@@ -22,13 +23,17 @@ public final class NimbusNovaClient implements ClientModInitializer {
     static MissionSnapshotPayload snapshot;
     static KeyMapping consoleKey;
 
+    public static MissionSnapshotPayload missionSnapshot() {
+        return snapshot;
+    }
+
     @Override
     public void onInitializeClient() {
+        NovaRenderer.initialize();
         ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
             if (screen instanceof TitleScreen) {
-                Screens.getWidgets(screen).add(Button.builder(Component.literal("Join session"),
-                        button -> client.setScreenAndShow(new JoinSessionScreen(screen)))
-                        .bounds(width - 110, 10, 100, 20).build());
+                Screens.getWidgets(screen).add(new MissionButton(width - 110, 10, 100, 22, "Join session",
+                        () -> client.setScreenAndShow(new JoinSessionScreen(screen))));
             }
         });
         consoleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nimbus_nova.console", InputConstants.KEY_J,

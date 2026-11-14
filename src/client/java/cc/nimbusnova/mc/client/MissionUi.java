@@ -1,9 +1,7 @@
 package cc.nimbusnova.mc.client;
 
-import net.minecraft.client.Minecraft;
+import cc.nimbusnova.mc.client.render.NovaRenderer;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.network.chat.Component;
-import net.minecraft.util.FormattedCharSequence;
 
 import java.awt.Color;
 import java.util.Locale;
@@ -14,33 +12,28 @@ final class MissionUi implements MissionPalette {
     }
 
     static void panel(final GuiGraphicsExtractor graphics, final int x, final int y, final int width, final int height) {
-        graphics.fill(x, y, x + width, y + height, BACKGROUND.getRGB());
-        graphics.outline(x, y, width, height, BORDER.getRGB());
+        NovaRenderer.glow(graphics, x, y + 3, width, height, 9, 4, new Color(5, 9, 14, 90));
+        NovaRenderer.rect(graphics, x, y, width, height, 9, BACKGROUND);
+        NovaRenderer.stroke(graphics, x, y, width, height, 9, 0.6F, BORDER);
     }
 
     static void text(final GuiGraphicsExtractor graphics, final String text, final int x, final int y, final Color color) {
-        graphics.text(Minecraft.getInstance().font, text, x, y, color.getRGB(), false);
+        NovaRenderer.text(graphics, text, x, y - 2, 10, color);
     }
 
     static void rightText(final GuiGraphicsExtractor graphics, final String text, final int right, final int y, final Color color) {
-        text(graphics, text, right - Minecraft.getInstance().font.width(text), y, color);
+        NovaRenderer.text(graphics, text, right - NovaRenderer.width(text, 10), y - 2, 10, color);
     }
 
     static void wrap(final GuiGraphicsExtractor graphics, final String text, final int x, final int y,
                      final int width, final int lines, final Color color) {
-        int line = 0;
-        for (final FormattedCharSequence part : Minecraft.getInstance().font.split(Component.literal(text), width)) {
-            if (line >= lines) break;
-            graphics.text(Minecraft.getInstance().font, part, x, y + line++ * 11, color.getRGB(), false);
-        }
+        NovaRenderer.wrap(graphics, text, x, y - 2, width, 9, lines, color);
     }
 
     static void bar(final GuiGraphicsExtractor graphics, final int x, final int y,
                     final int width, final double percentage, final Color color) {
-        graphics.fill(x, y, x + width, y + 4, SURFACE.getRGB());
-        graphics.fill(x, y, x + (int) Math.round(width * Math.clamp(percentage, 0, 100) / 100), y + 4, color.getRGB());
-        for (int divider = 1; divider < 10; divider++)
-            graphics.fill(x + width * divider / 10, y, x + width * divider / 10 + 1, y + 4, BACKGROUND.getRGB());
+        NovaRenderer.rect(graphics, x, y, width, 4, 2, SURFACE);
+        NovaRenderer.rect(graphics, x, y, (float) (width * Math.clamp(percentage, 0, 100) / 100), 4, 2, color);
     }
 
     static String time(final int seconds) {

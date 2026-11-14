@@ -2,6 +2,7 @@ package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
 import cc.nimbusnova.mc.mission.MissionState;
+import cc.nimbusnova.mc.client.render.NovaRenderer;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -29,7 +30,7 @@ final class MissionHud implements MissionPalette {
                 : state.phase() == MissionState.Phase.SUCCESS ? SUCCESS : ACCENT;
 
         MissionUi.panel(graphics, x, y, width, 116);
-        graphics.fill(x, y, x + 3, y + 28, status.getRGB());
+        NovaRenderer.rect(graphics, x + 4, y + 9, 2, 20, 1, status);
         MissionUi.text(graphics, "NIMBUS NOVA", x + 12, y + 10, TEXT);
         MissionUi.rightText(graphics, MissionUi.time(MissionState.DURATION_SECONDS - state.elapsedSeconds()), x + width - 10, y + 10, status);
         MissionUi.text(graphics, state.phase().name() + " / " + (state.storm() ? "DUST EVENT" : "HABITAT SYSTEMS"), x + 12, y + 25, MUTED);
@@ -54,7 +55,7 @@ final class MissionHud implements MissionPalette {
                 && graphics.guiHeight() >= 260) {
             final String warning = state.oxygen() <= 25 ? "LOW OXYGEN / restore production"
                     : state.battery() <= 25 ? "LOW BATTERY / reduce power demand" : "DUST FRONT / solar output reduced";
-            final int warningWidth = Math.min(graphics.guiWidth() - 24, client.font.width(warning) + 24);
+            final int warningWidth = Math.min(graphics.guiWidth() - 24, (int) Math.ceil(NovaRenderer.width(warning, 10)) + 24);
             final int warningX = (graphics.guiWidth() - warningWidth) / 2;
             MissionUi.panel(graphics, warningX, graphics.guiHeight() - 79, warningWidth, 24);
             MissionUi.text(graphics, warning, warningX + 12, graphics.guiHeight() - 71, DANGER);

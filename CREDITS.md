@@ -24,3 +24,7 @@ Carry this disclosure into the competition submission's AI/SI field. Update it a
 ## Future science sources
 
 When adding NASA data, record the exact dataset/study URL, retrieval date, units, transformations, use terms, and which mechanic uses it. Label archived data as archived and game balance values as simplified assumptions. An Earth-directed space-weather alert is not a calibrated lunar or Mars surface radiation dose. The current four-minute mission rates, dust timing, and equipment capacities are authored game balance. NASA data integration remains pending until an exact source and transformation are documented.
+
+## Rendering and font
+
+The Nova renderer uses original RenderPearl/Blaze3D GUI render states and shaders. Sapphire in the team's existing mod informed the design; its engine implementation was not copied. The bundled Geist MTSDF atlas is derived from [Geist](https://github.com/vercel/geist-font), licensed under SIL OFL 1.1; the full license is bundled at `assets/nimbus_nova/fonts/OFL.txt`. RGB-median distance reconstruction follows the technique documented by [msdf-atlas-gen](https://github.com/Chlumsky/msdf-atlas-gen). The font software remains under OFL, separately from the repository's MIT code.
