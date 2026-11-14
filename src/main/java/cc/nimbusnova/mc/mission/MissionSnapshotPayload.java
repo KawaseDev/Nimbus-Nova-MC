@@ -6,7 +6,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import org.jspecify.annotations.NonNull;
 
-public record MissionSnapshotPayload(MissionState.Snapshot state, CrewRole role, boolean operator, int crew)
+public record MissionSnapshotPayload(MissionState.Snapshot state, CrewRole role, boolean operator, int crew, String educationIncident, boolean educationConfirmed)
         implements CustomPacketPayload {
     public static final Type<MissionSnapshotPayload> TYPE = new Type<>(Identifier.parse("nimbus_nova:mission_state"));
     public static final StreamCodec<RegistryFriendlyByteBuf, MissionSnapshotPayload> CODEC =
@@ -18,7 +18,7 @@ public record MissionSnapshotPayload(MissionState.Snapshot state, CrewRole role,
                         buffer.readDouble(), buffer.readDouble(), buffer.readVarInt(), buffer.readVarInt(), buffer.readUtf(512),
                         buffer.readDouble(), buffer.readDouble(), buffer.readVarInt(), buffer.readVarInt(),
                         DustStorm.byId(buffer.readUtf(8)), buffer.readDouble()),
-                CrewRole.valueOf(buffer.readUtf(16)), buffer.readBoolean(), buffer.readVarInt());
+                CrewRole.valueOf(buffer.readUtf(16)), buffer.readBoolean(), buffer.readVarInt(), buffer.readUtf(16), buffer.readBoolean());
     }
 
     private void write(final RegistryFriendlyByteBuf buffer) {
@@ -42,6 +42,8 @@ public record MissionSnapshotPayload(MissionState.Snapshot state, CrewRole role,
         buffer.writeUtf(role.name(), 16);
         buffer.writeBoolean(operator);
         buffer.writeVarInt(crew);
+        buffer.writeUtf(educationIncident, 16);
+        buffer.writeBoolean(educationConfirmed);
     }
 
     @Override

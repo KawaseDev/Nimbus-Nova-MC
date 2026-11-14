@@ -168,8 +168,16 @@ final class GuidedMissionChecks {
         world.getServer().runOnServer(server -> {
             final MissionController controller = MissionController.get(server);
             for (int tick = 0; tick < MissionState.DURATION_SECONDS * 20 + 20
-                    && controller.snapshot().elapsedSeconds() < targetSecond && controller.snapshot().phase() == MissionState.Phase.ACTIVE; tick++)
+                    && controller.snapshot().elapsedSeconds() < targetSecond && !controller.snapshot().phase().ended(); tick++) {
                 ServerTickEvents.END_SERVER_TICK.invoker().onEndTick(server);
+                if (controller.education().incident() != null) {
+                    if (controller.control(server.createCommandSourceStack(), "resume") != 0)
+                        throw new AssertionError("An educational pause resumed without confirmation");
+                    if (controller.control(server.createCommandSourceStack(), "acknowledge") != 1
+                            || controller.control(server.createCommandSourceStack(), "resume") != 1)
+                        throw new AssertionError("Mission Control could not confirm and resume");
+                }
+            }
 
             if (controller.snapshot().elapsedSeconds() < targetSecond)
                 throw new AssertionError("Mission ended before the expected stage: " + controller.snapshot().lastEvent());

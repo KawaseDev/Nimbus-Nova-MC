@@ -46,6 +46,8 @@ The world uses holographic labels, marker effects, colored routes, automatic doo
 
 NASA observations determine the selected Opportunity storm profile. The relay fault, pressure puzzle, radiation counter, mission timing, and resource capacities are teaching/gameplay assumptions, not calibrated astronaut procedures.
 
+The solar warning, dust warning, and relay fault pause the simulation for an explanation and discussion. Mission Control confirms understanding before resuming. These pauses are the first implemented part of the expanded scenario document; the Earth–Moon, Earth–Mars transit, and ISS missions are not yet playable.
+
 ### Commands
 
 | Command | Permission / behavior |
@@ -61,6 +63,7 @@ NASA observations determine the selected Opportunity storm profile. The relay fa
 | `/mission start` | Operator; launch after crew preparation is complete |
 | `/mission debug_start` | Operator development bypass for test fixtures |
 | `/mission pause` / `/mission resume` | Operator; freeze/unfreeze simulation time and resources |
+| `/mission acknowledge` | Operator; confirm an educational pause before resuming |
 | `/mission abort` | Operator; end a running/paused mission |
 | `/mission reset` | Operator; start a fresh ready state |
 | `/mission equipment research true` / `false` | Power engineer or operator; enable/disable research while active |

@@ -144,7 +144,8 @@ public final class TeacherBridge {
                     }
                     CompletableFuture<String> result = new CompletableFuture<>();
                     server.execute(() -> {
-                        MissionState.Snapshot snapshot = MissionController.get(server).snapshot();
+                        MissionController controller = MissionController.get(server);
+                        MissionState.Snapshot snapshot = controller.snapshot();
                         JsonObject data = new JsonObject();
                         data.addProperty("phase", snapshot.phase().name());
                         data.addProperty("elapsedSeconds", snapshot.elapsedSeconds());
@@ -152,6 +153,19 @@ public final class TeacherBridge {
                         data.addProperty("oxygen", snapshot.oxygen());
                         data.addProperty("lastEvent", snapshot.lastEvent());
                         data.addProperty("players", server.getPlayerList().getPlayerCount());
+                        var incident = controller.education().incident();
+                        if (incident != null) {
+                            JsonObject lesson = new JsonObject();
+                            lesson.addProperty("title", incident.title);
+                            lesson.addProperty("observation", incident.observation);
+                            lesson.addProperty("explanation", incident.explanation);
+                            lesson.addProperty("hazard", incident.hazard);
+                            lesson.addProperty("question", incident.question);
+                            lesson.addProperty("evidence", incident.evidence);
+                            lesson.addProperty("source", incident.source);
+                            lesson.addProperty("confirmed", controller.education().confirmed());
+                            data.add("education", lesson);
+                        }
                         result.complete(data.toString());
                     });
                     byte[] body = result.get(3, TimeUnit.SECONDS).getBytes(StandardCharsets.UTF_8);
@@ -176,7 +190,7 @@ public final class TeacherBridge {
                     }
                     String[] parts = new String(exchange.getRequestBody().readNBytes(65), StandardCharsets.UTF_8).split(" ", -1);
                     if (parts.length != 2 || !parts[0].matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
-                            || !java.util.Set.of("start", "pause", "resume", "abort", "reset").contains(parts[1])) {
+                            || !java.util.Set.of("start", "pause", "resume", "acknowledge", "abort", "reset").contains(parts[1])) {
                         exchange.sendResponseHeaders(400, -1); return;
                     }
                     UUID id = UUID.fromString(parts[0]);

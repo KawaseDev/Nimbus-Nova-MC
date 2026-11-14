@@ -32,13 +32,15 @@ The solar supply in `DustStormProfile.java` follows one of two real storms Oppor
 
 ## NASA data: the solar storm alert
 
-At 00:25 every mission sends a solar storm alert; particles arrive at 00:40 and pass at 01:05. Crew members at the outpost but outside the crew shelter add to a shared radiation dose, and 100% ends the mission.
+At 00:10 the mission sends a solar storm alert; particles arrive at 00:40 and pass at 01:05. Crew members at the outpost but outside the crew shelter add to a shared radiation dose, and 100% ends the mission.
 
 | Value | Source | Used for |
 | --- | --- | --- |
 | A solar event on September 11, 2017 produced surface radiation more than double any level Curiosity's Radiation Assessment Detector had measured since 2012; high readings lasted more than two days; the RAD lead said someone outdoors "would definitely want to take shelter" | NASA JPL, [Large Solar Storm Sparks Global Aurora and Doubles Radiation Levels on the Martian Surface](https://www.jpl.nasa.gov/news/large-solar-storm-sparks-global-aurora-and-doubles-radiation-levels-on-the-martian-surface/) (September 29, 2017) | Why the alert exists, the shelter rule, and the briefing text |
 
-**Game assumptions, not measurements:** the alert time, the 15-second warning, the 25-second storm (the real high readings lasted days), the dose units, and the limit of 20 unprotected crew-seconds. The game does not model a real dose in sieverts. The same event should also be listed in NASA's DONKI space weather database; we could not reach DONKI from the build machine, so verify the record there before citing it.
+**Game assumptions, not measurements:** the alert time, the 30-second warning, the 25-second storm (the real high readings lasted days), the dose units, and the limit of 20 unprotected crew-seconds. The game does not model a real dose in sieverts. The same event should also be listed in NASA's DONKI space weather database; we could not reach DONKI from the build machine, so verify the record there before citing it.
+
+The fictional relay-fault learning pause also cites NASA's [Power Subsystems](https://www.nasa.gov/smallsat-institute/sst-soa/power-subsystems/) reference for generation, storage, and electrical loads; the relay incident itself is authored for the game.
 
 ## AI assistance
 

@@ -60,6 +60,7 @@ public final class MissionController {
     // Each reset draws one of the real storms so repeat attempts differ, unless Mission Control pins one.
     private DustStorm pinnedStorm;
     private MissionPreparation preparation = new MissionPreparation();
+    private final EducationPause education = new EducationPause();
     private MissionState mission = newPreparedMission();
     private final Map<UUID, MissionPreparation.TaskKind> openTasks = new HashMap<>();
     private final Set<UUID> suppliedPlayers = new HashSet<>();
@@ -142,12 +143,18 @@ public final class MissionController {
                 controller.mission.pause();
 
             controller.mission.tickSecond();
+            final boolean learningPause = controller.education.afterTick(controller.mission);
             int exposed = 0;
             for (final ServerPlayer player : server.getPlayerList().getPlayers())
                 if (Boolean.TRUE.equals(shelterCheck.exposed(player))) exposed++;
 
             controller.mission.recordExposure(exposed);
             controller.broadcast(server);
+            if (learningPause) {
+                for (final ServerPlayer player : server.getPlayerList().getPlayers())
+                    if (ServerPlayNetworking.canSend(player, OpenConsolePayload.TYPE))
+                        ServerPlayNetworking.send(player, new OpenConsolePayload(2));
+            }
         });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, _, _) -> {
@@ -161,7 +168,7 @@ public final class MissionController {
                         return 1;
                     });
 
-            for (final String action : new String[] { "start", "debug_start", "pause", "resume", "reset", "abort" }) {
+            for (final String action : new String[] { "start", "debug_start", "pause", "resume", "acknowledge", "reset", "abort" }) {
                 root.then(Commands.literal(action).requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .executes(context -> get(context.getSource().getServer()).control(context.getSource(), action)));
             }
@@ -288,6 +295,8 @@ public final class MissionController {
     public CrewRole role(final UUID player) {
         return roles.getOrDefault(player, CrewRole.OBSERVER);
     }
+
+    public EducationPause education() { return education; }
 
     public MissionState.Snapshot snapshot() {
         return mission.snapshot();
@@ -671,10 +680,12 @@ public final class MissionController {
                     mission.start();
                 }
                 case "pause" -> mission.pause();
-                case "resume" -> mission.resume();
-                case "abort" -> mission.abort();
+                case "resume" -> education.resume(mission);
+                case "acknowledge" -> education.confirm();
+                case "abort" -> { mission.abort(); education.clear(); }
                 case "reset" -> {
                     preparation = new MissionPreparation();
+                    education.clear();
                     openTasks.clear();
                     mission = newPreparedMission();
                     progressFeedback = "New attempt ready. Meet Commander Vega before starting the clock.";
@@ -730,7 +741,8 @@ public final class MissionController {
             ServerPlayNetworking.send(player, new MissionSnapshotPayload(state,
                     roles.getOrDefault(player.getUUID(), CrewRole.OBSERVER),
                     player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER),
-                    server.getPlayerList().getPlayerCount()));
+                    server.getPlayerList().getPlayerCount(),
+                    education.incident() == null ? "" : education.incident().name(), education.confirmed()));
             if (ServerPlayNetworking.canSend(player, MissionProgressPayload.TYPE))
                 ServerPlayNetworking.send(player, progress(player));
             if (justEnded && ServerPlayNetworking.canSend(player, OpenConsolePayload.TYPE))
