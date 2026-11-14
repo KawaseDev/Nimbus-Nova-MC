@@ -20,6 +20,8 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.core.Direction;
@@ -36,6 +38,17 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 public final class MissionClientSmokeTest implements FabricClientGameTest {
     @Override
     public void runTest(final ClientGameTestContext context) {
+        context.setScreen(TitleScreen::new);
+        boolean titleCorrect = context.computeOnClient(client -> {
+            var children = client.gui.screen().children();
+            return children.stream().noneMatch(child -> child instanceof Button b && b.getMessage().equals(Component.translatable("menu.multiplayer")))
+                    && children.stream().anyMatch(child -> child instanceof Button b && b.getMessage().getString().equals("Join session"))
+                    && children.stream().anyMatch(child -> child instanceof Button b && b.getMessage().equals(Component.translatable("menu.online")));
+        });
+        if (!titleCorrect) throw new AssertionError("The title screen must replace Multiplayer with Join session and retain Realms");
+        context.clickScreenButton("Join session");
+        context.waitForScreen(JoinSessionScreen.class);
+        context.setScreen(TitleScreen::new);
         ServerData sessionServer = new ServerData("Nimbus Nova", "127.0.0.1:25565", ServerData.Type.OTHER);
         ServerData otherServer = new ServerData("Other", "127.0.0.1:25565", ServerData.Type.OTHER);
         SessionIdentity.prepare("MoonTest42", true, sessionServer);

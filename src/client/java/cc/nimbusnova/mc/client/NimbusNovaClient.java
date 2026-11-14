@@ -55,17 +55,10 @@ public final class NimbusNovaClient implements ClientModInitializer {
                 var widgets = Screens.getWidgets(screen);
                 for (int i = 0; i < widgets.size(); i++) {
                     AbstractWidget widget = widgets.get(i);
-                    if (widget instanceof Button && widget.getMessage().equals(Component.translatable("menu.online"))) {
-                        int x = widget.getX(), y = widget.getY();
-                        for (AbstractWidget lower : widgets) {
-                            if (lower.getY() >= y && lower.getY() <= y + 48
-                                    && lower.getX() >= x - 24 && lower.getX() <= x + 200) {
-                                lower.setY(lower.getY() + 24);
-                            }
-                        }
-                        widgets.add(i, Button.builder(Component.literal("Join session"),
+                    if (widget instanceof Button && widget.getMessage().equals(Component.translatable("menu.multiplayer"))) {
+                        widgets.set(i, Button.builder(Component.literal("Join session"),
                                 button -> client.setScreenAndShow(new JoinSessionScreen(screen)))
-                                .bounds(x, y, 200, 20).build());
+                                .bounds(widget.getX(), widget.getY(), widget.getWidth(), widget.getHeight()).build());
                         break;
                     }
                 }
