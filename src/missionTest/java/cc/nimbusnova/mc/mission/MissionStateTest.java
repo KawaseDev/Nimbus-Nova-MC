@@ -24,8 +24,9 @@ public final class MissionStateTest {
         assert Math.abs(initial.snapshot().battery() - 79.85) < 0.00001 : "Power balance uses generation minus demand";
         assert Math.abs(initial.snapshot().oxygen() - 75.15) < 0.00001 : "Production and crew consumption both apply";
         assert initial.replenishOxygen();
-        assert initial.snapshot().oxygen() == 100 : "Canisters cap at reserve capacity";
-        assert !initial.replenishOxygen() : "A full reserve must not consume a canister";
+        assert Math.abs(initial.snapshot().oxygen() - 83.15) < 0.00001 : "A canister adds a small emergency buffer";
+        assert initial.replenishOxygen() && initial.snapshot().canistersLeft() == 0;
+        assert !initial.replenishOxygen() : "Used-up canisters must not add oxygen";
         initial.pause();
         final MissionState.Snapshot paused = initial.snapshot();
         for (int second = 0; second < 50; second++)
@@ -35,7 +36,7 @@ public final class MissionStateTest {
         initial.resume();
         initial.setEquipment(MissionState.Equipment.RESEARCH, false);
         initial.setEquipment(MissionState.Equipment.RESEARCH, false);
-        assert initial.snapshot().decisions() == 2 : "Repeating the same command must not count a second decision";
+        assert initial.snapshot().decisions() == 3 :"Repeating the same command must not count a second decision";
         initial.abort();
         final MissionState.Snapshot aborted = initial.snapshot();
         initial.tickSecond();
@@ -110,6 +111,19 @@ public final class MissionStateTest {
         assert managed.snapshot().lowestBattery() > 0 && managed.snapshot().lowestBattery() < 80 : "Debrief records the lowest reserve";
         assert MissionDebrief.consequences(managed.snapshot()).getFirst().contains("01:00 before the dust arrived");
         assert managed.snapshot().oxygen() <= 100 && managed.snapshot().battery() <= 100 : "Reserves cannot exceed capacity";
+
+        final MissionState canisters = new MissionState();
+        canisters.start();
+        canisters.setEquipment(MissionState.Equipment.OXYGEN, false);
+        int used = 0;
+        for (int second = 0; second < MissionState.DURATION_SECONDS; second++) {
+            canisters.tickSecond();
+            if (canisters.snapshot().oxygen() < 50 && canisters.replenishOxygen())
+                used++;
+        }
+
+        assert used == MissionState.OXYGEN_CANISTERS && canisters.snapshot().canistersLeft() == 0 : "Canisters are limited";
+        assert canisters.snapshot().phase() == MissionState.Phase.FAILED : "Canisters alone cannot replace oxygen production";
 
         final MissionState noOxygen = new MissionState();
         noOxygen.start();

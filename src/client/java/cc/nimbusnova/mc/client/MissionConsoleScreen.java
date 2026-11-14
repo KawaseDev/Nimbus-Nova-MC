@@ -140,6 +140,8 @@ public final class MissionConsoleScreen extends Screen implements MissionPalette
                 }
                 case 1 -> {
                     MissionUi.text(graphics, "Your role: " + packet.role().label, contentX, contentY, ACCENT);
+                    MissionUi.rightText(graphics, "Oxygen canisters " + state.canistersLeft() + "/" + MissionState.OXYGEN_CANISTERS,
+                            panelX + panelWidth - 14, contentY, OXYGEN);
                     MissionUi.text(graphics, "Habitat equipment", contentX, contentY + 49, TEXT);
                     MissionUi.wrap(graphics, "Research uses 0.65 energy/s. Oxygen uses 0.45 energy/s. The habitat always uses 0.15. "
                                     + "Solar panels give up to 0.95 and the backup generator always gives 0.15.", contentX,
