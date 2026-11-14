@@ -258,6 +258,11 @@ test('mission controls and crew messages require a teacher and forward only vali
     assert.deepEqual(received, { path: '/mission-action', body: `${id} acknowledge` });
     assert.equal((await post('/api/mission-action', headers, { id, action: 'moon_rescue' })).status, 204);
     assert.deepEqual(received, { path: '/mission-action', body: `${id} moon_rescue` });
+    for (const action of ['ship_select', 'ship_start', 'ship_pause', 'ship_acknowledge', 'ship_resume', 'ship_abort', 'ship_reset', 'ship_end']) {
+      assert.equal((await post('/api/mission-action', headers, { id, action })).status, 204);
+      assert.deepEqual(received, { path: '/mission-action', body: `${id} ${action}` });
+    }
+    assert.equal((await post('/api/mission-action', headers, { id, action: 'ship_shell' })).status, 400);
     assert.equal((await post('/api/message', headers, { message: 'hello\nworld' })).status, 400);
     assert.equal((await post('/api/message', headers, { message: '  Return to base  ' })).status, 204);
     assert.deepEqual(received, { path: '/message', body: 'Return to base' });

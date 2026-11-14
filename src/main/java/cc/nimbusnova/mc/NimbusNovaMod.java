@@ -8,6 +8,8 @@ import cc.nimbusnova.mc.content.ModBlocks;
 import cc.nimbusnova.mc.content.OutpostContent;
 import cc.nimbusnova.mc.content.ScifiBlocks;
 import cc.nimbusnova.mc.content.ScienceStations;
+import cc.nimbusnova.mc.content.ShipContent;
+import cc.nimbusnova.mc.ship.ShipController;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
 import cc.nimbusnova.mc.world.EntranceAirlock;
 import cc.nimbusnova.mc.suit.SuitLifeSupport;
@@ -28,7 +30,9 @@ public final class NimbusNovaMod implements ModInitializer {
         OutpostContent.register();
         ScifiBlocks.register();
         ScienceStations.register();
+        ShipContent.register();
         MissionController.register();
+        ShipController.register();
         MoonController.register();
         EntranceAirlock.register();
         SuitLifeSupport.register();

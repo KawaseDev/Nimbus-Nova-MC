@@ -1,5 +1,7 @@
 package cc.nimbusnova.mc.moon;
 
+import cc.nimbusnova.mc.ship.ShipController;
+
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -52,7 +54,7 @@ public final class MoonController {
     public void teacherAction(MinecraftServer server, String action) {
         switch (action) {
             case "moon_exploration", "moon_rescue" -> {
-                if (active()) throw new IllegalStateException("Finish or end the current Moon mission first.");
+                if (active() || ShipController.get(server).selected()) throw new IllegalStateException("Finish or end the current Moon/ship mission first.");
                 MissionState.Phase phase = MissionController.get(server).snapshot().phase();
                 if (phase == MissionState.Phase.ACTIVE || phase == MissionState.Phase.PAUSED)
                     throw new IllegalStateException("End the Mars mission first.");

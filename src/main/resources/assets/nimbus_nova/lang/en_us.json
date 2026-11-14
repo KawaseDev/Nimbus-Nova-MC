@@ -40,5 +40,15 @@
   "block.nimbus_nova.scifi_airlock_door": "Proximity Laser Barrier",
   "block.nimbus_nova.lesson_airlock_control": "Airlock Pressure Lab",
   "block.nimbus_nova.lesson_backup_power": "Backup Power Reserve",
-  "block.nimbus_nova.lesson_shield_bench": "Shielding Experiment"
+  "block.nimbus_nova.lesson_shield_bench": "Shielding Experiment",
+  "block.nimbus_nova.ship_pilot_console": "Flight Guidance Console",
+  "block.nimbus_nova.ship_galley": "Galley and Thermal Control",
+  "block.nimbus_nova.ship_medical_station": "Medical and CO2 Filter Bay",
+  "block.nimbus_nova.ship_meeting_terminal": "Crew Intercom",
+  "block.nimbus_nova.ship_engine_core": "Engine Power Manifold",
+  "block.nimbus_nova.ship_science_lab": "Science Archive",
+  "block.nimbus_nova.ship_comms_array": "Communications Array",
+  "block.nimbus_nova.ship_hydroponics": "Hydroponic Module",
+  "block.nimbus_nova.ship_punching_bag": "Crew Exercise Station",
+  "block.nimbus_nova.ship_storage_locker": "Cargo Storage"
 }

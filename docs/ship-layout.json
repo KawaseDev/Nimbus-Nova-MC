@@ -1,0 +1,2307 @@
+{
+  "source": "ananaslafelie-1794683726306.schem",
+  "source_sha256": "acf7570450813a6e2fa0b02fd6b5c9a648c7e216b3290b4c422f7115229362c5",
+  "data_version": 5023,
+  "dimensions": [
+    26,
+    31,
+    82
+  ],
+  "schematic_offset_ignored": [
+    248,
+    -54,
+    -219
+  ],
+  "world_origin": [
+    -13,
+    64,
+    -41
+  ],
+  "spawn_local": [
+    13,
+    16,
+    64
+  ],
+  "spawn_world": [
+    0,
+    80,
+    23
+  ],
+  "non_air_blocks": 16376,
+  "palette": [
+    {
+      "id": 0,
+      "state": "minecraft:air",
+      "count": 49716
+    },
+    {
+      "id": 1,
+      "state": "minecraft:gray_concrete",
+      "count": 9559
+    },
+    {
+      "id": 2,
+      "state": "minecraft:black_concrete",
+      "count": 1
+    },
+    {
+      "id": 3,
+      "state": "minecraft:light[level=15,waterlogged=false]",
+      "count": 1293
+    },
+    {
+      "id": 4,
+      "state": "minecraft:copper_block",
+      "count": 2045
+    },
+    {
+      "id": 5,
+      "state": "minecraft:copper_trapdoor[facing=south,half=top,open=false,powered=false,waterlogged=false]",
+      "count": 5
+    },
+    {
+      "id": 6,
+      "state": "minecraft:copper_trapdoor[facing=north,half=top,open=false,powered=false,waterlogged=false]",
+      "count": 6
+    },
+    {
+      "id": 7,
+      "state": "minecraft:exposed_copper",
+      "count": 1
+    },
+    {
+      "id": 8,
+      "state": "minecraft:copper_trapdoor[facing=west,half=bottom,open=true,powered=false,waterlogged=false]",
+      "count": 3
+    },
+    {
+      "id": 9,
+      "state": "minecraft:copper_trapdoor[facing=east,half=top,open=true,powered=false,waterlogged=false]",
+      "count": 4
+    },
+    {
+      "id": 10,
+      "state": "minecraft:copper_trapdoor[facing=south,half=bottom,open=true,powered=false,waterlogged=false]",
+      "count": 6
+    },
+    {
+      "id": 11,
+      "state": "minecraft:copper_trapdoor[facing=south,half=top,open=true,powered=false,waterlogged=false]",
+      "count": 11
+    },
+    {
+      "id": 12,
+      "state": "minecraft:oak_button[face=wall,facing=north,powered=false]",
+      "count": 2
+    },
+    {
+      "id": 13,
+      "state": "minecraft:command_block[conditional=true,facing=north]",
+      "count": 1
+    },
+    {
+      "id": 14,
+      "state": "minecraft:command_block[conditional=false,facing=north]",
+      "count": 1
+    },
+    {
+      "id": 15,
+      "state": "minecraft:copper_trapdoor[facing=north,half=top,open=true,powered=false,waterlogged=false]",
+      "count": 3
+    },
+    {
+      "id": 16,
+      "state": "minecraft:waxed_cut_copper",
+      "count": 76
+    },
+    {
+      "id": 17,
+      "state": "minecraft:copper_trapdoor[facing=east,half=bottom,open=false,powered=false,waterlogged=false]",
+      "count": 3
+    },
+    {
+      "id": 18,
+      "state": "minecraft:copper_trapdoor[facing=west,half=bottom,open=false,powered=false,waterlogged=false]",
+      "count": 5
+    },
+    {
+      "id": 19,
+      "state": "minecraft:exposed_copper_trapdoor[facing=east,half=bottom,open=false,powered=false,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 20,
+      "state": "minecraft:copper_trapdoor[facing=north,half=bottom,open=false,powered=false,waterlogged=false]",
+      "count": 2
+    },
+    {
+      "id": 21,
+      "state": "minecraft:polished_deepslate",
+      "count": 811
+    },
+    {
+      "id": 22,
+      "state": "minecraft:yellow_concrete",
+      "count": 173
+    },
+    {
+      "id": 23,
+      "state": "minecraft:iron_block",
+      "count": 83
+    },
+    {
+      "id": 24,
+      "state": "minecraft:quartz_block",
+      "count": 82
+    },
+    {
+      "id": 25,
+      "state": "minecraft:iron_bars[east=true,north=true,south=false,waterlogged=false,west=true]",
+      "count": 2
+    },
+    {
+      "id": 26,
+      "state": "minecraft:iron_bars[east=true,north=false,south=false,waterlogged=false,west=true]",
+      "count": 40
+    },
+    {
+      "id": 27,
+      "state": "minecraft:ladder[facing=east,waterlogged=false]",
+      "count": 10
+    },
+    {
+      "id": 28,
+      "state": "minecraft:ladder[facing=west,waterlogged=false]",
+      "count": 10
+    },
+    {
+      "id": 29,
+      "state": "minecraft:green_terracotta",
+      "count": 126
+    },
+    {
+      "id": 30,
+      "state": "minecraft:lime_wool",
+      "count": 118
+    },
+    {
+      "id": 31,
+      "state": "minecraft:birch_trapdoor[facing=north,half=bottom,open=true,powered=false,waterlogged=false]",
+      "count": 3
+    },
+    {
+      "id": 32,
+      "state": "minecraft:spruce_slab[type=top,waterlogged=false]",
+      "count": 11
+    },
+    {
+      "id": 33,
+      "state": "minecraft:spruce_planks",
+      "count": 4
+    },
+    {
+      "id": 34,
+      "state": "minecraft:iron_door[facing=east,half=lower,hinge=right,open=false,powered=false]",
+      "count": 1
+    },
+    {
+      "id": 35,
+      "state": "minecraft:birch_stairs[facing=north,half=top,shape=straight,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 36,
+      "state": "minecraft:birch_slab[type=top,waterlogged=false]",
+      "count": 7
+    },
+    {
+      "id": 37,
+      "state": "minecraft:cartography_table",
+      "count": 1
+    },
+    {
+      "id": 38,
+      "state": "minecraft:birch_stairs[facing=south,half=top,shape=straight,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 39,
+      "state": "minecraft:birch_trapdoor[facing=south,half=bottom,open=true,powered=false,waterlogged=false]",
+      "count": 5
+    },
+    {
+      "id": 40,
+      "state": "minecraft:spruce_wall_sign[facing=north,waterlogged=false]",
+      "count": 10
+    },
+    {
+      "id": 41,
+      "state": "minecraft:smooth_quartz_slab[type=top,waterlogged=false]",
+      "count": 33
+    },
+    {
+      "id": 42,
+      "state": "minecraft:black_shulker_box[facing=north]",
+      "count": 16
+    },
+    {
+      "id": 43,
+      "state": "minecraft:spruce_wall_sign[facing=east,waterlogged=false]",
+      "count": 12
+    },
+    {
+      "id": 44,
+      "state": "minecraft:spruce_wall_sign[facing=west,waterlogged=false]",
+      "count": 12
+    },
+    {
+      "id": 45,
+      "state": "minecraft:beacon",
+      "count": 1
+    },
+    {
+      "id": 46,
+      "state": "minecraft:cyan_terracotta",
+      "count": 83
+    },
+    {
+      "id": 47,
+      "state": "minecraft:pale_oak_trapdoor[facing=west,half=top,open=true,powered=false,waterlogged=false]",
+      "count": 12
+    },
+    {
+      "id": 48,
+      "state": "minecraft:moss_block",
+      "count": 13
+    },
+    {
+      "id": 49,
+      "state": "minecraft:iron_bars[east=false,north=false,south=true,waterlogged=false,west=false]",
+      "count": 4
+    },
+    {
+      "id": 50,
+      "state": "minecraft:polished_deepslate_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]",
+      "count": 10
+    },
+    {
+      "id": 51,
+      "state": "minecraft:polished_deepslate_stairs[facing=south,half=top,shape=straight,waterlogged=false]",
+      "count": 6
+    },
+    {
+      "id": 52,
+      "state": "minecraft:iron_bars[east=false,north=true,south=false,waterlogged=false,west=false]",
+      "count": 10
+    },
+    {
+      "id": 53,
+      "state": "minecraft:polished_deepslate_stairs[facing=north,half=top,shape=straight,waterlogged=false]",
+      "count": 6
+    },
+    {
+      "id": 54,
+      "state": "minecraft:polished_deepslate_stairs[facing=north,half=bottom,shape=straight,waterlogged=false]",
+      "count": 10
+    },
+    {
+      "id": 55,
+      "state": "minecraft:pale_oak_trapdoor[facing=south,half=top,open=true,powered=false,waterlogged=false]",
+      "count": 5
+    },
+    {
+      "id": 56,
+      "state": "minecraft:pale_oak_trapdoor[facing=north,half=top,open=true,powered=false,waterlogged=false]",
+      "count": 5
+    },
+    {
+      "id": 57,
+      "state": "minecraft:oxidized_chiseled_copper",
+      "count": 8
+    },
+    {
+      "id": 58,
+      "state": "minecraft:oxidized_copper",
+      "count": 19
+    },
+    {
+      "id": 59,
+      "state": "minecraft:barrel[facing=south,open=false]",
+      "count": 7
+    },
+    {
+      "id": 60,
+      "state": "minecraft:pale_oak_trapdoor[facing=east,half=top,open=true,powered=false,waterlogged=false]",
+      "count": 4
+    },
+    {
+      "id": 61,
+      "state": "minecraft:composter[level=0]",
+      "count": 1
+    },
+    {
+      "id": 62,
+      "state": "minecraft:barrel[facing=up,open=false]",
+      "count": 6
+    },
+    {
+      "id": 63,
+      "state": "minecraft:iron_bars[east=false,north=false,south=true,waterlogged=false,west=true]",
+      "count": 7
+    },
+    {
+      "id": 64,
+      "state": "minecraft:barrel[facing=east,open=false]",
+      "count": 1
+    },
+    {
+      "id": 65,
+      "state": "minecraft:end_rod[facing=up]",
+      "count": 8
+    },
+    {
+      "id": 66,
+      "state": "minecraft:white_stained_glass_pane[east=false,north=false,south=true,waterlogged=false,west=false]",
+      "count": 2
+    },
+    {
+      "id": 67,
+      "state": "minecraft:iron_bars[east=false,north=true,south=false,waterlogged=false,west=true]",
+      "count": 8
+    },
+    {
+      "id": 68,
+      "state": "minecraft:white_stained_glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+      "count": 19
+    },
+    {
+      "id": 69,
+      "state": "minecraft:white_stained_glass_pane[east=false,north=true,south=false,waterlogged=false,west=true]",
+      "count": 3
+    },
+    {
+      "id": 70,
+      "state": "minecraft:white_stained_glass_pane[east=true,north=false,south=false,waterlogged=false,west=false]",
+      "count": 3
+    },
+    {
+      "id": 71,
+      "state": "minecraft:copper_trapdoor[facing=north,half=bottom,open=true,powered=false,waterlogged=false]",
+      "count": 4
+    },
+    {
+      "id": 72,
+      "state": "minecraft:chiseled_copper",
+      "count": 7
+    },
+    {
+      "id": 73,
+      "state": "minecraft:copper_trapdoor[facing=east,half=bottom,open=true,powered=false,waterlogged=false]",
+      "count": 4
+    },
+    {
+      "id": 74,
+      "state": "minecraft:red_wool_slab[type=top,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 75,
+      "state": "minecraft:polished_deepslate_slab[type=bottom,waterlogged=false]",
+      "count": 3
+    },
+    {
+      "id": 76,
+      "state": "minecraft:chest[facing=north,type=single,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 77,
+      "state": "minecraft:chipped_anvil[facing=south]",
+      "count": 1
+    },
+    {
+      "id": 78,
+      "state": "minecraft:iron_bars[east=false,north=false,south=false,waterlogged=false,west=false]",
+      "count": 3
+    },
+    {
+      "id": 79,
+      "state": "minecraft:anvil[facing=south]",
+      "count": 2
+    },
+    {
+      "id": 80,
+      "state": "minecraft:polished_diorite_stairs[facing=north,half=bottom,shape=straight,waterlogged=false]",
+      "count": 12
+    },
+    {
+      "id": 81,
+      "state": "minecraft:smooth_quartz",
+      "count": 34
+    },
+    {
+      "id": 82,
+      "state": "minecraft:quartz_pillar[axis=y]",
+      "count": 3
+    },
+    {
+      "id": 83,
+      "state": "minecraft:gray_stained_glass_pane[east=false,north=false,south=true,waterlogged=false,west=false]",
+      "count": 2
+    },
+    {
+      "id": 84,
+      "state": "minecraft:gray_stained_glass_pane[east=false,north=true,south=true,waterlogged=false,west=false]",
+      "count": 2
+    },
+    {
+      "id": 85,
+      "state": "minecraft:gray_stained_glass_pane[east=true,north=true,south=false,waterlogged=false,west=false]",
+      "count": 3
+    },
+    {
+      "id": 86,
+      "state": "minecraft:gray_stained_glass_pane[east=false,north=false,south=true,waterlogged=false,west=true]",
+      "count": 2
+    },
+    {
+      "id": 87,
+      "state": "minecraft:gray_stained_glass_pane[east=true,north=false,south=true,waterlogged=false,west=false]",
+      "count": 2
+    },
+    {
+      "id": 88,
+      "state": "minecraft:gray_stained_glass_pane[east=false,north=true,south=false,waterlogged=false,west=true]",
+      "count": 3
+    },
+    {
+      "id": 89,
+      "state": "minecraft:gray_stained_glass_pane[east=true,north=false,south=false,waterlogged=false,west=true]",
+      "count": 19
+    },
+    {
+      "id": 90,
+      "state": "minecraft:iron_bars[east=true,north=false,south=false,waterlogged=false,west=false]",
+      "count": 9
+    },
+    {
+      "id": 91,
+      "state": "minecraft:iron_bars[east=false,north=false,south=false,waterlogged=false,west=true]",
+      "count": 9
+    },
+    {
+      "id": 92,
+      "state": "minecraft:iron_door[facing=east,half=upper,hinge=right,open=false,powered=false]",
+      "count": 1
+    },
+    {
+      "id": 93,
+      "state": "minecraft:black_wool_slab[type=top,waterlogged=false]",
+      "count": 4
+    },
+    {
+      "id": 94,
+      "state": "minecraft:sea_pickle[pickles=2,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 95,
+      "state": "minecraft:sea_pickle[pickles=3,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 96,
+      "state": "minecraft:small_dripleaf[facing=west,half=lower,waterlogged=false]",
+      "count": 5
+    },
+    {
+      "id": 97,
+      "state": "minecraft:short_grass",
+      "count": 3
+    },
+    {
+      "id": 98,
+      "state": "minecraft:moss_carpet",
+      "count": 1
+    },
+    {
+      "id": 99,
+      "state": "minecraft:azalea",
+      "count": 2
+    },
+    {
+      "id": 100,
+      "state": "minecraft:poppy",
+      "count": 2
+    },
+    {
+      "id": 101,
+      "state": "minecraft:sea_lantern",
+      "count": 6
+    },
+    {
+      "id": 102,
+      "state": "minecraft:black_stained_glass_pane[east=false,north=false,south=true,waterlogged=false,west=false]",
+      "count": 1
+    },
+    {
+      "id": 103,
+      "state": "minecraft:red_wool",
+      "count": 2
+    },
+    {
+      "id": 104,
+      "state": "minecraft:deepslate_tile_slab[type=bottom,waterlogged=false]",
+      "count": 2
+    },
+    {
+      "id": 105,
+      "state": "minecraft:iron_chain[axis=x,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 106,
+      "state": "minecraft:wither_skeleton_skull[powered=false,rotation=6]",
+      "count": 1
+    },
+    {
+      "id": 107,
+      "state": "minecraft:wither_skeleton_skull[powered=false,rotation=4]",
+      "count": 1
+    },
+    {
+      "id": 108,
+      "state": "minecraft:smooth_quartz_slab[type=bottom,waterlogged=false]",
+      "count": 2
+    },
+    {
+      "id": 109,
+      "state": "minecraft:birch_trapdoor[facing=north,half=top,open=true,powered=false,waterlogged=false]",
+      "count": 2
+    },
+    {
+      "id": 110,
+      "state": "minecraft:iron_trapdoor[facing=east,half=bottom,open=false,powered=false,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 111,
+      "state": "minecraft:verdant_froglight[axis=x]",
+      "count": 1
+    },
+    {
+      "id": 112,
+      "state": "minecraft:ochre_froglight[axis=x]",
+      "count": 1
+    },
+    {
+      "id": 113,
+      "state": "minecraft:pearlescent_froglight[axis=x]",
+      "count": 1
+    },
+    {
+      "id": 114,
+      "state": "minecraft:black_wool",
+      "count": 8
+    },
+    {
+      "id": 115,
+      "state": "minecraft:small_dripleaf[facing=west,half=upper,waterlogged=false]",
+      "count": 5
+    },
+    {
+      "id": 116,
+      "state": "minecraft:polished_diorite",
+      "count": 344
+    },
+    {
+      "id": 117,
+      "state": "minecraft:birch_trapdoor[facing=west,half=top,open=false,powered=false,waterlogged=false]",
+      "count": 5
+    },
+    {
+      "id": 118,
+      "state": "minecraft:lantern[hanging=true,waterlogged=false]",
+      "count": 3
+    },
+    {
+      "id": 119,
+      "state": "minecraft:birch_trapdoor[facing=west,half=top,open=true,powered=false,waterlogged=false]",
+      "count": 2
+    },
+    {
+      "id": 120,
+      "state": "minecraft:end_rod[facing=south]",
+      "count": 3
+    },
+    {
+      "id": 121,
+      "state": "minecraft:end_rod[facing=north]",
+      "count": 2
+    },
+    {
+      "id": 122,
+      "state": "minecraft:iron_bars[east=false,north=true,south=true,waterlogged=false,west=false]",
+      "count": 51
+    },
+    {
+      "id": 123,
+      "state": "minecraft:oxidized_copper_lantern[hanging=true,waterlogged=false]",
+      "count": 3
+    },
+    {
+      "id": 124,
+      "state": "minecraft:white_concrete",
+      "count": 656
+    },
+    {
+      "id": 125,
+      "state": "minecraft:smooth_quartz_stairs[facing=north,half=bottom,shape=straight,waterlogged=false]",
+      "count": 3
+    },
+    {
+      "id": 126,
+      "state": "minecraft:lectern[facing=north,has_book=false,powered=false]",
+      "count": 1
+    },
+    {
+      "id": 127,
+      "state": "minecraft:light[level=1,waterlogged=false]",
+      "count": 2
+    },
+    {
+      "id": 128,
+      "state": "minecraft:iron_bars[east=true,north=true,south=false,waterlogged=false,west=false]",
+      "count": 4
+    },
+    {
+      "id": 129,
+      "state": "minecraft:waxed_copper_trapdoor[facing=west,half=top,open=false,powered=false,waterlogged=false]",
+      "count": 4
+    },
+    {
+      "id": 130,
+      "state": "minecraft:iron_bars[east=true,north=false,south=true,waterlogged=false,west=false]",
+      "count": 3
+    },
+    {
+      "id": 131,
+      "state": "minecraft:copper_chest[facing=south,type=right,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 132,
+      "state": "minecraft:copper_chest[facing=south,type=left,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 133,
+      "state": "minecraft:spruce_shelf[facing=west,powered=false,side_chain=unconnected,waterlogged=false]",
+      "count": 6
+    },
+    {
+      "id": 134,
+      "state": "minecraft:light_gray_bed[facing=west,occupied=false,part=head]",
+      "count": 4
+    },
+    {
+      "id": 135,
+      "state": "minecraft:light_gray_bed[facing=west,occupied=false,part=foot]",
+      "count": 4
+    },
+    {
+      "id": 136,
+      "state": "minecraft:spruce_shelf[facing=east,powered=false,side_chain=unconnected,waterlogged=false]",
+      "count": 6
+    },
+    {
+      "id": 137,
+      "state": "minecraft:light_gray_bed[facing=north,occupied=false,part=head]",
+      "count": 4
+    },
+    {
+      "id": 138,
+      "state": "minecraft:copper_chest[facing=west,type=right,waterlogged=false]",
+      "count": 4
+    },
+    {
+      "id": 139,
+      "state": "minecraft:spruce_wall_sign[facing=south,waterlogged=false]",
+      "count": 2
+    },
+    {
+      "id": 140,
+      "state": "minecraft:light_gray_bed[facing=north,occupied=false,part=foot]",
+      "count": 4
+    },
+    {
+      "id": 141,
+      "state": "minecraft:copper_chest[facing=west,type=left,waterlogged=false]",
+      "count": 4
+    },
+    {
+      "id": 142,
+      "state": "minecraft:sculk",
+      "count": 8
+    },
+    {
+      "id": 143,
+      "state": "minecraft:spruce_shelf[facing=south,powered=false,side_chain=unconnected,waterlogged=false]",
+      "count": 6
+    },
+    {
+      "id": 144,
+      "state": "minecraft:spruce_shelf[facing=north,powered=false,side_chain=unconnected,waterlogged=false]",
+      "count": 6
+    },
+    {
+      "id": 145,
+      "state": "minecraft:light_gray_bed[facing=south,occupied=false,part=foot]",
+      "count": 4
+    },
+    {
+      "id": 146,
+      "state": "minecraft:exposed_copper_chest[facing=north,type=left,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 147,
+      "state": "minecraft:exposed_copper_chest[facing=north,type=right,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 148,
+      "state": "minecraft:light_gray_bed[facing=south,occupied=false,part=head]",
+      "count": 4
+    },
+    {
+      "id": 149,
+      "state": "minecraft:gray_wool_stairs[facing=west,half=bottom,shape=inner_right,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 150,
+      "state": "minecraft:gray_wool_stairs[facing=north,half=bottom,shape=straight,waterlogged=false]",
+      "count": 3
+    },
+    {
+      "id": 151,
+      "state": "minecraft:gray_wool_stairs[facing=east,half=bottom,shape=inner_left,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 152,
+      "state": "minecraft:gray_wool_stairs[facing=east,half=bottom,shape=straight,waterlogged=false]",
+      "count": 4
+    },
+    {
+      "id": 153,
+      "state": "minecraft:mangrove_slab[type=top,waterlogged=false]",
+      "count": 30
+    },
+    {
+      "id": 154,
+      "state": "minecraft:mangrove_planks",
+      "count": 7
+    },
+    {
+      "id": 155,
+      "state": "minecraft:gray_wool_stairs[facing=west,half=bottom,shape=straight,waterlogged=false]",
+      "count": 2
+    },
+    {
+      "id": 156,
+      "state": "minecraft:note_block[instrument=basedrum,note=3,powered=false]",
+      "count": 1
+    },
+    {
+      "id": 157,
+      "state": "minecraft:gray_wool_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]",
+      "count": 3
+    },
+    {
+      "id": 158,
+      "state": "minecraft:gray_wool_stairs[facing=north,half=bottom,shape=inner_right,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 159,
+      "state": "minecraft:gray_wool_stairs[facing=south,half=bottom,shape=inner_left,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 160,
+      "state": "minecraft:gray_wool_stairs[facing=west,half=bottom,shape=inner_left,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 161,
+      "state": "minecraft:gray_wool_stairs[facing=east,half=bottom,shape=inner_right,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 162,
+      "state": "minecraft:smooth_quartz_stairs[facing=west,half=bottom,shape=inner_left,waterlogged=true]",
+      "count": 1
+    },
+    {
+      "id": 163,
+      "state": "minecraft:smooth_quartz_stairs[facing=south,half=bottom,shape=straight,waterlogged=true]",
+      "count": 1
+    },
+    {
+      "id": 164,
+      "state": "minecraft:smooth_quartz_stairs[facing=east,half=bottom,shape=inner_right,waterlogged=true]",
+      "count": 1
+    },
+    {
+      "id": 165,
+      "state": "minecraft:light_gray_concrete_slab[type=top,waterlogged=false]",
+      "count": 11
+    },
+    {
+      "id": 166,
+      "state": "minecraft:fletching_table",
+      "count": 1
+    },
+    {
+      "id": 167,
+      "state": "minecraft:smooth_quartz_slab[type=double,waterlogged=false]",
+      "count": 3
+    },
+    {
+      "id": 168,
+      "state": "minecraft:iron_door[facing=west,half=lower,hinge=right,open=false,powered=false]",
+      "count": 2
+    },
+    {
+      "id": 169,
+      "state": "minecraft:red_bed[facing=west,occupied=false,part=head]",
+      "count": 2
+    },
+    {
+      "id": 170,
+      "state": "minecraft:red_bed[facing=west,occupied=false,part=foot]",
+      "count": 2
+    },
+    {
+      "id": 171,
+      "state": "minecraft:light_gray_wool_stairs[facing=north,half=bottom,shape=inner_right,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 172,
+      "state": "minecraft:light_gray_wool_stairs[facing=east,half=bottom,shape=straight,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 173,
+      "state": "minecraft:light_gray_wool_stairs[facing=south,half=bottom,shape=inner_left,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 174,
+      "state": "minecraft:gray_stained_glass_pane[east=false,north=false,south=false,waterlogged=false,west=true]",
+      "count": 1
+    },
+    {
+      "id": 175,
+      "state": "minecraft:gray_stained_glass_pane[east=true,north=false,south=false,waterlogged=false,west=false]",
+      "count": 1
+    },
+    {
+      "id": 176,
+      "state": "minecraft:copper_trapdoor[facing=west,half=top,open=true,powered=false,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 177,
+      "state": "minecraft:furnace[facing=west,lit=false]",
+      "count": 1
+    },
+    {
+      "id": 178,
+      "state": "minecraft:furnace[facing=east,lit=false]",
+      "count": 1
+    },
+    {
+      "id": 179,
+      "state": "minecraft:waxed_copper_trapdoor[facing=west,half=bottom,open=true,powered=false,waterlogged=false]",
+      "count": 4
+    },
+    {
+      "id": 180,
+      "state": "minecraft:waxed_copper_trapdoor[facing=east,half=top,open=true,powered=false,waterlogged=false]",
+      "count": 2
+    },
+    {
+      "id": 181,
+      "state": "minecraft:waxed_copper_trapdoor[facing=south,half=bottom,open=true,powered=false,waterlogged=false]",
+      "count": 3
+    },
+    {
+      "id": 182,
+      "state": "minecraft:spruce_trapdoor[facing=south,half=top,open=false,powered=false,waterlogged=false]",
+      "count": 6
+    },
+    {
+      "id": 183,
+      "state": "minecraft:white_concrete_slab[type=double,waterlogged=false]",
+      "count": 5
+    },
+    {
+      "id": 184,
+      "state": "minecraft:black_stained_glass",
+      "count": 4
+    },
+    {
+      "id": 185,
+      "state": "minecraft:spruce_trapdoor[facing=north,half=top,open=false,powered=false,waterlogged=false]",
+      "count": 6
+    },
+    {
+      "id": 186,
+      "state": "minecraft:flower_pot",
+      "count": 1
+    },
+    {
+      "id": 187,
+      "state": "minecraft:iron_door[facing=west,half=upper,hinge=right,open=false,powered=false]",
+      "count": 2
+    },
+    {
+      "id": 188,
+      "state": "minecraft:brewing_stand[has_bottle_0=false,has_bottle_1=false,has_bottle_2=false]",
+      "count": 1
+    },
+    {
+      "id": 189,
+      "state": "minecraft:white_candle[candles=4,lit=false,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 190,
+      "state": "minecraft:white_candle[candles=1,lit=false,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 191,
+      "state": "minecraft:waxed_copper_trapdoor[facing=east,half=bottom,open=true,powered=false,waterlogged=false]",
+      "count": 2
+    },
+    {
+      "id": 192,
+      "state": "minecraft:waxed_copper_trapdoor[facing=south,half=top,open=true,powered=false,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 193,
+      "state": "minecraft:white_concrete_slab[type=top,waterlogged=false]",
+      "count": 14
+    },
+    {
+      "id": 194,
+      "state": "minecraft:black_wall_banner[facing=south]",
+      "count": 3
+    },
+    {
+      "id": 195,
+      "state": "minecraft:iron_trapdoor[facing=west,half=bottom,open=false,powered=false,waterlogged=false]",
+      "count": 2
+    },
+    {
+      "id": 196,
+      "state": "minecraft:waxed_copper_trapdoor[facing=south,half=bottom,open=false,powered=false,waterlogged=false]",
+      "count": 4
+    },
+    {
+      "id": 197,
+      "state": "minecraft:iron_chain[axis=y,waterlogged=false]",
+      "count": 2
+    },
+    {
+      "id": 198,
+      "state": "minecraft:cut_copper_slab[type=top,waterlogged=false]",
+      "count": 8
+    },
+    {
+      "id": 199,
+      "state": "minecraft:cut_copper_slab[type=bottom,waterlogged=false]",
+      "count": 15
+    },
+    {
+      "id": 200,
+      "state": "minecraft:exposed_cut_copper_slab[type=bottom,waterlogged=false]",
+      "count": 1
+    },
+    {
+      "id": 201,
+      "state": "minecraft:light[level=0,waterlogged=false]",
+      "count": 2
+    }
+  ],
+  "markers": [
+    {
+      "number": 1,
+      "kind": "Comms",
+      "source_block": "minecraft:cartography_table",
+      "local": [
+        4,
+        12,
+        22
+      ],
+      "world": [
+        -9,
+        76,
+        -19
+      ],
+      "nearest_walkable": [
+        4,
+        13,
+        22
+      ],
+      "walk_distance": 1.0
+    },
+    {
+      "number": 2,
+      "kind": "Science",
+      "source_block": "minecraft:beacon",
+      "local": [
+        20,
+        12,
+        29
+      ],
+      "world": [
+        7,
+        76,
+        -12
+      ],
+      "nearest_walkable": [
+        21,
+        12,
+        29
+      ],
+      "walk_distance": 1.0
+    },
+    {
+      "number": 3,
+      "kind": "Plants",
+      "source_block": "minecraft:composter[level=0]",
+      "local": [
+        5,
+        12,
+        42
+      ],
+      "world": [
+        -8,
+        76,
+        1
+      ],
+      "nearest_walkable": [
+        5,
+        13,
+        42
+      ],
+      "walk_distance": 1.0
+    },
+    {
+      "number": 4,
+      "kind": "Storage",
+      "source_block": "minecraft:chest[facing=north,type=single,waterlogged=false]",
+      "local": [
+        22,
+        12,
+        54
+      ],
+      "world": [
+        9,
+        76,
+        13
+      ],
+      "nearest_walkable": [
+        22,
+        12,
+        55
+      ],
+      "walk_distance": 1.0
+    },
+    {
+      "number": 5,
+      "kind": "Punching bag",
+      "source_block": "minecraft:red_wool",
+      "local": [
+        8,
+        13,
+        53
+      ],
+      "world": [
+        -5,
+        77,
+        12
+      ],
+      "nearest_walkable": [
+        9,
+        12,
+        53
+      ],
+      "walk_distance": 1.41
+    },
+    {
+      "number": 6,
+      "kind": "Punching bag",
+      "source_block": "minecraft:red_wool",
+      "local": [
+        8,
+        14,
+        53
+      ],
+      "world": [
+        -5,
+        78,
+        12
+      ],
+      "nearest_walkable": [
+        9,
+        12,
+        53
+      ],
+      "walk_distance": 2.24
+    },
+    {
+      "number": 7,
+      "kind": "Pilot",
+      "source_block": "minecraft:lectern[facing=north,has_book=false,powered=false]",
+      "local": [
+        13,
+        16,
+        65
+      ],
+      "world": [
+        0,
+        80,
+        24
+      ],
+      "nearest_walkable": [
+        13,
+        16,
+        64
+      ],
+      "walk_distance": 1.0
+    },
+    {
+      "number": 8,
+      "kind": "Meeting",
+      "source_block": "minecraft:note_block[instrument=basedrum,note=3,powered=false]",
+      "local": [
+        21,
+        17,
+        33
+      ],
+      "world": [
+        8,
+        81,
+        -8
+      ],
+      "nearest_walkable": [
+        21,
+        18,
+        33
+      ],
+      "walk_distance": 1.0
+    },
+    {
+      "number": 9,
+      "kind": "Medical",
+      "source_block": "minecraft:fletching_table",
+      "local": [
+        21,
+        17,
+        45
+      ],
+      "world": [
+        8,
+        81,
+        4
+      ],
+      "nearest_walkable": [
+        21,
+        17,
+        46
+      ],
+      "walk_distance": 1.0
+    },
+    {
+      "number": 10,
+      "kind": "Engine",
+      "source_block": "minecraft:furnace[facing=west,lit=false]",
+      "local": [
+        5,
+        18,
+        3
+      ],
+      "world": [
+        -8,
+        82,
+        -38
+      ],
+      "nearest_walkable": [
+        4,
+        19,
+        3
+      ],
+      "walk_distance": 1.41
+    },
+    {
+      "number": 11,
+      "kind": "Engine",
+      "source_block": "minecraft:furnace[facing=east,lit=false]",
+      "local": [
+        21,
+        18,
+        3
+      ],
+      "world": [
+        8,
+        82,
+        -38
+      ],
+      "nearest_walkable": [
+        22,
+        19,
+        3
+      ],
+      "walk_distance": 1.41
+    },
+    {
+      "number": 12,
+      "kind": "Galley",
+      "source_block": "minecraft:brewing_stand[has_bottle_0=false,has_bottle_1=false,has_bottle_2=false]",
+      "local": [
+        5,
+        18,
+        56
+      ],
+      "world": [
+        -8,
+        82,
+        15
+      ],
+      "nearest_walkable": [
+        4,
+        18,
+        56
+      ],
+      "walk_distance": 1.0
+    }
+  ],
+  "doors": [
+    {
+      "min": [
+        10,
+        12,
+        23
+      ],
+      "max": [
+        10,
+        14,
+        24
+      ],
+      "world_min": [
+        -3,
+        76,
+        -18
+      ],
+      "world_max": [
+        -3,
+        78,
+        -17
+      ],
+      "normal": "x",
+      "blocks": [
+        [
+          10,
+          12,
+          23
+        ],
+        [
+          10,
+          12,
+          24
+        ],
+        [
+          10,
+          13,
+          23
+        ],
+        [
+          10,
+          13,
+          24
+        ],
+        [
+          10,
+          14,
+          23
+        ],
+        [
+          10,
+          14,
+          24
+        ]
+      ]
+    },
+    {
+      "min": [
+        10,
+        12,
+        47
+      ],
+      "max": [
+        10,
+        14,
+        48
+      ],
+      "world_min": [
+        -3,
+        76,
+        6
+      ],
+      "world_max": [
+        -3,
+        78,
+        7
+      ],
+      "normal": "x",
+      "blocks": [
+        [
+          10,
+          12,
+          47
+        ],
+        [
+          10,
+          12,
+          48
+        ],
+        [
+          10,
+          13,
+          47
+        ],
+        [
+          10,
+          13,
+          48
+        ],
+        [
+          10,
+          14,
+          47
+        ],
+        [
+          10,
+          14,
+          48
+        ]
+      ]
+    },
+    {
+      "min": [
+        10,
+        17,
+        22
+      ],
+      "max": [
+        10,
+        18,
+        22
+      ],
+      "world_min": [
+        -3,
+        81,
+        -19
+      ],
+      "world_max": [
+        -3,
+        82,
+        -19
+      ],
+      "normal": "x",
+      "blocks": [
+        [
+          10,
+          17,
+          22
+        ],
+        [
+          10,
+          18,
+          22
+        ]
+      ]
+    },
+    {
+      "min": [
+        10,
+        17,
+        47
+      ],
+      "max": [
+        10,
+        19,
+        49
+      ],
+      "world_min": [
+        -3,
+        81,
+        6
+      ],
+      "world_max": [
+        -3,
+        83,
+        8
+      ],
+      "normal": "x",
+      "blocks": [
+        [
+          10,
+          17,
+          47
+        ],
+        [
+          10,
+          17,
+          48
+        ],
+        [
+          10,
+          17,
+          49
+        ],
+        [
+          10,
+          18,
+          47
+        ],
+        [
+          10,
+          18,
+          48
+        ],
+        [
+          10,
+          18,
+          49
+        ],
+        [
+          10,
+          19,
+          47
+        ],
+        [
+          10,
+          19,
+          48
+        ],
+        [
+          10,
+          19,
+          49
+        ]
+      ]
+    },
+    {
+      "min": [
+        12,
+        12,
+        19
+      ],
+      "max": [
+        14,
+        14,
+        19
+      ],
+      "world_min": [
+        -1,
+        76,
+        -22
+      ],
+      "world_max": [
+        1,
+        78,
+        -22
+      ],
+      "normal": "z",
+      "blocks": [
+        [
+          12,
+          12,
+          19
+        ],
+        [
+          12,
+          13,
+          19
+        ],
+        [
+          12,
+          14,
+          19
+        ],
+        [
+          13,
+          12,
+          19
+        ],
+        [
+          13,
+          13,
+          19
+        ],
+        [
+          13,
+          14,
+          19
+        ],
+        [
+          14,
+          12,
+          19
+        ],
+        [
+          14,
+          13,
+          19
+        ],
+        [
+          14,
+          14,
+          19
+        ]
+      ]
+    },
+    {
+      "min": [
+        12,
+        12,
+        28
+      ],
+      "max": [
+        14,
+        14,
+        28
+      ],
+      "world_min": [
+        -1,
+        76,
+        -13
+      ],
+      "world_max": [
+        1,
+        78,
+        -13
+      ],
+      "normal": "z",
+      "blocks": [
+        [
+          12,
+          12,
+          28
+        ],
+        [
+          12,
+          13,
+          28
+        ],
+        [
+          12,
+          14,
+          28
+        ],
+        [
+          13,
+          12,
+          28
+        ],
+        [
+          13,
+          13,
+          28
+        ],
+        [
+          13,
+          14,
+          28
+        ],
+        [
+          14,
+          12,
+          28
+        ],
+        [
+          14,
+          13,
+          28
+        ],
+        [
+          14,
+          14,
+          28
+        ]
+      ]
+    },
+    {
+      "min": [
+        12,
+        12,
+        40
+      ],
+      "max": [
+        14,
+        14,
+        40
+      ],
+      "world_min": [
+        -1,
+        76,
+        -1
+      ],
+      "world_max": [
+        1,
+        78,
+        -1
+      ],
+      "normal": "z",
+      "blocks": [
+        [
+          12,
+          12,
+          40
+        ],
+        [
+          12,
+          13,
+          40
+        ],
+        [
+          12,
+          14,
+          40
+        ],
+        [
+          13,
+          12,
+          40
+        ],
+        [
+          13,
+          13,
+          40
+        ],
+        [
+          13,
+          14,
+          40
+        ],
+        [
+          14,
+          12,
+          40
+        ],
+        [
+          14,
+          13,
+          40
+        ],
+        [
+          14,
+          14,
+          40
+        ]
+      ]
+    },
+    {
+      "min": [
+        12,
+        12,
+        58
+      ],
+      "max": [
+        14,
+        14,
+        58
+      ],
+      "world_min": [
+        -1,
+        76,
+        17
+      ],
+      "world_max": [
+        1,
+        78,
+        17
+      ],
+      "normal": "z",
+      "blocks": [
+        [
+          12,
+          12,
+          58
+        ],
+        [
+          12,
+          13,
+          58
+        ],
+        [
+          12,
+          14,
+          58
+        ],
+        [
+          13,
+          12,
+          58
+        ],
+        [
+          13,
+          13,
+          58
+        ],
+        [
+          13,
+          14,
+          58
+        ],
+        [
+          14,
+          12,
+          58
+        ],
+        [
+          14,
+          13,
+          58
+        ],
+        [
+          14,
+          14,
+          58
+        ]
+      ]
+    },
+    {
+      "min": [
+        12,
+        17,
+        19
+      ],
+      "max": [
+        14,
+        19,
+        19
+      ],
+      "world_min": [
+        -1,
+        81,
+        -22
+      ],
+      "world_max": [
+        1,
+        83,
+        -22
+      ],
+      "normal": "z",
+      "blocks": [
+        [
+          12,
+          17,
+          19
+        ],
+        [
+          12,
+          18,
+          19
+        ],
+        [
+          12,
+          19,
+          19
+        ],
+        [
+          13,
+          17,
+          19
+        ],
+        [
+          13,
+          18,
+          19
+        ],
+        [
+          13,
+          19,
+          19
+        ],
+        [
+          14,
+          17,
+          19
+        ],
+        [
+          14,
+          18,
+          19
+        ],
+        [
+          14,
+          19,
+          19
+        ]
+      ]
+    },
+    {
+      "min": [
+        12,
+        17,
+        25
+      ],
+      "max": [
+        14,
+        19,
+        25
+      ],
+      "world_min": [
+        -1,
+        81,
+        -16
+      ],
+      "world_max": [
+        1,
+        83,
+        -16
+      ],
+      "normal": "z",
+      "blocks": [
+        [
+          12,
+          17,
+          25
+        ],
+        [
+          12,
+          18,
+          25
+        ],
+        [
+          12,
+          19,
+          25
+        ],
+        [
+          13,
+          17,
+          25
+        ],
+        [
+          13,
+          18,
+          25
+        ],
+        [
+          13,
+          19,
+          25
+        ],
+        [
+          14,
+          17,
+          25
+        ],
+        [
+          14,
+          18,
+          25
+        ],
+        [
+          14,
+          19,
+          25
+        ]
+      ]
+    },
+    {
+      "min": [
+        12,
+        17,
+        43
+      ],
+      "max": [
+        14,
+        19,
+        43
+      ],
+      "world_min": [
+        -1,
+        81,
+        2
+      ],
+      "world_max": [
+        1,
+        83,
+        2
+      ],
+      "normal": "z",
+      "blocks": [
+        [
+          12,
+          17,
+          43
+        ],
+        [
+          12,
+          18,
+          43
+        ],
+        [
+          12,
+          19,
+          43
+        ],
+        [
+          13,
+          17,
+          43
+        ],
+        [
+          13,
+          18,
+          43
+        ],
+        [
+          13,
+          19,
+          43
+        ],
+        [
+          14,
+          17,
+          43
+        ],
+        [
+          14,
+          18,
+          43
+        ],
+        [
+          14,
+          19,
+          43
+        ]
+      ]
+    },
+    {
+      "min": [
+        12,
+        17,
+        57
+      ],
+      "max": [
+        14,
+        19,
+        57
+      ],
+      "world_min": [
+        -1,
+        81,
+        16
+      ],
+      "world_max": [
+        1,
+        83,
+        16
+      ],
+      "normal": "z",
+      "blocks": [
+        [
+          12,
+          17,
+          57
+        ],
+        [
+          12,
+          18,
+          57
+        ],
+        [
+          12,
+          19,
+          57
+        ],
+        [
+          13,
+          17,
+          57
+        ],
+        [
+          13,
+          18,
+          57
+        ],
+        [
+          13,
+          19,
+          57
+        ],
+        [
+          14,
+          17,
+          57
+        ],
+        [
+          14,
+          18,
+          57
+        ],
+        [
+          14,
+          19,
+          57
+        ]
+      ]
+    },
+    {
+      "min": [
+        16,
+        12,
+        23
+      ],
+      "max": [
+        16,
+        14,
+        24
+      ],
+      "world_min": [
+        3,
+        76,
+        -18
+      ],
+      "world_max": [
+        3,
+        78,
+        -17
+      ],
+      "normal": "x",
+      "blocks": [
+        [
+          16,
+          12,
+          23
+        ],
+        [
+          16,
+          12,
+          24
+        ],
+        [
+          16,
+          13,
+          23
+        ],
+        [
+          16,
+          13,
+          24
+        ],
+        [
+          16,
+          14,
+          23
+        ],
+        [
+          16,
+          14,
+          24
+        ]
+      ]
+    },
+    {
+      "min": [
+        16,
+        12,
+        47
+      ],
+      "max": [
+        16,
+        14,
+        48
+      ],
+      "world_min": [
+        3,
+        76,
+        6
+      ],
+      "world_max": [
+        3,
+        78,
+        7
+      ],
+      "normal": "x",
+      "blocks": [
+        [
+          16,
+          12,
+          47
+        ],
+        [
+          16,
+          12,
+          48
+        ],
+        [
+          16,
+          13,
+          47
+        ],
+        [
+          16,
+          13,
+          48
+        ],
+        [
+          16,
+          14,
+          47
+        ],
+        [
+          16,
+          14,
+          48
+        ]
+      ]
+    },
+    {
+      "min": [
+        16,
+        17,
+        22
+      ],
+      "max": [
+        16,
+        18,
+        22
+      ],
+      "world_min": [
+        3,
+        81,
+        -19
+      ],
+      "world_max": [
+        3,
+        82,
+        -19
+      ],
+      "normal": "x",
+      "blocks": [
+        [
+          16,
+          17,
+          22
+        ],
+        [
+          16,
+          18,
+          22
+        ]
+      ]
+    },
+    {
+      "min": [
+        16,
+        17,
+        47
+      ],
+      "max": [
+        16,
+        19,
+        49
+      ],
+      "world_min": [
+        3,
+        81,
+        6
+      ],
+      "world_max": [
+        3,
+        83,
+        8
+      ],
+      "normal": "x",
+      "blocks": [
+        [
+          16,
+          17,
+          47
+        ],
+        [
+          16,
+          17,
+          48
+        ],
+        [
+          16,
+          17,
+          49
+        ],
+        [
+          16,
+          18,
+          47
+        ],
+        [
+          16,
+          18,
+          48
+        ],
+        [
+          16,
+          18,
+          49
+        ],
+        [
+          16,
+          19,
+          47
+        ],
+        [
+          16,
+          19,
+          48
+        ],
+        [
+          16,
+          19,
+          49
+        ]
+      ]
+    }
+  ],
+  "block_entities_omitted": 115,
+  "command_blocks": [
+    [
+      20,
+      8,
+      59
+    ],
+    [
+      21,
+      8,
+      59
+    ]
+  ],
+  "walkable_nodes": 2151,
+  "bridge_reachable_nodes": 1670,
+  "all_markers_within_interaction_range": true,
+  "runtime_file": "src/main/resources/data/nimbus_nova/ship/return_window.nvs.gz",
+  "runtime_sha256": "583ea891b675019916e98caaa8e1f9273b5012565278c4d79c866c27bf5ed640"
+}

@@ -4,6 +4,7 @@ import cc.nimbusnova.mc.NimbusNovaMod;
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
+import cc.nimbusnova.mc.ship.ShipController;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.sun.net.httpserver.HttpServer;
@@ -153,6 +154,7 @@ public final class TeacherBridge {
                         data.addProperty("oxygen", snapshot.oxygen());
                         data.addProperty("lastEvent", snapshot.lastEvent());
                         data.addProperty("players", server.getPlayerList().getPlayerCount());
+                        data.add("ship", ShipController.get(server).teacherState());
                         var moon = cc.nimbusnova.mc.moon.MoonController.get(server).mission();
                         if (moon != null) {
                             JsonObject lunar = new JsonObject();
@@ -220,7 +222,7 @@ public final class TeacherBridge {
                     }
                     String[] parts = new String(exchange.getRequestBody().readNBytes(65), StandardCharsets.UTF_8).split(" ", -1);
                     if (parts.length != 2 || !parts[0].matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
-                            || !java.util.Set.of("start", "pause", "resume", "acknowledge", "abort", "reset", "moon_exploration", "moon_rescue", "moon_pause", "moon_resume", "moon_acknowledge", "moon_advance", "moon_end").contains(parts[1])) {
+                            || !java.util.Set.of("start", "pause", "resume", "acknowledge", "abort", "reset", "moon_exploration", "moon_rescue", "moon_pause", "moon_resume", "moon_acknowledge", "moon_advance", "moon_end", "ship_select", "ship_start", "ship_pause", "ship_acknowledge", "ship_resume", "ship_abort", "ship_reset", "ship_end").contains(parts[1])) {
                         exchange.sendResponseHeaders(400, -1); return;
                     }
                     UUID id = UUID.fromString(parts[0]);
@@ -228,9 +230,13 @@ public final class TeacherBridge {
                     server.execute(() -> {
                         String previous = completed.get(id);
                         if (previous != null) { result.complete(previous.equals(parts[1]) ? 204 : 409); return; }
-                        if (parts[1].startsWith("moon_")) {
-                            try { cc.nimbusnova.mc.moon.MoonController.get(server).teacherAction(server, parts[1]); }
-                            catch (IllegalStateException | IllegalArgumentException error) { result.complete(409); return; }
+                        if (parts[1].startsWith("moon_") || parts[1].startsWith("ship_")) {
+                            try {
+                                if (parts[1].startsWith("ship_"))
+                                    ShipController.get(server).teacherAction(server, parts[1]);
+                                else
+                                    cc.nimbusnova.mc.moon.MoonController.get(server).teacherAction(server, parts[1]);
+                            } catch (IllegalStateException | IllegalArgumentException error) { result.complete(409); return; }
                             completed.put(id, parts[1]);
                             if (completed.size() > 256) completed.remove(completed.keySet().iterator().next());
                             result.complete(204); return;

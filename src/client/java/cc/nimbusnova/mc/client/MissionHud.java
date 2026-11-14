@@ -3,6 +3,7 @@ package cc.nimbusnova.mc.client;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.airlock.EntranceAirlockClient;
 import cc.nimbusnova.mc.world.EntranceAirlock;
+import cc.nimbusnova.mc.world.ship.ShipMap;
 import cc.nimbusnova.mc.client.suit.SuitLifeSupportClient;
 import cc.nimbusnova.mc.suit.SuitAirPayload;
 import cc.nimbusnova.mc.mission.MissionProgressPayload;
@@ -21,6 +22,7 @@ final class MissionHud implements MissionPalette {
 
     static void render(final GuiGraphicsExtractor graphics, final DeltaTracker deltaTracker) {
         final Minecraft client = Minecraft.getInstance();
+        if (client.level != null && client.level.dimension().equals(ShipMap.DIMENSION)) return;
         final MissionSnapshotPayload packet = NimbusNovaClient.snapshot;
         if (packet == null || client.player == null || client.level == null || client.gui.hud.isHidden() || client.gui.screen() != null) return;
 

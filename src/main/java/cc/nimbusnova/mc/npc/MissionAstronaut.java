@@ -1,5 +1,8 @@
 package cc.nimbusnova.mc.npc;
 
+import cc.nimbusnova.mc.ship.ShipController;
+import cc.nimbusnova.mc.world.ship.ShipMap;
+
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.mission.MissionPreparation;
@@ -35,6 +38,15 @@ public final class MissionAstronaut extends PathfinderMob {
         if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResult.SUCCESS;
         if (distanceToSqr(player) > 36 || !ServerPlayNetworking.canSend(serverPlayer, NpcDialoguePayload.TYPE))
             return InteractionResult.PASS;
+
+        if (serverPlayer.level().dimension().equals(ShipMap.DIMENSION)) {
+            final var ship = ShipController.get(serverPlayer.level().getServer()).mission();
+            if (ship != null)
+                ServerPlayNetworking.send(serverPlayer, new NpcDialoguePayload(getName().getString(), ship.instruction(),
+                        "Keep life support powered while isolating optional loads. Stored energy is finite.",
+                        "Oxygen and CO2 are separate readings. A working filter removes CO2; adding oxygen does not."));
+            return InteractionResult.SUCCESS_SERVER;
+        }
 
         final MissionController controller = MissionController.get(serverPlayer.level().getServer());
         if (getType() == MissionNpcs.GUIDE && controller.snapshot().phase() == MissionState.Phase.READY) {

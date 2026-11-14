@@ -9,6 +9,8 @@ import cc.nimbusnova.mc.client.vehicle.RoverRenderer;
 import cc.nimbusnova.mc.client.npc.MissionNpcClient;
 import cc.nimbusnova.mc.client.effect.DustStormEffects;
 import cc.nimbusnova.mc.client.guidance.HologramGuidance;
+import cc.nimbusnova.mc.client.ship.ShipClient;
+import cc.nimbusnova.mc.world.ship.ShipMap;
 import cc.nimbusnova.mc.client.airlock.EntranceAirlockClient;
 import cc.nimbusnova.mc.client.suit.SuitLifeSupportClient;
 import cc.nimbusnova.mc.client.lesson.ScienceStationClient;
@@ -43,6 +45,7 @@ public final class NimbusNovaClient implements ClientModInitializer {
         StudentView.register();
         NovaRenderer.initialize();
         GuidedMissionClient.register();
+        ShipClient.register();
         HologramGuidance.register();
         EntranceAirlockClient.register();
         SuitLifeSupportClient.register();
@@ -97,8 +100,12 @@ public final class NimbusNovaClient implements ClientModInitializer {
         });
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (consoleKey.consumeClick()) {
-                if (client.player != null && client.gui.screen() == null)
-                    client.setScreenAndShow(moon == null ? new MissionConsoleScreen() : new MoonScreen(moon));
+                if (client.player != null && client.gui.screen() == null) {
+                    if (client.level != null && client.level.dimension().equals(ShipMap.DIMENSION))
+                        ShipClient.open();
+                    else
+                        client.setScreenAndShow(moon == null ? new MissionConsoleScreen() : new MoonScreen(moon));
+                }
             }
         });
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
