@@ -1,12 +1,14 @@
-pulapula# Nimbus-Nova-MC
+# Nimbus Nova MC
 
-# Nimbus Nova MC — mission trainer
+A cooperative Minecraft Mars mission trainer for NASA Space Apps 2026's **Build a Junior Astronaut Mission Trainer** challenge.
 
-Minecraft Fabric starter for NASA Space Apps 2026's **Build a Junior Astronaut Mission Trainer**. Current state: common/client initialization only; gameplay and NASA data integration come later.
+The first mod batch adds a shared power/oxygen simulation, power and life-support roles, mission commands, and a synchronized HUD/console. The Java build and simulation self-check pass; visual and two-client checks remain pending. The current four-minute dust event uses **authored game balance**, not NASA measurements. Custom Mars terrain, items, and textures are a separate batch; see [TODO.md](TODO.md) for their verified status.
 
-## Development
+The teacher backend and admin panel belong to another teammate. Local mod development uses operator commands and does not depend on that platform being available.
 
-Requires **Minecraft 26.3 and JDK 25**. Pinned dependencies: Fabric Loader 0.20.1, Fabric API 0.165.2+26.3, Loom 1.19.4, Gradle 9.8.2.
+## Build and run
+
+Requires **Minecraft Java Edition 26.3 and JDK 25**. Pinned dependencies: Fabric Loader 0.20.1, Fabric API 0.165.2+26.3, Loom 1.19.4, Gradle 9.8.2.
 
 On this Mac, use the existing Homebrew JDK:
 
@@ -17,25 +19,65 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./gradlew runClient
 ```
 
+`build` includes the assert-based mission simulation self-check. Run it separately with `./gradlew missionSelfTest`.
+
 Elsewhere, set `JAVA_HOME` to your JDK 25 installation. Windows uses `gradlew.bat build` and `gradlew.bat runClient`. In IntelliJ, open this folder as a Gradle project and select JDK 25 for both the project and Gradle JVM.
 
 The distributable is `build/libs/nimbus-nova-mc-0.1.0.jar`; the `-sources.jar` is for developers. Install Fabric Loader for Minecraft 26.3, then place our mod and Fabric API for 26.3 in your instance's `mods` folder. Obtain Minecraft separately.
 
-`./gradlew runServer` starts a development server. Read and accept Minecraft's EULA yourself in `run/eula.txt` before running a server.
+`./gradlew runServer` starts a development server. Read and accept Minecraft's EULA yourself in `run/eula.txt` before running it.
 
-## Layout
+## Try the prototype mission
 
-- `src/main/java/cc/nimbusnova/mc/NimbusNovaMod.java`: shared entry point.
-- `src/client/java/cc/nimbusnova/mc/client/NimbusNovaClient.java`: client entry point. Keep client imports out of common code.
-- `src/main/resources/fabric.mod.json`: identity, runtime requirements, and AI metadata.
-- `gradle.properties`: pinned dependency/project versions.
-- [rules.md](rules.md): official sources, requirements, and submission checklist.
-- [PLAN.md](PLAN.md): detailed product plan, roles, NPC dialogue, task minigames, missions, and five-person delivery roadmap.
-- [CREDITS.md](CREDITS.md): references, licenses, and AI assistance disclosure.
+1. Join a world/server with Nimbus Nova installed. Use a test world with cheats enabled, or a server account with gamemaster/operator permission, for Mission Control commands.
+2. Press **J** to open the mission console. The key is rebindable in Minecraft's controls.
+3. Before starting, choose **Power engineer** or **Life support** in the Systems tab. Two players can take different roles; an operator can control both systems for solo testing.
+4. Start from the console or run `/mission start`.
+5. Keep battery and oxygen above zero for four minutes. The dust event reduces solar generation from **01:15 to 03:15**.
+6. Complete at least **90 seconds of powered research** for full success. Survival with insufficient research earns partial success; switching research off forever cannot earn full success.
+7. Pause to discuss decisions, resume to continue, and reset before another attempt.
 
-## Next milestone
+The HUD shows shared reserves, net energy rate, research progress, your role, the remaining mission time, and warnings. The console has Overview, Systems, and Briefing tabs. Equipment controls affect the server simulation; they are not separate client-side resource values.
 
-Connect the teacher session, two Minecraft clients, and one role action that changes a shared resource. Then build the first Mars dust-storm mission with NPC guidance, task minigames, suits, a rover, and a decision debrief. See [PLAN.md](PLAN.md) for milestones and the expanded spaceflight roadmap. This describes future work.
+### Commands
+
+| Command | Permission / behavior |
+| --- | --- |
+| `/mission` | Show current mission status |
+| `/mission role power` | Choose power engineer before start |
+| `/mission role life_support` | Choose life-support engineer before start |
+| `/mission role observer` | Choose observer before start |
+| `/mission assign <player> <role>` | Operator assignment before start or while paused |
+| `/mission start` | Operator; begin a ready mission |
+| `/mission pause` / `/mission resume` | Operator; freeze/unfreeze simulation time and resources |
+| `/mission abort` | Operator; end a running/paused mission |
+| `/mission reset` | Operator; start a fresh ready state |
+| `/mission equipment research true` / `false` | Power engineer or operator; enable/disable research while active |
+| `/mission equipment oxygen true` / `false` | Life-support engineer or operator; enable/disable oxygen production while active |
+| `/mission station research` | Operator; bind the block you are looking at as a research toggle station |
+| `/mission station oxygen` | Operator; bind the block you are looking at as an oxygen toggle station |
+
+A station binding uses an existing block within five blocks and replaces no terrain. Its permitted engineer can right-click it to toggle the associated system. Choose plain blocks so normal container or redstone interactions do not confuse the demonstration.
+
+## Current limits
+
+- One transient mission runs per server. Resource state, roles, and station bindings do not survive a server restart.
+- Rejoining the same running server retains the player's role in memory. The mission pauses when no players remain; an operator resumes it.
+- The prototype counts a fixed crew demand rather than deriving oxygen use from individual suits or player count.
+- Equipment uses normalized game units. There is no claim of a calibrated habitat or radiation model.
+- The current dust event changes the resource model; a visual weather effect is a separate feature.
+- Teacher session codes, browser controls, persistent reports, NPC dialogue, task minigames, functional suits, and vehicles remain roadmap work unless their status is explicitly completed in [TODO.md](TODO.md).
+- Minecraft's proprietary dependency remains an organizer eligibility question. Public mod source alone does not resolve it.
+
+## Project documents
+
+- [TODO.md](TODO.md): batches, verification evidence, and remaining work.
+- [PLAN.md](PLAN.md): product direction, systems, NPC/minigame design, and five-person roadmap.
+- [JUDGE_REVIEW.md](JUDGE_REVIEW.md): strict provisional idea review and resulting improvements.
+- [rules.md](rules.md): official competition references and submission checklist.
+- [CREDITS.md](CREDITS.md): sources, dependency licenses, and AI assistance disclosure.
+
+Common simulation and command code lives in `src/main/java/cc/nimbusnova/mc/mission`. Client HUD and console code lives in `src/client/java/cc/nimbusnova/mc/client`. Keep client imports out of common code. The eventual backend must consume the same server-owned mission state rather than recreate the simulation.
 
 ## Teacher panel (early development)
 
