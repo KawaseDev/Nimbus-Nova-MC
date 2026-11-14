@@ -53,6 +53,8 @@ final class MissionHud implements MissionPalette {
         MissionUi.text(graphics, packet.role().label, objectiveX + 10, y + 10, ACCENT);
         MissionUi.wrap(graphics, state.objective(), objectiveX + 10, y + 25, objectiveWidth - 20, 2, TEXT);
         MissionUi.text(graphics, NimbusNovaClient.consoleKey.getTranslatedKeyMessage().getString() + "  Mission console", objectiveX + 10, y + 51, MUTED);
+        if (MissionTutorial.visible(packet))
+            MissionTutorial.render(graphics, packet, objectiveX, y + 75, objectiveWidth, false);
 
         if (state.phase() == MissionState.Phase.ACTIVE && (state.battery() <= 25 || state.oxygen() <= 25 || state.storm())
                 && graphics.guiHeight() >= 260) {
@@ -83,5 +85,7 @@ final class MissionHud implements MissionPalette {
         final String sky = MissionUi.seesWeather(packet) ? "Sun " + MissionUi.sunPercent(state) + "% > " + MissionUi.forecastPercent(state) + "%"
                 : state.storm() ? "DUST: ASK WEATHER" : MissionUi.rate(state.generation() - state.demand()) + " energy/s";
         MissionUi.rightText(graphics, sky, x + width - 10, y + 65, state.storm() ? DANGER : MUTED);
+        if (MissionTutorial.visible(packet))
+            MissionTutorial.render(graphics, packet, x, y + 84, width, true);
     }
 }

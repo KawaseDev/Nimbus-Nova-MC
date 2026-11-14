@@ -36,6 +36,7 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
 
     @Override
     protected void init() {
+        MissionTutorial.consoleOpened = true;
         panelWidth = Math.min(560, width - 16);
         panelHeight = Math.min(330, height - 16);
         panelX = (width - panelWidth) / 2;
