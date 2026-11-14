@@ -111,7 +111,7 @@ public final class MissionStateTest {
         assert managed.snapshot().phase() == MissionState.Phase.SUCCESS : "A balanced allocation must be winnable";
         assert managed.snapshot().researchSeconds() >= MissionState.RESEARCH_TARGET_SECONDS;
         assert managed.snapshot().lowestBattery() > 0 && managed.snapshot().lowestBattery() < 80 : "Debrief records the lowest reserve";
-        assert MissionDebrief.consequences(managed.snapshot()).getFirst().contains("01:00 before the dust arrived");
+        assert String.join(" ", MissionDebrief.consequences(managed.snapshot())).contains("01:00 before the dust arrived");
         assert managed.snapshot().oxygen() <= 100 && managed.snapshot().battery() <= 100 : "Reserves cannot exceed capacity";
 
         final MissionState canisters = new MissionState();
@@ -166,6 +166,40 @@ public final class MissionStateTest {
         assert mildManaged.snapshot().phase() == MissionState.Phase.SUCCESS : "A late cut that fails in 2018 survives the 2007 storm";
         assert MissionDebrief.realStory(mildManaged.snapshot()).contains("survived");
         assert DustStorm.byId("2018") == storm2018;
+        final MissionState solar = new MissionState();
+        solar.start();
+        for (int second = 0; second < MissionState.SOLAR_START_SECONDS - 1; second++) {
+            solar.tickSecond();
+            solar.recordExposure(3);
+        }
+
+        assert solar.snapshot().radiationDose() == 0 : "No dose before the particles arrive";
+        assert MissionState.solarWarning(solar.snapshot().elapsedSeconds()) : "The alert gives warning before the particles arrive";
+        for (int second = 0; second < 6; second++) {
+            solar.tickSecond();
+            solar.recordExposure(1);
+        }
+
+        assert solar.snapshot().radiationDose() == 30 && solar.snapshot().phase() == MissionState.Phase.ACTIVE : "Dose builds per exposed crew-second";
+        assert String.join(" ", MissionDebrief.consequences(solar.snapshot())).contains("6 seconds outside the shelter");
+        for (int second = 0; second < 14; second++) {
+            solar.tickSecond();
+            solar.recordExposure(1);
+        }
+
+        assert solar.snapshot().phase() == MissionState.Phase.FAILED : "Twenty unprotected crew-seconds reach the limit";
+        assert String.join(" ", MissionDebrief.consequences(solar.snapshot())).contains("radiation limit");
+
+        final MissionState sheltered = new MissionState();
+        sheltered.start();
+        for (int second = 0; second < MissionState.SOLAR_END_SECONDS + 5; second++) {
+            sheltered.tickSecond();
+            sheltered.recordExposure(MissionState.solarStorm(sheltered.snapshot().elapsedSeconds()) ? 0 : 4);
+        }
+
+        assert sheltered.snapshot().radiationDose() == 0 && sheltered.snapshot().phase() == MissionState.Phase.ACTIVE
+                : "Exposure outside the storm window costs nothing";
+
         System.out.println("Mission self-check passed: resource balance, phases, dust, outcomes, idempotency and roles.");
     }
 }

@@ -8,6 +8,13 @@ public final class MissionState {
     // Emergency buffer only: together the canisters cannot replace oxygen production for a whole mission.
     public static final int OXYGEN_CANISTERS = 2;
     public static final double CANISTER_OXYGEN = 8;
+    // Solar particle storm, inspired by the real September 2017 event that more than doubled the surface radiation
+    // Curiosity had measured. Timing and dose units are game assumptions.
+    public static final int SOLAR_WARNING_SECONDS = 25;
+    public static final int SOLAR_START_SECONDS = 40;
+    public static final int SOLAR_END_SECONDS = 65;
+    // Twenty unprotected crew-seconds reach the dose limit.
+    public static final double DOSE_PER_EXPOSED_SECOND = 5;
 
     public enum Phase {
         READY, ACTIVE, PAUSED, SUCCESS, PARTIAL, FAILED, ABORTED;
@@ -32,6 +39,7 @@ public final class MissionState {
     private double lowestBattery = battery, lowestOxygen = oxygen;
     private int firstResearchCutSecond = -1;
     private int canistersLeft = OXYGEN_CANISTERS;
+    private double radiationDose;
     private String lastEvent = "Choose your role. Mission Control starts the simulation.";
 
     public MissionState() {
@@ -109,6 +117,16 @@ public final class MissionState {
         if (researchOnline && battery > 0)
             researchSeconds++;
 
+        if (elapsedSeconds == SOLAR_WARNING_SECONDS)
+            lastEvent = "Solar storm alert! Fast particles from the Sun reach Mars in " + (SOLAR_START_SECONDS - SOLAR_WARNING_SECONDS)
+                    + " seconds. Everyone into the crew shelter south of the habitat!";
+
+        if (elapsedSeconds == SOLAR_START_SECONDS)
+            lastEvent = "Solar particles are hitting Mars. Stay inside the crew shelter until 01:05.";
+
+        if (elapsedSeconds == SOLAR_END_SECONDS)
+            lastEvent = "The solar particle storm has passed. It is safe to leave the shelter.";
+
         if (elapsedSeconds == STORM_START_SECONDS - 20)
             lastEvent = "Dust front approaching. Solar output will drop in 20 seconds.";
 
@@ -135,6 +153,25 @@ public final class MissionState {
         }
     }
 
+    /** Called once per second by the server with the number of crew members outside the shelter. */
+    public void recordExposure(final int exposedCrew) {
+        if (phase != Phase.ACTIVE || !solarStorm(elapsedSeconds) || exposedCrew <= 0) return;
+
+        radiationDose = Math.min(100, radiationDose + exposedCrew * DOSE_PER_EXPOSED_SECOND);
+        if (radiationDose >= 100) {
+            phase = Phase.FAILED;
+            lastEvent = "Radiation dose too high. The crew stayed outside the shelter during the solar storm.";
+        }
+    }
+
+    public static boolean solarWarning(final int elapsedSeconds) {
+        return elapsedSeconds >= SOLAR_WARNING_SECONDS && elapsedSeconds < SOLAR_START_SECONDS;
+    }
+
+    public static boolean solarStorm(final int elapsedSeconds) {
+        return elapsedSeconds >= SOLAR_START_SECONDS && elapsedSeconds < SOLAR_END_SECONDS;
+    }
+
     public boolean replenishOxygen() {
         if (phase != Phase.ACTIVE || oxygen >= 100 || canistersLeft == 0) return false;
 
@@ -148,14 +185,14 @@ public final class MissionState {
     public Snapshot snapshot() {
         return new Snapshot(phase, elapsedSeconds, battery, oxygen, oxygenOnline, researchOnline,
                 DustStormProfile.generation(storm, elapsedSeconds), 0.15 + (oxygenOnline ? 0.45 : 0) + (researchOnline ? 0.65 : 0),
-                decisions, researchSeconds, lastEvent, lowestBattery, lowestOxygen, firstResearchCutSecond, canistersLeft, storm);
+                decisions, researchSeconds, lastEvent, lowestBattery, lowestOxygen, firstResearchCutSecond, canistersLeft, storm, radiationDose);
     }
 
     public record Snapshot(Phase phase, int elapsedSeconds, double battery, double oxygen,
                            boolean oxygenOnline, boolean researchOnline, double generation, double demand,
                            int decisions, int researchSeconds, String lastEvent,
                            double lowestBattery, double lowestOxygen, int firstResearchCutSecond, int canistersLeft,
-                           DustStorm dustStorm) {
+                           DustStorm dustStorm, double radiationDose) {
         public boolean storm() {
             return elapsedSeconds >= STORM_START_SECONDS && elapsedSeconds < STORM_END_SECONDS;
         }
