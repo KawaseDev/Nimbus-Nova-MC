@@ -169,16 +169,33 @@ The active return window is six minutes; preparation and teacher/incident pauses
 | Original marker | Replacement and activity |
 | --- | --- |
 | Lectern | Flight console: docking, constellation fix, return burn |
-| Brewing stand | Galley/thermal module: crew rations and heating budget |
-| Fletching table | Medical/filter bay: crew check and CO2 adapter assembly |
+| Brewing stand | Galley/thermal module: ration metering and heating budget |
+| Fletching table | Medical/filter bay: instrument diagnostics and CO2 adapter assembly |
 | Note block | Crew intercom: up to two paused discussion breaks |
 | Furnaces | Engine manifolds: power cartridges and emergency load isolation |
-| Beacon | Science archive: preserve observations at an energy cost |
+| Beacon | Science archive: classify observed specimens at an energy cost |
 | Cartography table | Comms array: waveform/carrier reconstruction |
-| Composter | Hydroponics: finite watering/readiness choice |
+| Composter | Hydroponics: coupled moisture-balancing activity |
 | Red wool | Custom punching bag: five physical hits complete a finite exercise set |
-| Chest | Cargo locker: spares-versus-science choice |
+| Chest | Cargo locker: mass/balance packing of spares, kits and science |
 | Lime wool | Substantial proximity portal frames and visible locked blue fields |
+
+### Hands-on secondary activities and hold controls
+
+The optional stations now require work before applying their finite resource effect:
+
+| Activity | Interaction | What it teaches |
+| --- | --- | --- |
+| Cargo | Pack three bays within the mass limit and balance the outer bays, then secure the manifest | Mass distribution; repair supplies compete with science cargo |
+| Galley | Meter the requested portions into three pouches, drain excess and seal the allocation | Several allocations share one water reserve |
+| Plants | Balance four soil readings; a dose also wets the next bed through the common channel | Coupled systems and overwatering; drainage does not create drinking water |
+| Medical equipment | Scan all three sensor traces, identify and replace the bad lead, then run a self-test | Check measurement quality before trusting an instrument |
+| Science | Inspect specimen observations, assign ferrous/layered/porous records and archive verified classifications | Evidence-based classification rather than guessing labels |
+| Exercise | Close the tablet and punch the actual bag five times with a short interval between hits | A paced physical task with a visible bag reaction and a finite water/readiness consequence |
+
+Final commit controls charge while held. Hold the mouse button over the control, or focus it and hold **Space/Enter**, until the progress fill completes. Early release, pointer departure, focus loss, closing the tablet or a mission pause cancels unfinished work. The server checks the elapsed hold and station state before applying any resource change. Thrust adjustments and timed burn controls respond immediately.
+
+Ration amounts, moisture indices, sensor signals and specimen properties are authored equipment exercises, not nutritional prescriptions, plant-growth measurements or medical diagnoses. Each completed activity applies its cost/reward only once per attempt.
 
 Operator commands: `/ship select`, `/ship start`, `/ship pause`, `/ship acknowledge`, `/ship resume`, `/ship abort`, `/ship reset`, `/ship end`. Students use `/ship`, `/ship join` and `/ship leave`. Teacher controls use the existing authenticated bridge; Mars and the teammate's Moon prototypes retain their own controls.
 

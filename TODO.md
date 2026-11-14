@@ -224,3 +224,15 @@ Final ship verification: Java 25 `build runClientGameTest` passed the complete M
 - [x] Inspect the ship corridor in Minecraft and pass the build/full client playthrough.
 
 The rendering fix applies to existing hull blocks after resource reload; no map regeneration is required.
+
+## Hands-on secondary station batch
+
+- [x] Replace one-click galley, plants, medical, science and storage rewards with distinct visual activities.
+- [x] Preserve the primary spacecraft minigames and apply each activity's resource effect only after successful completion.
+- [x] Add mouse/keyboard hold controls with animated charge, early-release cancellation and server timing/state validation.
+- [x] Add punching-bag pacing and a reactive model that returns to its resting pose.
+- [x] Check invalid/incomplete work, duplicate rewards, minimum hold duration and expired tokens in model tests.
+- [x] Test direct-click/early-finish rejection, physical Space-hold cancellation/completion and the full rescue in Minecraft.
+- [x] Inspect the new activity/charge screenshots, update the guide and push the batch.
+
+Java 25 `build runClientGameTest` passed. Native checks completed all five secondary activities, paced physical bag hits, primary rescue tasks and a successful return; captures include the cargo control at 50% charge. The interactive client was closed and its save completed as requested; the disposable test client also exited. Multiplayer/classroom testing remains open.
