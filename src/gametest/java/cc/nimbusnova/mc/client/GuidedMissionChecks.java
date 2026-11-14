@@ -6,6 +6,7 @@ import cc.nimbusnova.mc.mission.MissionPreparation;
 import cc.nimbusnova.mc.mission.MissionTaskOpenPayload;
 import cc.nimbusnova.mc.npc.MissionAstronaut;
 import cc.nimbusnova.mc.npc.MissionNpcs;
+import cc.nimbusnova.mc.content.OutpostContent;
 import cc.nimbusnova.mc.client.npc.NpcDialogueScreen;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -14,6 +15,10 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -54,6 +59,37 @@ final class GuidedMissionChecks {
         if (NimbusNovaClient.snapshot.state().elapsedSeconds() != 0)
             throw new AssertionError("The timer advanced during preparation");
         GuidedMissionChecks.capture(context, "guided-crew-ready");
+    }
+
+    static void checkOutpost(final ClientGameTestContext context, final TestSingleplayerContext world) {
+        final BlockPos sample = new BlockPos(40, 66, -16), playerBuild = new BlockPos(12, 66, -16);
+        world.getServer().runOnServer(server -> {
+            final var level = world.getConnection().getServerLevel();
+            level.setBlock(sample, Blocks.DIRT.defaultBlockState(), Block.UPDATE_CLIENTS);
+            level.setBlock(playerBuild, Blocks.GOLD_BLOCK.defaultBlockState(), Block.UPDATE_CLIENTS);
+        });
+        world.getServer().runCommand("mars upgrade");
+        world.getServer().runOnServer(server -> {
+            final var level = world.getConnection().getServerLevel();
+            if (!level.getBlockState(sample).is(Blocks.DIRT))
+                throw new AssertionError("Outpost upgrade replaced an unknown player block");
+            level.setBlock(sample, OutpostContent.SAMPLE_DEPOSIT.defaultBlockState(), Block.UPDATE_CLIENTS);
+        });
+        world.getServer().runCommand("mars upgrade");
+        world.getServer().runCommand("mars upgrade");
+        world.getServer().runOnServer(server -> {
+            final var level = world.getConnection().getServerLevel();
+            if (!level.getBlockState(playerBuild).is(Blocks.GOLD_BLOCK))
+                throw new AssertionError("Outpost upgrade changed an unrelated build");
+            final BlockPos door = new BlockPos(0, 66, -12);
+            if (!(level.getBlockState(door).getBlock() instanceof DoorBlock)
+                    || level.getBlockState(door).getValue(DoorBlock.HALF) != DoubleBlockHalf.LOWER
+                    || level.getBlockState(door.above()).getValue(DoorBlock.HALF) != DoubleBlockHalf.UPPER)
+                throw new AssertionError("The airlock door is missing a valid half");
+        });
+        world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 0.5 66 -12.5 0 0");
+        context.waitFor(client -> client.level != null && client.level.getBlockState(new BlockPos(0, 66, -12)).getValue(DoorBlock.OPEN));
+        capture(context, "automatic-airlock-door");
     }
 
     static void repair(final ClientGameTestContext context, final TestSingleplayerContext world, final boolean power, final boolean tryWrongAction) {

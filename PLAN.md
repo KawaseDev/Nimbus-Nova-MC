@@ -490,3 +490,11 @@ Hackathon acceptance checklist:
 | Vehicle/space scope delays a playable lesson | Ship rover plus scripted arrival first; implement bounded shuttle flight next |
 
 Implementation follows the batches in [TODO.md](TODO.md). Complete and verify the core mod loop first, integrate the original Mars map and items next, then finish the science/learning demonstration before adding more systems. The five-role, NPC, minigame, and spacecraft roadmap remains intact.
+
+## First-mission guided implementation
+
+The first mission now begins with untimed, role-aware preparation: a physical NPC briefing, personal gear locker, rotating-wire power board, coupled oxygen valves/gauges, and sample collection/delivery. Crew checks happen in parallel, and the server validates task revisions, position, role, and completion. No hazard clock runs before launch.
+
+The active lesson combines an early shelter response, a NASA-linked dust profile, an authored relay fault requiring a second circuit repair, and the choice of when to power research. Success still requires both survival and science. A small crew objective HUD and world holograms show the next action and location; raw rates and source detail sit in secondary tablet views. Native doors, new functional models, and protected equipment support movement through the outpost.
+
+This implements the platform decision through consequential spatial tasks. It does not yet establish child usability or learning effectiveness; observe two students completing the lesson before making those claims. The README is the current play guide and TODO records remaining classroom/multiplayer checks.
