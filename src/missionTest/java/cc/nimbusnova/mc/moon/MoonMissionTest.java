@@ -45,6 +45,15 @@ public final class MoonMissionTest {
         assert alternative.fuel() == 97 && !alternative.decisionMade();
         alternative.choose(MoonMission.Role.MAINTENANCE, true);
         assert alternative.decisionMade();
+        MoonMission exhausted = new MoonMission(MoonMission.Variant.EXPLORATION);
+        for (MoonMission.Role role : MoonMission.required(exhausted.stage())) exhausted.confirm(role);
+        exhausted.choose(MoonMission.Role.SUPPLIES, true);
+        exhausted.advance(); exhausted.acknowledge(); exhausted.resume();
+        for (int i = 0; i < 40; i++) exhausted.choose(MoonMission.Role.MAINTENANCE, false);
+        for (MoonMission.Role role : MoonMission.required(exhausted.stage())) exhausted.confirm(role);
+        exhausted.choose(MoonMission.Role.MAINTENANCE, true);
+        expectFailure(exhausted::advance);
+        assert exhausted.fuel() == 0 && exhausted.stage() == MoonMission.Stage.DOCKING;
         System.out.println("Moon mission checks passed: both routes, crew reports and educational pauses.");
     }
     private static void expectFailure(Runnable action) {

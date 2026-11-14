@@ -120,6 +120,10 @@ public final class MoonController {
         ServerPlayNetworking.send(player, new MoonPayload(current.variant().name(), current.stage().name(),
                 current.incident() == null ? "" : current.incident().name(), role == null ? "" : role.name(),
                 current.paused(), current.acknowledged(), current.decisionMade(), claimed, confirmed,
-                current.battery(), current.oxygen(), current.water(), current.fuel(), current.parts(), current.feedback(), open));
+                role == MoonMission.Role.POWER ? current.battery() : -1,
+                role == MoonMission.Role.LIFE_SUPPORT ? current.oxygen() : -1,
+                role == MoonMission.Role.SUPPLIES ? current.water() : -1,
+                role == MoonMission.Role.PILOT ? current.fuel() : -1,
+                role == MoonMission.Role.MAINTENANCE ? current.parts() : -1, current.feedback(), open));
     }
 }

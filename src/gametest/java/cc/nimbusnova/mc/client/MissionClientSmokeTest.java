@@ -46,6 +46,8 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             context.waitForScreen(MoonScreen.class);
             context.clickScreenButton("SUPPLIES");
             context.waitFor(client -> NimbusNovaClient.moon != null && NimbusNovaClient.moon.role().equals("SUPPLIES"));
+            if (context.computeOnClient(client -> NimbusNovaClient.moon.water() != 100 || NimbusNovaClient.moon.battery() != -1))
+                throw new AssertionError("Only role-specific Moon telemetry should be sent to a student");
             context.clickScreenButton("Carry spare parts");
             context.waitFor(client -> NimbusNovaClient.moon.decisionMade());
             context.clickScreenButton("Confirm report");

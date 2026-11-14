@@ -46,7 +46,7 @@ The world uses holographic labels, marker effects, colored routes, automatic doo
 
 NASA observations determine the selected Opportunity storm profile. The relay fault, pressure puzzle, radiation counter, mission timing, and resource capacities are teaching/gameplay assumptions, not calibrated astronaut procedures.
 
-The solar warning, dust warning, and relay fault pause the simulation for an explanation and discussion. Mission Control confirms understanding before resuming. These pauses are the first implemented part of the expanded scenario document; the Earth–Moon, Earth–Mars transit, and ISS missions are not yet playable.
+The solar warning, dust warning, and relay fault pause the simulation for an explanation and discussion. Mission Control confirms understanding before resuming. The Earth–Moon mission has a teacher-controlled sequencing prototype with five roles, incident explanations, and decisions. It does not yet have the spacecraft map, equipment tasks, or complete classroom mission. Earth–Mars transit and ISS remain planned.
 
 ### Commands
 

@@ -98,7 +98,8 @@ final class GuidedMissionChecks {
                 throw new AssertionError("The airlock door is missing a valid half");
         });
         world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 0.5 66 -12.5 0 0");
-        context.waitFor(client -> client.level != null && client.level.getBlockState(new BlockPos(0, 66, -12)).getValue(DoorBlock.OPEN));
+        context.waitFor(client -> client.level != null && client.level.getBlockState(new BlockPos(0, 66, -12)).getValue(DoorBlock.OPEN)
+                && client.level.getBlockState(new BlockPos(-1, 66, -12)).getValue(DoorBlock.OPEN));
         capture(context, "laser-door-open");
         world.getServer().runOnServer(server -> {
             final var level = world.getConnection().getServerLevel();
