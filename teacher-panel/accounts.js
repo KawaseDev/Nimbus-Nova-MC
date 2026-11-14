@@ -58,8 +58,8 @@ function createAccounts(file) {
       for await (const chunk of request) { body += chunk; if (Buffer.byteLength(body) > 4096) throw new Error(); }
       data = JSON.parse(body);
     } catch { json(response, 400, { error: 'Invalid request' }); return true; }
-    if (!data || typeof data.username !== 'string' || typeof data.password !== 'string' || !/^[a-zA-Z0-9_.-]{3,32}$/.test(data.username) || data.password.length < 12 || Buffer.byteLength(data.password) > 256) {
-      json(response, 400, { error: 'Use a 3–32 character username and a password of at least 12 characters' }); return true;
+    if (!data || typeof data.username !== 'string' || typeof data.password !== 'string' || !/^[a-zA-Z0-9_.-]{3,32}$/.test(data.username) || !data.password.length) {
+      json(response, 400, { error: 'Enter a valid username and password' }); return true;
     }
     const username = data.username.toLowerCase();
     const user = users.find((entry) => entry.username === username);

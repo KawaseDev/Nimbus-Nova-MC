@@ -81,19 +81,20 @@ test('teacher accounts persist, protect the dashboard, and sign out', async () =
     return [server, `http://127.0.0.1:${server.address().port}`];
   }
   let [server, base] = await start();
-  const credentials = { username: 'Teacher', password: 'a long password' };
+  const credentials = { username: 'Teacher', password: 'x' };
   async function post(endpoint, data, cookie, origin = base) {
     return fetch(`${base}/api/account/${endpoint}`, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) }, body: JSON.stringify(data) });
   }
   try {
     assert.equal((await post('register', credentials, null, 'http://evil.example')).status, 403);
+    assert.equal((await post('register', { ...credentials, password: '' })).status, 400);
     let response = await post('register', credentials);
     assert.equal(response.status, 200);
     let cookie = response.headers.get('set-cookie').split(';')[0];
     assert.match(await (await fetch(base, { headers: { Cookie: cookie } })).text(), /Mission Control/);
     assert.equal((await fetch(`${base}/api/status`, { headers: { Cookie: cookie } })).status, 200);
     assert.equal((await post('register', credentials)).status, 409);
-    assert.doesNotMatch(fs.readFileSync(accountsFile, 'utf8'), /a long password/);
+    assert.equal(JSON.parse(fs.readFileSync(accountsFile, 'utf8'))[0].password, undefined);
     assert.equal((await post('logout', {}, cookie)).status, 200);
     assert.equal((await fetch(`${base}/api/account/me`, { headers: { Cookie: cookie } })).status, 401);
     await new Promise((resolve) => server.close(resolve));
