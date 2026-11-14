@@ -5,22 +5,42 @@ public final class MissionState {
     public static final int STORM_START_SECONDS = 75;
     public static final int STORM_END_SECONDS = 195;
     public static final int RESEARCH_TARGET_SECONDS = 90;
+    // Emergency buffer only: together the canisters cannot replace oxygen production for a whole mission.
+    public static final int OXYGEN_CANISTERS = 2;
+    public static final double CANISTER_OXYGEN = 8;
 
     public enum Phase {
-        READY, ACTIVE, PAUSED, SUCCESS, PARTIAL, FAILED, ABORTED
+        READY, ACTIVE, PAUSED, SUCCESS, PARTIAL, FAILED, ABORTED;
+
+        public boolean ended() {
+            return this == SUCCESS || this == PARTIAL || this == FAILED || this == ABORTED;
+        }
     }
 
     public enum Equipment {
         OXYGEN, RESEARCH
     }
 
+    private final DustStorm storm;
     private Phase phase = Phase.READY;
     private int elapsedSeconds;
     private double battery = 80, oxygen = 75;
     private boolean oxygenOnline = true, researchOnline = true;
     private int decisions;
     private int researchSeconds;
+    // Debrief measurements: what happened, not why.
+    private double lowestBattery = battery, lowestOxygen = oxygen;
+    private int firstResearchCutSecond = -1;
+    private int canistersLeft = OXYGEN_CANISTERS;
     private String lastEvent = "Choose your role. Mission Control starts the simulation.";
+
+    public MissionState() {
+        this(DustStorm.OPPORTUNITY_2018);
+    }
+
+    public MissionState(final DustStorm storm) {
+        this.storm = storm;
+    }
 
     public void start() {
         if (phase != Phase.READY)
@@ -64,6 +84,8 @@ public final class MissionState {
         } else {
             if (researchOnline == online) return;
             researchOnline = online;
+            if (!online && firstResearchCutSecond < 0)
+                firstResearchCutSecond = elapsedSeconds;
         }
 
         decisions++;
@@ -76,13 +98,14 @@ public final class MissionState {
         if (phase != Phase.ACTIVE) return;
 
         elapsedSeconds++;
-        final boolean storm = elapsedSeconds >= STORM_START_SECONDS && elapsedSeconds < STORM_END_SECONDS;
-        // shortcut: normalized prototype rates, replace with a sourced scenario model before science claims.
-        final double generation = storm ? 0.2 : 1.1;
+        // Solar supply follows Opportunity's 2018 record; battery size and demand are authored game units.
+        final double generation = DustStormProfile.generation(storm, elapsedSeconds);
         final double demand = 0.15 + (oxygenOnline ? 0.45 : 0) + (researchOnline ? 0.65 : 0);
         battery = Math.clamp(battery + generation - demand, 0, 100);
         oxygen = Math.clamp(oxygen + (oxygenOnline && battery > 0 ? 0.55 : 0) - 0.4, 0, 100);
 
+        lowestBattery = Math.min(lowestBattery, battery);
+        lowestOxygen = Math.min(lowestOxygen, oxygen);
         if (researchOnline && battery > 0)
             researchSeconds++;
 
@@ -90,10 +113,14 @@ public final class MissionState {
             lastEvent = "Dust front approaching. Solar output will drop in 20 seconds.";
 
         if (elapsedSeconds == STORM_START_SECONDS)
-            lastEvent = "Dust front arrived. Solar output is down. Rebalance power with your crew.";
+            lastEvent = "Dust front arrived. The sky is darkening and solar output is falling. Rebalance power with your crew.";
+
+        if (elapsedSeconds == DustStormProfile.PEAK_START_SECONDS)
+            lastEvent = "Storm peak: the sun gives only " + storm.peakPercent() + "% of its usual energy, like Opportunity's "
+                    + (int) storm.peakWattHours + " Wh on " + storm.peakDate + ".";
 
         if (elapsedSeconds == STORM_END_SECONDS)
-            lastEvent = "The dust front has passed. Solar generation is recovering.";
+            lastEvent = "The dust is thinning and solar output is slowly recovering.";
 
         if (battery <= 0 || oxygen <= 0) {
             phase = Phase.FAILED;
@@ -109,24 +136,26 @@ public final class MissionState {
     }
 
     public boolean replenishOxygen() {
-        if (phase != Phase.ACTIVE || oxygen >= 100) return false;
+        if (phase != Phase.ACTIVE || oxygen >= 100 || canistersLeft == 0) return false;
 
-        oxygen = Math.min(100, oxygen + 25);
+        oxygen = Math.min(100, oxygen + CANISTER_OXYGEN);
+        canistersLeft--;
         decisions++;
-        lastEvent = "An oxygen canister restored up to 25 reserve units. Supplies are limited.";
+        lastEvent = "An oxygen canister restored up to " + (int) CANISTER_OXYGEN + " reserve units. " + canistersLeft + " of " + OXYGEN_CANISTERS + " left.";
         return true;
     }
 
     public Snapshot snapshot() {
-        final boolean storm = elapsedSeconds >= STORM_START_SECONDS && elapsedSeconds < STORM_END_SECONDS;
         return new Snapshot(phase, elapsedSeconds, battery, oxygen, oxygenOnline, researchOnline,
-                storm ? 0.2 : 1.1, 0.15 + (oxygenOnline ? 0.45 : 0) + (researchOnline ? 0.65 : 0),
-                decisions, researchSeconds, lastEvent);
+                DustStormProfile.generation(storm, elapsedSeconds), 0.15 + (oxygenOnline ? 0.45 : 0) + (researchOnline ? 0.65 : 0),
+                decisions, researchSeconds, lastEvent, lowestBattery, lowestOxygen, firstResearchCutSecond, canistersLeft, storm);
     }
 
     public record Snapshot(Phase phase, int elapsedSeconds, double battery, double oxygen,
                            boolean oxygenOnline, boolean researchOnline, double generation, double demand,
-                           int decisions, int researchSeconds, String lastEvent) {
+                           int decisions, int researchSeconds, String lastEvent,
+                           double lowestBattery, double lowestOxygen, int firstResearchCutSecond, int canistersLeft,
+                           DustStorm dustStorm) {
         public boolean storm() {
             return elapsedSeconds >= STORM_START_SECONDS && elapsedSeconds < STORM_END_SECONDS;
         }

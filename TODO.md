@@ -66,17 +66,17 @@ Integration: `93a7e11`, including the teammate's student session screen. Build a
 
 ## Batch 4: science and learning demonstration
 
-Status: pending; required before strong NASA/education claims.
+Status: in progress. NASA evidence, labels, debrief, and strategy checks are done; learner testing and the demo remain.
 
-- [ ] Select one usable NASA observation or documented historical condition, with exact source, dates, site, units, and reuse terms.
-- [ ] Document how that evidence changes solar supply or another visible mission condition.
-- [ ] Label authored capacities, normalization, time compression, and missing data.
-- [ ] Add a debrief tied to actual crew actions, with source cards and the survival/research trade-off.
+- [x] Select one usable NASA observation or documented historical condition, with exact source, dates, site, units, and reuse terms. Opportunity, Perseverance Valley, June 1–10, 2018: 645 Wh → 21 Wh per sol, tau 10.5 (see CREDITS.md).
+- [x] Document how that evidence changes solar supply or another visible mission condition. `DustStormProfile` scales solar output to 21/645 ≈ 3% at the storm peak.
+- [x] Label authored capacities, normalization, time compression, and missing data. Briefing tab and CREDITS.md.
+- [x] Add a debrief tied to actual crew actions, with source cards and the survival/research trade-off. Debrief tab opens for everyone when the mission ends.
 - [ ] Ask two short questions before and after a small learner/educator test; record anonymous observations and limitations.
-- [ ] Confirm that at least two reasonable strategies can produce useful outcomes.
+- [x] Confirm that at least two reasonable strategies can produce useful outcomes. `missionSelfTest` covers an early research cut (success), survival-only (partial), and a late cut with early restart (failure).
 - [ ] Show observation → change → communication → decision → consequence → explanation in the demo.
 
-The current four-minute event and rates are prototype game balance. A historical article in the credits does not establish a calibrated measurement series.
+Only the sunlight curve comes from NASA data; the four-minute event, rates, and capacities are game balance. Four data points from one rover are not a calibrated measurement series, and the dimming between them is a straight-line assumption.
 
 ## Batch 5: NPCs and task minigames
 

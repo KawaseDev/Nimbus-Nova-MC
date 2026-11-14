@@ -2,7 +2,7 @@
 
 A cooperative Minecraft Mars mission trainer for NASA Space Apps 2026's **Build a Junior Astronaut Mission Trainer** challenge.
 
-The mod includes an authored Mars outpost, shared power/oxygen simulation, two crew roles, a responsive HUD/console, functional equipment stations, and eight original space items with custom textures. Build, simulation, asset checks, and a single-client Fabric runtime smoke test pass. The current four-minute dust event uses **authored game balance**, not NASA measurements. Two-client testing and NASA evidence integration remain pending; see [TODO.md](TODO.md).
+The mod includes an authored Mars outpost, a shared power/oxygen simulation, three crew roles, a responsive HUD/console with an end-of-mission debrief, functional equipment stations, and eight original space items with custom textures. The dust storm's solar supply follows NASA's record of the Opportunity rover in the 2018 Mars dust storm; battery, oxygen, and energy rates are authored game balance. See [CREDITS.md](CREDITS.md) for sources and [TODO.md](TODO.md) for remaining work such as two-client testing.
 
 The teacher backend and admin panel belong to another teammate. Local mod development uses operator commands and does not depend on that platform being available.
 
@@ -33,15 +33,15 @@ The title screen has a **Join session** screen for the planned nickname and sess
 
 1. Join a world/server with Nimbus Nova installed. Use a test world with cheats enabled, or a server account with gamemaster/operator permission, for Mission Control commands.
 2. As an operator, run `/mars create` once to build Aster Outpost. Use `/mars join` to enter and `/mars leave` to return. Then press **J** to open the mission console. The key is rebindable in Minecraft's controls.
-3. Before starting, choose **Power engineer** or **Life support** in the Systems tab. Two players can take different roles; an operator can control both systems for solo testing.
+3. Before starting, choose **Power engineer**, **Life support**, or **Weather officer** in the Systems tab. Each player takes a different role; an operator can control every system for solo testing.
 4. Start from the console or run `/mission start`.
-5. Keep battery and oxygen above zero for four minutes. The dust event reduces solar generation from **01:15 to 03:15**.
+5. Keep battery and oxygen above zero for four minutes. From **01:15** the dust dims the sun, reaching its lowest point at 02:15, and it starts clearing at **03:15**. Each mission uses one of two real Opportunity storms: June 2018 (3% sunlight, the rover was lost) or July 2007 (18%, the rover survived). Only the weather officer sees the sunlight and a 30-second forecast, so the crew must talk.
 6. Complete at least **90 seconds of powered research** for full success. Survival with insufficient research earns partial success; switching research off forever cannot earn full success.
-7. Pause to discuss decisions, resume to continue, and reset before another attempt.
+7. When the mission ends, every console opens on the **Debrief** tab: outcome, lowest reserves, decisions, consequences, the real Opportunity story, and reflection questions. Reset before another attempt.
 
 The map contains a habitat, landing pad, power yard, greenhouse, shelter, static rover workshop, and marked paths. Research and oxygen consoles are bound automatically. `/mars create` preserves an existing outpost; an interrupted construction claim blocks automatic rebuilding. The map has authored terrain and no NASA geographic-accuracy claim.
 
-The HUD shows shared reserves, net energy rate, research progress, your role, the remaining mission time, and warnings. The console has Overview, Systems, and Briefing tabs. Equipment controls affect the server simulation; they are not separate client-side resource values.
+The HUD shows shared reserves, net energy rate, research progress, your role, the remaining mission time, and warnings. The console has Overview, Systems, Briefing, and Debrief tabs. Only the weather officer and operators see sunlight readings. Equipment controls affect the server simulation; they are not separate client-side resource values.
 
 ### Commands
 
@@ -50,7 +50,10 @@ The HUD shows shared reserves, net energy rate, research progress, your role, th
 | `/mission` | Show current mission status |
 | `/mission role power` | Choose power engineer before start |
 | `/mission role life_support` | Choose life-support engineer before start |
+| `/mission role weather` | Choose weather officer before start |
 | `/mission role observer` | Choose observer before start |
+| `/mission forecast` | Weather officer or operator; broadcast the current sunlight and 30-second forecast |
+| `/mission storm 2018` / `2007` / `random` | Operator; pin the real Opportunity storm for the next missions, or pick one at random on each reset (default) |
 | `/mission assign <player> <role>` | Operator assignment before start or while paused |
 | `/mission start` | Operator; begin a ready mission |
 | `/mission pause` / `/mission resume` | Operator; freeze/unfreeze simulation time and resources |
@@ -60,8 +63,10 @@ The HUD shows shared reserves, net energy rate, research progress, your role, th
 | `/mission equipment oxygen true` / `false` | Life-support engineer or operator; enable/disable oxygen production while active |
 | `/mission station research` | Operator; bind the block you are looking at as a research toggle station |
 | `/mission station oxygen` | Operator; bind the block you are looking at as an oxygen toggle station |
+| `/mission station canister` | Operator; bind the block you are looking at as an emergency oxygen canister station |
+| `/mission station clear` | Operator; remove every station binding |
 
-A station binding uses an existing block within five blocks and replaces no terrain. Its permitted engineer can right-click it to toggle the associated system. Choose plain blocks so normal container or redstone interactions do not confuse the demonstration.
+A station binding uses an existing block within five blocks and replaces no terrain. Its permitted engineer can right-click it to toggle the associated system. Choose plain blocks so normal container or redstone interactions do not confuse the demonstration. Bindings are saved to `nimbus_nova_stations.txt` in the world folder and reload on server start.
 
 ## Mars map and equipment
 
@@ -72,7 +77,7 @@ Items appear in the **Tools & Utilities** creative tab, or operators can use `/g
 | ID | Current behavior |
 | --- | --- |
 | `mission_tablet` | Right-click to open the real mission console |
-| `oxygen_canister` | Life-support engineer/operator restores up to 25 shared oxygen units during an active mission; consumes one on a successful survival-mode use |
+| `oxygen_canister` | Life-support engineer/operator restores up to 8 shared oxygen units during an active mission, from a pool of two canisters per mission; consumes one on a successful survival-mode use |
 | `engineering_tool` | Iron-grade pickaxe with original multitool artwork |
 | `mars_sample` | Collectible sample; analysis mechanics remain planned |
 | `space_helmet`, `space_chestplate`, `space_leggings`, `space_boots` | Wearable expedition armor with original item and worn textures; suit oxygen, pressure, and radiation protection remain planned |
@@ -81,10 +86,10 @@ The greenhouse, radiation shelter, and static rover are authored scenery for fut
 
 ## Current limits
 
-- One transient mission runs per server. Resource state, roles, and manually bound stations do not survive a server restart. The authored outpost persists; joining it rebinds its built-in consoles.
+- One transient mission runs per server. Resource state and roles do not survive a server restart; station bindings do. The authored outpost persists; joining it rebinds its built-in consoles.
 - Rejoining the same running server retains the player's role in memory. The mission pauses when no players remain; an operator resumes it.
 - The prototype counts a fixed crew demand rather than deriving oxygen use from individual suits or player count.
-- Equipment uses normalized game units. There is no claim of a calibrated habitat or radiation model.
+- Equipment uses normalized game units. Only the dust storm's sunlight curve comes from NASA data. There is no claim of a calibrated habitat or radiation model.
 - The current dust event changes the resource model; a visual weather effect is a separate feature.
 - Teacher session codes, browser controls, persistent reports, NPC dialogue, task minigames, suit life support, and controllable vehicles remain roadmap work unless their status is explicitly completed in [TODO.md](TODO.md).
 - Minecraft's proprietary dependency remains an organizer eligibility question. Public mod source alone does not resolve it.

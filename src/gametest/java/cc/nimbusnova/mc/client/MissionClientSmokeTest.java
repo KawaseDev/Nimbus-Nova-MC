@@ -47,14 +47,16 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             context.takeScreenshot("mission-hud");
             world.getServer().runOnServer(server -> {
                 final var player = world.getConnection().getServerPlayer();
-                player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModContent.OXYGEN_CANISTER, 2));
+                // Each mission allows MissionState.OXYGEN_CANISTERS refills, whichever item or station supplies them.
+                player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModContent.OXYGEN_CANISTER, 3));
                 ModContent.OXYGEN_CANISTER.use(player.level(), player, InteractionHand.MAIN_HAND);
-                if (player.getMainHandItem().getCount() != 1)
+                if (player.getMainHandItem().getCount() != 2)
                     throw new AssertionError("A successful oxygen refill must consume exactly one canister");
 
                 ModContent.OXYGEN_CANISTER.use(player.level(), player, InteractionHand.MAIN_HAND);
+                ModContent.OXYGEN_CANISTER.use(player.level(), player, InteractionHand.MAIN_HAND);
                 if (player.getMainHandItem().getCount() != 1)
-                    throw new AssertionError("A full reserve must not consume another canister");
+                    throw new AssertionError("Refills beyond the mission's canister supply must not consume another item");
 
                 player.setItemSlot(EquipmentSlot.HEAD, new ItemStack(ModContent.SPACE_HELMET));
                 player.setItemSlot(EquipmentSlot.CHEST, new ItemStack(ModContent.SPACE_CHESTPLATE));
