@@ -8,6 +8,7 @@ public final class ShipMissionTest {
     }
 
     public static void main(final String[] arguments) {
+        activities();
         final ShipMission cartridges = new ShipMission();
         act(cartridges, ShipTask.ENGINE, 1);
         act(cartridges, ShipTask.ENGINE, 5);
@@ -40,7 +41,14 @@ public final class ShipMissionTest {
         if (complete.snapshot().elapsed() != 0)
             throw new AssertionError("Preparation must be untimed");
         final int stale = complete.revision();
+        final double beforeRation = complete.snapshot().water();
         act(complete, ShipTask.GALLEY, 0);
+        if (complete.completed(ShipTask.GALLEY) || complete.snapshot().water() != beforeRation)
+            throw new AssertionError("Starting a ration must not grant readiness or spend the final shared cost");
+        for (final int input : new int[] { 0, 1, 2, 2, 6 })
+            act(complete, ShipTask.GALLEY, input);
+        if (!complete.completed(ShipTask.GALLEY) || complete.snapshot().water() != beforeRation - 8)
+            throw new AssertionError("Only a completed ration activity may spend water and grant its reward");
         final var beforeDuplicate = complete.snapshot();
         if (complete.action(ShipTask.GALLEY, complete.revision(), 0)
                 || complete.action(ShipTask.ENGINE, stale, 0) || !complete.snapshot().equals(beforeDuplicate))
@@ -114,7 +122,85 @@ public final class ShipMissionTest {
         final double waterAfterSet = meeting.snapshot().water();
         if (meeting.action(ShipTask.EXERCISE, meeting.revision(), 0) || meeting.snapshot().water() != waterAfterSet)
             throw new AssertionError("Exercise must not provide unlimited rewards");
-        System.out.println("Ship mission checks passed: unique cartridge, momentum, star-fix, waveform, adapter and timed-burn tasks; bounded reserves and failures.");
+        System.out.println("Ship mission checks passed: five station activities, bounded benefits, unique flight tasks, pauses and failures.");
+    }
+
+    private static void activities() {
+        final ShipActivities tasks = new ShipActivities();
+        if (!tasks.action(ShipTask.GALLEY, 6) || tasks.completed(ShipTask.GALLEY))
+            throw new AssertionError("An empty pouch rack must not seal");
+        for (final int action : new int[] { 0, 0, 1, 2, 2, 6 })
+            if (!tasks.action(ShipTask.GALLEY, action)) throw new AssertionError("Ration activity rejected a valid step");
+        if (!tasks.completed(ShipTask.GALLEY) || tasks.action(ShipTask.GALLEY, 6))
+            throw new AssertionError("A ration is finite and requires a completed metering plan");
+
+        tasks.action(ShipTask.PLANTS, 8);
+        if (tasks.completed(ShipTask.PLANTS))
+            throw new AssertionError("Dry and overwatered beds must not pass");
+        for (final int action : new int[] { 0, 3, 3, 2, 5, 8 })
+            if (!tasks.action(ShipTask.PLANTS, action)) throw new AssertionError("Irrigation rejected a valid dose");
+        if (!tasks.completed(ShipTask.PLANTS) || tasks.action(ShipTask.PLANTS, 8))
+            throw new AssertionError("Coupled irrigation must finish once without infinite rewards");
+
+        tasks.action(ShipTask.MEDICAL, 4);
+        if (tasks.board(ShipTask.MEDICAL) != 0)
+            throw new AssertionError("An unobserved lead cannot be repaired");
+        for (int lead = 0; lead < 3; lead++)
+            tasks.action(ShipTask.MEDICAL, lead);
+        tasks.action(ShipTask.MEDICAL, 3);
+        tasks.action(ShipTask.MEDICAL, 6);
+        if (tasks.completed(ShipTask.MEDICAL) || (tasks.board(ShipTask.MEDICAL) & 8) != 0)
+            throw new AssertionError("A healthy lead does not fix the failed sensor");
+        tasks.action(ShipTask.MEDICAL, 4);
+        tasks.action(ShipTask.MEDICAL, 6);
+        if (!tasks.completed(ShipTask.MEDICAL) || (tasks.aux(ShipTask.MEDICAL) >> 7 & 127) != 92)
+            throw new AssertionError("The replacement must pass its signal self-test");
+
+        tasks.action(ShipTask.SCIENCE, 0);
+        tasks.action(ShipTask.SCIENCE, 9);
+        if (tasks.completed(ShipTask.SCIENCE))
+            throw new AssertionError("Incorrect specimen evidence must not archive");
+        for (final int action : new int[] { 2, 3, 7, 9 })
+            tasks.action(ShipTask.SCIENCE, action);
+        if (!tasks.completed(ShipTask.SCIENCE) || tasks.action(ShipTask.SCIENCE, 9))
+            throw new AssertionError("All synthetic specimen records must be classified once");
+
+        tasks.action(ShipTask.STORAGE, 3);
+        if (tasks.completed(ShipTask.STORAGE))
+            throw new AssertionError("An empty hold cannot pass cargo restraint checks");
+        for (int bay = 0; bay < 3; bay++)
+            for (int selection = 0; selection < 3; selection++)
+                tasks.action(ShipTask.STORAGE, bay);
+        tasks.action(ShipTask.STORAGE, 3);
+        if (tasks.completed(ShipTask.STORAGE) || ShipActivities.mass(tasks.board(ShipTask.STORAGE)) != 12)
+            throw new AssertionError("Overweight cargo must not launch");
+        tasks.action(ShipTask.STORAGE, 0);
+        tasks.action(ShipTask.STORAGE, 3);
+        if (tasks.completed(ShipTask.STORAGE))
+            throw new AssertionError("Unbalanced outer bays must not pass");
+        tasks.action(ShipTask.STORAGE, 1);
+        tasks.action(ShipTask.STORAGE, 2);
+        for (int selection = 0; selection < 3; selection++) {
+            tasks.action(ShipTask.STORAGE, 0);
+            tasks.action(ShipTask.STORAGE, 2);
+        }
+        tasks.action(ShipTask.STORAGE, 3);
+        if (!tasks.completed(ShipTask.STORAGE) || tasks.action(ShipTask.STORAGE, 3))
+            throw new AssertionError("Balanced cargo must complete exactly once");
+        if (new ShipActivities().action(ShipTask.SCIENCE, 10) || new ShipActivities().action(ShipTask.PLANTS, -1))
+            throw new AssertionError("Malformed activity opcodes must be rejected");
+
+        final ShipMission benefits = new ShipMission();
+        final int initialParts = benefits.snapshot().parts();
+        for (final int action : new int[] { 0, 2, 3 })
+            act(benefits, ShipTask.STORAGE, action);
+        if (benefits.snapshot().parts() != initialParts + 2 || benefits.action(ShipTask.STORAGE, benefits.revision(), 3))
+            throw new AssertionError("Cargo contents must grant their parts only on final secure");
+        for (final int action : new int[] { 0, 1, 2, 4, 6 })
+            act(benefits, ShipTask.MEDICAL, action);
+        final int repairedParts = benefits.snapshot().parts();
+        if (repairedParts != initialParts + 1 || benefits.action(ShipTask.MEDICAL, benefits.revision(), 6))
+            throw new AssertionError("Instrument completion must consume exactly one finite kit");
     }
 
     private static ShipMission prepared(final boolean extraParts) {
@@ -123,7 +209,12 @@ public final class ShipMissionTest {
             throw new AssertionError("Flight controls are not available before launch");
         mission.tickSecond();
         powerCartridges(mission);
-        act(mission, ShipTask.STORAGE, extraParts ? 0 : 1);
+        final int repetitions = extraParts ? 1 : 3;
+        for (int repeat = 0; repeat < repetitions; repeat++) {
+            act(mission, ShipTask.STORAGE, 0);
+            act(mission, ShipTask.STORAGE, 2);
+        }
+        act(mission, ShipTask.STORAGE, 3);
         if (!mission.ready())
             throw new AssertionError("Verified power and cargo must enable launch");
         return mission;

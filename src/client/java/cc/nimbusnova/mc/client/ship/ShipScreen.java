@@ -6,6 +6,9 @@ import cc.nimbusnova.mc.client.render.NovaScreen;
 import cc.nimbusnova.mc.moon.MoonMission;
 import cc.nimbusnova.mc.ship.ShipActionPayload;
 import cc.nimbusnova.mc.ship.ShipPayload;
+import cc.nimbusnova.mc.ship.ShipTask;
+import cc.nimbusnova.mc.ship.ShipHoldActions;
+import cc.nimbusnova.mc.client.ship.controls.HoldTaskButton;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -15,6 +18,8 @@ import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.NullMarked;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 @NullMarked
 public final class ShipScreen extends NovaScreen implements ShipPalette {
@@ -22,6 +27,8 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
     private boolean tablet, pending;
     private int lessonPage, left, top, panelWidth, panelHeight;
     private int selectedCartridge = 1;
+    private int selectedSampleClass = 1;
+    private final List<HoldTaskButton> holdButtons = new ArrayList<>();
 
     public ShipScreen(final ShipPayload state) {
         super(Component.literal("Return Window"));
@@ -34,6 +41,14 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
     }
 
     public void update(final ShipPayload state) {
+        final boolean changed = !this.state.station().equals(state.station()) || !this.state.stage().equals(state.stage())
+                || !this.state.phase().equals(state.phase()) || this.state.board() != state.board() || state.complete();
+        if (!changed && holdButtons.stream().anyMatch(HoldTaskButton::holding)) {
+            this.state = state;
+            return;
+        }
+        if (changed)
+            holdButtons.forEach(HoldTaskButton::cancel);
         if (!this.state.station().equals(state.station()) || state.open())
             tablet = state.task().isEmpty();
         if (!this.state.incident().equals(state.incident()))
@@ -45,10 +60,32 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
     }
 
     public void sendTaskAction(final int action) {
-        if (pending || state.complete() || state.task().isEmpty()) return;
+        if (pending || state.complete() || state.task().isEmpty() || heldAction(action)) return;
         pending = true;
         ClientPlayNetworking.send(new ShipActionPayload("task", state.station(), state.revision(), action));
         rebuildWidgets();
+    }
+
+    public void beginHeldTaskAction(final int action) {
+        if (pending || state.complete() || !heldAction(action)) return;
+        ClientPlayNetworking.send(new ShipActionPayload("hold_begin", state.station(), state.revision(), action));
+    }
+
+    public void finishHeldTaskAction(final int action) {
+        if (pending || state.complete() || !heldAction(action)) return;
+        pending = true;
+        ClientPlayNetworking.send(new ShipActionPayload("hold_finish", state.station(), state.revision(), action));
+        rebuildWidgets();
+    }
+
+    private boolean heldAction(final int action) {
+        return !state.task().isEmpty() && ShipHoldActions.requires(ShipTask.valueOf(state.task()), MoonMission.Stage.valueOf(state.stage()), action);
+    }
+
+    @Override
+    public void removed() {
+        holdButtons.forEach(HoldTaskButton::cancel);
+        super.removed();
     }
 
     private void command(final String action, final int value) {
@@ -60,6 +97,7 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
 
     @Override
     protected void init() {
+        holdButtons.clear();
         panelWidth = Math.min(590, width - 16);
         panelHeight = Math.min(330, height - 16);
         left = (width - panelWidth) / 2;
@@ -147,18 +185,43 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
                         loads[load] + ((state.board() & 1 << load) != 0 ? " ON" : " OFF"), load);
             taskButton(left + 14, top + 145, bodyWidth, state.task().equals("ENGINE") ? "Isolate failed engine" : "Commit heating budget", 3);
         } else if (state.task().equals("STORAGE") && state.stage().equals("PREPARATION")) {
-            taskButton(left + 14, top + 90, bodyWidth, "Load repair spares", 0);
-            taskButton(left + 14, top + 122, bodyWidth, "Load extra science cargo", 1);
-        } else
-            taskButton(left + 14, top + 100, bodyWidth, switch (state.task()) {
-                case "SCIENCE" -> "Run sample experiment";
-                case "MEDICAL" -> "Complete crew health check";
-                case "GALLEY" -> "Allocate crew water";
-                case "MEETING" -> "Send crew situation report";
-                case "PLANTS" -> "Irrigate plant tray";
-                case "EXERCISE" -> "Complete crew exercise";
-                default -> "Use station";
-            }, 0);
+            final int bayWidth = (bodyWidth - 12) / 3;
+            for (int bay = 0; bay < 3; bay++)
+                addRenderableWidget(new CargoBay(left + 14 + bay * (bayWidth + 6), top + 77, bayWidth, bay));
+            taskButton(left + 14, top + 145, bodyWidth, "Secure balanced cargo", 3);
+        } else if (state.task().equals("GALLEY")) {
+            final int pouchWidth = (bodyWidth - 12) / 3;
+            for (int pouch = 0; pouch < 3; pouch++) {
+                taskButton(left + 14 + pouch * (pouchWidth + 6), top + 119, pouchWidth / 2 - 2, "+ Fill " + (pouch + 1), pouch);
+                taskButton(left + 16 + pouch * (pouchWidth + 6) + pouchWidth / 2, top + 119, pouchWidth / 2 - 2, "Drain", pouch + 3);
+            }
+            taskButton(left + 14, top + 145, bodyWidth, "Seal crew ration pouches", 6);
+        } else if (state.task().equals("PLANTS")) {
+            final int bedWidth = (bodyWidth - 18) / 4;
+            for (int bed = 0; bed < 4; bed++) {
+                taskButton(left + 14 + bed * (bedWidth + 6), top + 119, bedWidth / 2 - 2, "+2 B" + (bed + 1), bed);
+                taskButton(left + 16 + bed * (bedWidth + 6) + bedWidth / 2, top + 119, bedWidth / 2 - 2, "-1 B" + (bed + 1), bed + 4);
+            }
+            taskButton(left + 14, top + 145, bodyWidth, "Verify moisture balance", 8);
+        } else if (state.task().equals("MEDICAL")) {
+            final int leadWidth = (bodyWidth - 12) / 3;
+            for (int lead = 0; lead < 3; lead++) {
+                taskButton(left + 14 + lead * (leadWidth + 6), top + 119, leadWidth / 2 - 2, "Scan " + (lead + 1), lead);
+                taskButton(left + 16 + lead * (leadWidth + 6) + leadWidth / 2, top + 119, leadWidth / 2 - 2, "Replace", lead + 3);
+            }
+            taskButton(left + 14, top + 145, bodyWidth, "Run instrument self-test", 6);
+        } else if (state.task().equals("SCIENCE")) {
+            final String[] classes = { "Ferrous", "Layered", "Porous" };
+            final int classWidth = (bodyWidth - 12) / 3;
+            for (int kind = 1; kind <= 3; kind++) {
+                addRenderableWidget(new ClassificationCard(left + 14 + (kind - 1) * (classWidth + 6), top + 57,
+                        classWidth, classes[kind - 1], kind));
+            }
+            for (int sample = 0; sample < 3; sample++)
+                addRenderableWidget(new SampleCard(left + 14 + sample * (classWidth + 6), top + 85, classWidth, sample));
+            taskButton(left + 14, top + 145, bodyWidth, "Archive verified specimens", 9);
+        } else if (!state.task().equals("EXERCISE"))
+            taskButton(left + 14, top + 119, bodyWidth, "Call crew meeting", 0);
     }
 
     private boolean fuses() {
@@ -178,7 +241,18 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
     }
 
     private void taskButton(final int x, final int y, final int buttonWidth, final String label, final int action) {
-        addRenderableWidget(new MissionButton(x, y, buttonWidth, 23, label, () -> sendTaskAction(action))).active = !pending && !state.phase().equals("PAUSED");
+        if (heldAction(action)) {
+            final HoldTaskButton button = new HoldTaskButton(x, y, buttonWidth, 23, label,
+                    ShipHoldActions.durationTicks(ShipTask.valueOf(state.task()), MoonMission.Stage.valueOf(state.stage()), action),
+                    () -> beginHeldTaskAction(action), () -> finishHeldTaskAction(action),
+                    () -> {
+                        if (ClientPlayNetworking.canSend(ShipActionPayload.TYPE))
+                            ClientPlayNetworking.send(new ShipActionPayload("hold_cancel", state.station(), state.revision(), action));
+                    });
+            holdButtons.add(button);
+            addRenderableWidget(button).active = !pending && !state.phase().equals("PAUSED");
+        } else
+            addRenderableWidget(new MissionButton(x, y, buttonWidth, 23, label, () -> sendTaskAction(action))).active = !pending && !state.phase().equals("PAUSED");
     }
 
     @Override
@@ -247,8 +321,70 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
         } else if (state.task().equals("ENGINE") && state.stage().equals("EMERGENCY")) {
             ShipPuzzleGraphics.heating(graphics, state, left + 14, top + 54, bodyWidth, 57);
             NovaRenderer.text(graphics, "Keep life support powered. Isolate science and comfort loads.", left + 14, top + 104, 8, MUTED);
-        } else
-            NovaRenderer.wrap(graphics, state.instruction(), left + 14, top + 54, bodyWidth, 9, 2, TEXT);
+        } else {
+            switch (state.task()) {
+                case "STORAGE" -> ShipActivityGraphics.cargo(graphics, state, left + 14, top + 55, bodyWidth);
+                case "GALLEY" -> ShipActivityGraphics.rations(graphics, state, left + 14, top + 55, bodyWidth);
+                case "PLANTS" -> ShipActivityGraphics.plants(graphics, state, left + 14, top + 55, bodyWidth);
+                case "MEDICAL" -> ShipActivityGraphics.instruments(graphics, state, left + 14, top + 55, bodyWidth);
+                case "SCIENCE" -> NovaRenderer.text(graphics, "Choose a class, then place it on each observed specimen.", left + 14, top + 135, 6, MUTED);
+                default -> ShipActivityGraphics.intercom(graphics, state, left + 14, top + 55, bodyWidth);
+            }
+        }
+    }
+
+    private final class ClassificationCard extends Button {
+        private final int classification;
+        private final String label;
+
+        private ClassificationCard(final int x, final int y, final int cardWidth, final String label, final int classification) {
+            super(x, y, cardWidth, 22, Component.literal("Choose " + label), _ -> {
+                selectedSampleClass = classification;
+                rebuildWidgets();
+            }, DEFAULT_NARRATION);
+            this.classification = classification;
+            this.label = label;
+        }
+
+        @Override
+        protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
+            NovaRenderer.rect(graphics, getX(), getY(), width, height, 4, SURFACE);
+            NovaRenderer.stroke(graphics, getX(), getY(), width, height, 4, selectedSampleClass == classification ? 1.5F : 0.5F,
+                    selectedSampleClass == classification ? ACCENT : BORDER);
+            NovaRenderer.text(graphics, label, getX() + (width - NovaRenderer.width(label, 9)) / 2, getY() + 5, 9, TEXT);
+        }
+    }
+
+    private final class CargoBay extends Button {
+        private final int bay;
+
+        private CargoBay(final int x, final int y, final int bayWidth, final int bay) {
+            super(x, y, bayWidth, 48, Component.literal("Cycle cargo in bay " + (bay + 1)), _ -> sendTaskAction(bay), DEFAULT_NARRATION);
+            this.bay = bay;
+            active = !pending;
+        }
+
+        @Override
+        protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
+            ShipActivityGraphics.cargoBay(graphics, state.board() >> bay * 2 & 3, getX(), getY(), width, height, bay, isHoveredOrFocused());
+        }
+    }
+
+    private final class SampleCard extends Button {
+        private final int sample;
+
+        private SampleCard(final int x, final int y, final int cardWidth, final int sample) {
+            super(x, y, cardWidth, 48, Component.literal("Classify specimen " + (char) ('A' + sample)),
+                    _ -> sendTaskAction(sample * 3 + selectedSampleClass - 1), DEFAULT_NARRATION);
+            this.sample = sample;
+            active = !pending;
+        }
+
+        @Override
+        protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
+            ShipActivityGraphics.specimen(graphics, state.board() >> sample * 2 & 3, getX(), getY(), width, height,
+                    sample, selectedSampleClass, isHoveredOrFocused());
+        }
     }
 
     private final class StarButton extends Button {

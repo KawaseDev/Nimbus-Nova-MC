@@ -7,6 +7,12 @@ import cc.nimbusnova.mc.ship.ShipController;
 import cc.nimbusnova.mc.ship.ShipMission;
 import cc.nimbusnova.mc.ship.ShipPayload;
 import cc.nimbusnova.mc.ship.ShipTask;
+import cc.nimbusnova.mc.ship.ShipHoldActions;
+import cc.nimbusnova.mc.ship.ShipActionPayload;
+import cc.nimbusnova.mc.moon.MoonMission;
+import cc.nimbusnova.mc.client.ship.controls.HoldTaskButton;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import cc.nimbusnova.mc.world.ship.ShipMap;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -61,21 +67,48 @@ final class ShipMissionChecks {
         }
         open(context, world, ShipTask.EXERCISE);
         context.setScreen(() -> null);
-        world.getServer().runOnServer(server -> {
-            final var player = world.getConnection().getServerPlayer();
-            final BlockPos bag = ShipMap.target(ShipTask.EXERCISE, player.blockPosition());
-            for (int hit = 0; hit < 5; hit++)
+        for (int hit = 0; hit < 5; hit++) {
+            world.getServer().runOnServer(server -> {
+                final var player = world.getConnection().getServerPlayer();
+                final BlockPos bag = ShipMap.target(ShipTask.EXERCISE, player.blockPosition());
                 AttackBlockCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND, bag, Direction.UP);
+            });
+            if (hit == 0) {
+                context.waitTicks(1);
+                GuidedMissionChecks.capture(context, "ship-exercise-swing");
+            }
+            context.waitTicks(7);
+        }
+        world.getServer().runOnServer(server -> {
             if (!ShipController.get(server).mission().completed(ShipTask.EXERCISE))
-                throw new AssertionError("Five physical bag hits did not complete a finite exercise set");
+                throw new AssertionError("Five paced physical hits did not finish the exercise set");
         });
         open(context, world, ShipTask.ENGINE);
-        GuidedMissionChecks.capture(context, "ship-power-cartridges");
         circuit(context);
         open(context, world, ShipTask.STORAGE);
         action(context, 0);
+        action(context, 2);
+        verifyHeldCargo(context, world);
         open(context, world, ShipTask.GALLEY);
-        action(context, 0);
+        for (final int operation : new int[] { 0, 0, 1, 2, 2 })
+            action(context, operation);
+        GuidedMissionChecks.capture(context, "ship-ration-metering");
+        action(context, 6);
+        open(context, world, ShipTask.PLANTS);
+        for (final int operation : new int[] { 0, 3, 3, 2, 5 })
+            action(context, operation);
+        GuidedMissionChecks.capture(context, "ship-coupled-irrigation");
+        action(context, 8);
+        open(context, world, ShipTask.MEDICAL);
+        for (final int operation : new int[] { 0, 1, 2, 4 })
+            action(context, operation);
+        GuidedMissionChecks.capture(context, "ship-sensor-diagnostics");
+        action(context, 6);
+        open(context, world, ShipTask.SCIENCE);
+        for (final int operation : new int[] { 2, 3, 7 })
+            action(context, operation);
+        GuidedMissionChecks.capture(context, "ship-specimen-classification");
+        action(context, 9);
         world.getServer().runCommand("ship start");
         resume(context, world);
         align(context, world, ShipTask.PILOT);
@@ -169,8 +202,59 @@ final class ShipMissionChecks {
 
     private static void action(final ClientGameTestContext context, final int value) {
         final int revision = state(context).revision();
-        context.runOnClient(client -> ((ShipScreen) client.gui.screen()).sendTaskAction(value));
+        final ShipTask task = ShipTask.valueOf(state(context).task());
+        final MoonMission.Stage stage = MoonMission.Stage.valueOf(state(context).stage());
+        if (ShipHoldActions.requires(task, stage, value)) {
+            context.runOnClient(client -> ((ShipScreen) client.gui.screen()).beginHeldTaskAction(value));
+            context.waitTicks(ShipHoldActions.durationTicks(task, stage, value) + 5);
+            context.runOnClient(client -> ((ShipScreen) client.gui.screen()).finishHeldTaskAction(value));
+        } else
+            context.runOnClient(client -> ((ShipScreen) client.gui.screen()).sendTaskAction(value));
         context.waitFor(client -> client.gui.screen() instanceof ShipScreen screen && screen.state().revision() != revision);
+    }
+
+    private static void verifyHeldCargo(final ClientGameTestContext context, final TestSingleplayerContext world) {
+        final ShipPayload before = state(context);
+        context.runOnClient(client -> ClientPlayNetworking.send(new ShipActionPayload("task", before.station(), before.revision(), 3)));
+        context.waitTicks(4);
+        context.runOnClient(client -> {
+            final var screen = (ShipScreen) client.gui.screen();
+            screen.beginHeldTaskAction(3);
+            screen.finishHeldTaskAction(3);
+        });
+        context.waitTicks(4);
+        if (state(context).revision() != before.revision() || state(context).complete())
+            throw new AssertionError("Instant or early-finished holds committed cargo");
+        focusHold(context);
+        context.getInput().holdKey(InputConstants.KEY_SPACE);
+        context.waitTicks(5);
+        context.getInput().releaseKey(InputConstants.KEY_SPACE);
+        context.waitTicks(3);
+        if (state(context).revision() != before.revision())
+            throw new AssertionError("Releasing the hold early changed shared resources");
+        focusHold(context);
+        context.getInput().holdKey(InputConstants.KEY_SPACE);
+        context.waitTicks(12);
+        GuidedMissionChecks.capture(context, "ship-cargo-hold-charging");
+        try {
+            context.waitFor(client -> client.gui.screen() instanceof ShipScreen screen && screen.state().revision() != before.revision());
+        } finally {
+            context.getInput().releaseKey(InputConstants.KEY_SPACE);
+        }
+        if (!state(context).complete())
+            throw new AssertionError("A continuous physical Space hold did not commit the balanced cargo");
+        world.getConnection().waitForClientboundPackets();
+        System.out.println("Hold runtime checks passed: direct-click rejection, early-finish rejection, physical release cancellation and continuous keyboard hold.");
+    }
+
+    private static void focusHold(final ClientGameTestContext context) {
+        context.runOnClient(client -> {
+            final var screen = (ShipScreen) client.gui.screen();
+            final HoldTaskButton button = screen.children().stream().filter(HoldTaskButton.class::isInstance)
+                    .map(HoldTaskButton.class::cast).findFirst().orElseThrow();
+            screen.setFocused(button);
+            button.setFocused(true);
+        });
     }
 
     private static void open(final ClientGameTestContext context, final TestSingleplayerContext world, final ShipTask task) {

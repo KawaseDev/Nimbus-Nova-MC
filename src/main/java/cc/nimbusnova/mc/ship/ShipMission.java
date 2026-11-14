@@ -19,6 +19,7 @@ public final class ShipMission {
 
     private final MoonMission moon = new MoonMission(MoonMission.Variant.RESCUE);
     private final List<String> journal = new ArrayList<>();
+    private final ShipActivities activities = new ShipActivities();
     private Phase phase = Phase.READY;
     private int revision, elapsed, stageComplete, optionalComplete, completedTasks, decisions, meetings;
     private int engineBoard;
@@ -332,13 +333,23 @@ public final class ShipMission {
     }
 
     private boolean cargo(final int action) {
-        if (cargoSelected || action < 0 || action > 1) return false;
+        if (cargoSelected || !activities.action(ShipTask.STORAGE, action)) return false;
+        feedback = activities.feedback;
+        if (!activities.completed(ShipTask.STORAGE)) return true;
+
         cargoSelected = true;
-        extraInstrument = action == 1;
-        if (!extraInstrument)
-            parts += 2;
-        feedback = extraInstrument ? "Extra science instrument loaded; one fewer repair part will be available after launch."
-                : "Two spare repair parts loaded. The crew is keeping capacity for repairs.";
+        int loadedParts = 0;
+        for (int bay = 0; bay < 3; bay++) {
+            final int type = activities.board(ShipTask.STORAGE) >> bay * 2 & 3;
+            if (type == 1 || type == 2)
+                loadedParts += type;
+            if (type == 3)
+                extraInstrument = true;
+        }
+        parts += loadedParts;
+        feedback = "Cargo secured: " + loadedParts + " repair-kit parts, "
+                + (extraInstrument ? "science instrument aboard" : "capacity kept for essentials")
+                + ", mass " + ShipActivities.mass(activities.board(ShipTask.STORAGE)) + " / 8. Balanced bays protect the return budget.";
         record(feedback);
         return true;
     }
@@ -364,12 +375,19 @@ public final class ShipMission {
     }
 
     private boolean optional(final ShipTask task, final int action) {
-        if (action != 0 || (optionalComplete & 1 << task.ordinal()) != 0) return false;
+        if ((optionalComplete & 1 << task.ordinal()) != 0) return false;
         final double waterCost = switch (task) { case GALLEY -> 8; case PLANTS -> 6; case EXERCISE -> 2; default -> 0; };
         if (water < waterCost || task == ShipTask.MEDICAL && parts < 1 || task == ShipTask.SCIENCE && battery < 4) return false;
-        if (task == ShipTask.EXERCISE && ++exerciseRepetitions < 5) {
-            feedback = "Controlled exercise set: " + exerciseRepetitions + " / 5. Finish the set while a crewmate watches the systems.";
-            return true;
+        if (task == ShipTask.EXERCISE) {
+            if (action != 0) return false;
+            if (++exerciseRepetitions < 5) {
+                feedback = "Controlled exercise set: " + exerciseRepetitions + " / 5. Finish the set while a crewmate watches the systems.";
+                return true;
+            }
+        } else {
+            if (!activities.action(task, action)) return false;
+            feedback = activities.feedback;
+            if (!activities.completed(task)) return true;
         }
 
         water -= waterCost;
@@ -380,11 +398,11 @@ public final class ShipMission {
         readiness = Math.min(100, readiness + switch (task) { case GALLEY, MEDICAL -> 8; case PLANTS -> 6; case EXERCISE -> 5; default -> 0; });
         optionalComplete |= 1 << task.ordinal();
         feedback = switch (task) {
-            case GALLEY -> "Crew ration prepared: readiness +8, water -8. Food preparation also needs a water budget.";
-            case MEDICAL -> "Crew check completed: readiness +8, one kit part used. These are game values, not medical treatment.";
-            case PLANTS -> "Plant tray serviced: readiness +6, water -6. Food growth is slower than this emergency lesson.";
+            case GALLEY -> "Metered ration pouches sealed: readiness +8, water -8. Food preparation shares the crew's water budget.";
+            case MEDICAL -> "Crew-monitor sensor repaired and self-tested: readiness +8, one kit part used. This is equipment training, not medical treatment.";
+            case PLANTS -> "All four beds balanced: readiness +6, water -6. Drainage did not create drinking water or instantly grow food.";
             case EXERCISE -> "Exercise set complete: readiness +5, water -2. Routine crew health still needs resources.";
-            case SCIENCE -> "Science observations archived: energy -4. The archive can be preserved without keeping every laboratory load on.";
+            case SCIENCE -> "Three synthetic specimens classified from observations and archived: energy -4. Science shares the power reserve.";
             default -> throw new IllegalArgumentException("This station does not have an optional action.");
         };
         record(feedback);
@@ -514,10 +532,9 @@ public final class ShipMission {
                 default -> pilotBoard;
             };
             case COMMS -> commsBoard;
-            case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER ? medicalAssembly | (filterTesting ? 1 << 8 : 0)
-                    : (optionalComplete & 1 << task.ordinal()) != 0 ? 1 : 0;
-            case GALLEY -> moon.stage() == MoonMission.Stage.RESTART ? heaterMask : (optionalComplete & 1 << task.ordinal()) != 0 ? 1 : 0;
-            case STORAGE -> cargoSelected ? extraInstrument ? 2 : 1 : 0;
+            case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER ? medicalAssembly | (filterTesting ? 1 << 8 : 0) : activities.board(task);
+            case GALLEY -> moon.stage() == MoonMission.Stage.RESTART ? heaterMask : activities.board(task);
+            case STORAGE, SCIENCE, PLANTS -> activities.board(task);
             case EXERCISE -> exerciseRepetitions;
             default -> completed(task) ? 1 : 0;
         };
@@ -528,7 +545,9 @@ public final class ShipMission {
             case ENGINE -> moon.stage() == MoonMission.Stage.EMERGENCY ? 1 : target(task);
             case PILOT -> target(task);
             case COMMS -> signalQuality() | ((commsBoard >> 4 & 15) > 3 ? 1 << 8 : 0);
-            case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER ? stableSeconds : 0;
+            case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER ? stableSeconds : activities.aux(task);
+            case GALLEY -> moon.stage() == MoonMission.Stage.RESTART ? 0 : activities.aux(task);
+            case STORAGE, SCIENCE, PLANTS -> activities.aux(task);
             default -> 0;
         };
     }

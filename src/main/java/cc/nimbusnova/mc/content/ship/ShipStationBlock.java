@@ -1,6 +1,9 @@
 package cc.nimbusnova.mc.content.ship;
 
+import cc.nimbusnova.mc.content.ShipContent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -35,6 +38,12 @@ public final class ShipStationBlock extends HorizontalDirectionalBlock {
     @Override
     public BlockState getStateForPlacement(final BlockPlaceContext context) {
         return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+    }
+
+    @Override
+    protected void tick(final BlockState state, final ServerLevel level, final BlockPos position, final RandomSource random) {
+        if (state.is(ShipContent.PUNCHING_BAG) && state.getValue(BlockStateProperties.POWERED))
+            level.setBlock(position, state.setValue(BlockStateProperties.POWERED, false), Block.UPDATE_CLIENTS);
     }
 
     @Override

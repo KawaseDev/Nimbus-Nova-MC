@@ -46,6 +46,8 @@ public final class ShipController {
     private final Map<UUID, MoonMission.Role> roles = new HashMap<>();
     private final Map<UUID, BlockPos> opened = new HashMap<>();
     private final Map<UUID, ReturnPoint> returns = new HashMap<>();
+    private final Map<UUID, HeldAction> holds = new HashMap<>();
+    private final Map<UUID, Integer> punchTicks = new HashMap<>();
     private ShipMission mission;
     private int ticks;
 
@@ -74,10 +76,22 @@ public final class ShipController {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             final ShipController controller = get(server);
             controller.opened.remove(handler.player.getUUID());
+            controller.holds.remove(handler.player.getUUID());
+            controller.punchTicks.remove(handler.player.getUUID());
         });
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             final ShipController controller = get(server);
-            if (controller.mission == null || ++controller.ticks < 20) return;
+            if (controller.mission == null) return;
+            if (server.getTickCount() % 5 == 0)
+                controller.holds.entrySet().removeIf(entry -> {
+                    final ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
+                    final HeldAction hold = entry.getValue();
+                    return player == null || hold.mission != controller.mission
+                            || controller.mission.snapshot().phase() != hold.phase
+                            || controller.mission.snapshot().stage() != hold.stage
+                            || (long) server.getTickCount() - hold.startedTick > 200 || !near(player, hold.position);
+                });
+            if (++controller.ticks < 20) return;
             controller.ticks = 0;
             if (server.getPlayerList().getPlayerCount() == 0 && controller.mission.snapshot().phase() == ShipMission.Phase.ACTIVE)
                 controller.mission.pause();
@@ -87,6 +101,7 @@ public final class ShipController {
                 final var stage = controller.mission.snapshot().stage();
                 for (final ShipMap.Marker marker : ShipMap.MARKERS) {
                     final var block = level.getBlockState(marker.position());
+                    if (marker.task() == ShipTask.EXERCISE) continue;
                     final boolean active = controller.mission.activeTask(marker.task()) || controller.mission.completed(marker.task());
                     if (block.is(ShipMap.block(marker.task())) && block.getValue(BlockStateProperties.POWERED) != active)
                         level.setBlock(marker.position(), block.setValue(BlockStateProperties.POWERED, active), Block.UPDATE_CLIENTS);
@@ -113,8 +128,15 @@ public final class ShipController {
                     || ShipMap.task(level.getBlockState(position).getBlock()) != ShipTask.EXERCISE) return InteractionResult.PASS;
             if (player instanceof ServerPlayer serverPlayer) {
                 final ShipController controller = get(serverPlayer.level().getServer());
-                if (controller.mission != null && near(serverPlayer, position)) {
+                if (controller.mission != null && controller.mission.activeTask(ShipTask.EXERCISE) && near(serverPlayer, position)) {
+                    final int now = serverPlayer.level().getServer().getTickCount();
+                    final Integer previous = controller.punchTicks.get(serverPlayer.getUUID());
+                    if (previous != null && now - previous < 6) return InteractionResult.SUCCESS;
+                    controller.punchTicks.put(serverPlayer.getUUID(), now);
                     controller.action(serverPlayer, new ShipActionPayload("task", position, controller.mission.revision(), 0));
+                    final var bag = serverPlayer.level().getBlockState(position);
+                    serverPlayer.level().setBlock(position, bag.setValue(BlockStateProperties.POWERED, true), Block.UPDATE_CLIENTS);
+                    serverPlayer.level().scheduleTick(position, bag.getBlock(), 6);
                     serverPlayer.level().sendParticles(ParticleTypes.CRIT, position.getX() + 0.5, position.getY() + 0.6,
                             position.getZ() + 0.5, 4, 0.15, 0.2, 0.15, 0.03);
                 }
@@ -190,6 +212,8 @@ public final class ShipController {
                 default -> throw new IllegalArgumentException("Unknown ship action.");
             }
         }
+        holds.clear();
+        punchTicks.clear();
         broadcast(server, true);
     }
 
@@ -210,6 +234,8 @@ public final class ShipController {
     }
 
     public void leave(final ServerPlayer player) {
+        holds.remove(player.getUUID());
+        punchTicks.remove(player.getUUID());
         if (!player.level().dimension().equals(ShipMap.DIMENSION)) return;
         final MinecraftServer server = player.level().getServer();
         final ReturnPoint point = returns.remove(player.getUUID());
@@ -252,6 +278,10 @@ public final class ShipController {
                 leave(player);
                 return;
             }
+            if (packet.action().equals("hold_cancel")) {
+                holds.remove(player.getUUID());
+                return;
+            }
             if (!player.level().dimension().equals(ShipMap.DIMENSION)) throw new IllegalStateException("Join the ship before controlling its systems.");
             if (packet.action().equals("open")) {
                 openConsole(player);
@@ -263,15 +293,8 @@ public final class ShipController {
                 final MoonMission.Role role = MoonMission.Role.values()[packet.value()];
                 if (roles.containsValue(role) && roles.get(player.getUUID()) != role) throw new IllegalStateException("That crew role is already occupied.");
                 roles.put(player.getUUID(), role);
-            } else if (packet.action().equals("task")) {
-                if (!near(player, packet.position())) throw new IllegalStateException("Move close to the marked ship equipment first.");
-                final ShipTask task = ShipMap.task(player.level().getBlockState(packet.position()).getBlock());
-                if (!operator && task.role != null && roles.get(player.getUUID()) != task.role)
-                    throw new IllegalStateException("Ask the " + task.role.name().replace('_', ' ').toLowerCase() + " specialist to use this system.");
-                if (!mission.action(task, packet.revision(), packet.value())) throw new IllegalStateException("Check the updated station state; that control is not available now.");
-                opened.put(player.getUUID(), packet.position());
-                final var state = player.level().getBlockState(packet.position());
-                player.level().setBlock(packet.position(), state.setValue(BlockStateProperties.POWERED, true), Block.UPDATE_CLIENTS);
+            } else if (packet.action().equals("task") || packet.action().equals("hold_begin") || packet.action().equals("hold_finish")) {
+                stationAction(player, packet);
             } else {
                 if (!operator) throw new IllegalStateException("Mission Control manages the mission clock and learning pauses.");
                 teacherAction(player.level().getServer(), "ship_" + packet.action());
@@ -282,6 +305,51 @@ public final class ShipController {
             player.sendSystemMessage(Component.literal(error.getMessage()));
             send(player, false);
         }
+    }
+
+    private void stationAction(final ServerPlayer player, final ShipActionPayload packet) {
+        final HeldAction held = packet.action().equals("hold_finish") ? holds.remove(player.getUUID()) : null;
+        final ShipTask task = ShipMap.task(player.level().getBlockState(packet.position()).getBlock());
+        if (task == null || !near(player, packet.position())) throw new IllegalStateException("Move close to the marked ship equipment first.");
+        if (!player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)
+                && task.role != null && roles.get(player.getUUID()) != task.role)
+            throw new IllegalStateException("Ask the " + task.role.name().replace('_', ' ').toLowerCase() + " specialist to use this system.");
+
+        final var state = mission.snapshot();
+        final boolean requiresHold = ShipHoldActions.requires(task, state.stage(), packet.value());
+        if (packet.action().equals("hold_begin")) {
+            holds.remove(player.getUUID());
+            if (!requiresHold || packet.revision() != mission.revision()
+                    || state.phase() != ShipMission.Phase.READY && state.phase() != ShipMission.Phase.ACTIVE
+                    || !mission.activeTask(task) || mission.completed(task))
+                throw new IllegalStateException("Check the station before charging this control.");
+            holds.put(player.getUUID(), new HeldAction(mission, packet.position().immutable(), task,
+                    state.phase(), state.stage(), mission.board(task), packet.value(), player.level().getServer().getTickCount()));
+            return;
+        }
+
+        final int revision;
+        if (packet.action().equals("hold_finish")) {
+            if (!requiresHold || held == null || held.mission != mission || held.task != task
+                    || !held.position.equals(packet.position()) || held.action != packet.value()
+                    || held.phase != state.phase() || held.stage != state.stage() || held.board != mission.board(task)
+                    || !ShipHoldActions.elapsedValid(held.startedTick, player.level().getServer().getTickCount(),
+                    ShipHoldActions.durationTicks(task, state.stage(), packet.value())))
+                throw new IllegalStateException("Hold the control continuously until its charge is complete. Interrupted work is not applied.");
+            revision = mission.revision();
+        } else {
+            holds.remove(player.getUUID());
+            if (requiresHold) throw new IllegalStateException("Hold this control to operate it; a quick press cannot commit the action.");
+            revision = packet.revision();
+        }
+
+        if (!mission.action(task, revision, packet.value()))
+            throw new IllegalStateException("Check the updated station state; that control is not available now.");
+        if (mission.snapshot().phase() == ShipMission.Phase.PAUSED || mission.snapshot().phase().ended())
+            holds.clear();
+        opened.put(player.getUUID(), packet.position());
+        final var block = player.level().getBlockState(packet.position());
+        player.level().setBlock(packet.position(), block.setValue(BlockStateProperties.POWERED, true), Block.UPDATE_CLIENTS);
     }
 
     private void broadcast(final MinecraftServer server, final boolean open) {
@@ -341,6 +409,11 @@ public final class ShipController {
         for (final String decision : mission.debrief()) journal.add(decision);
         result.add("decisions", journal);
         return result;
+    }
+
+    private record HeldAction(ShipMission mission, BlockPos position, ShipTask task, ShipMission.Phase phase,
+                              MoonMission.Stage stage, int board, int action, int startedTick) {
+        /* w */
     }
 
     private record ReturnPoint(ResourceKey<Level> dimension, Vec3 position, float yaw, float pitch) {

@@ -2,7 +2,7 @@ package cc.nimbusnova.mc.client.ship;
 
 import java.awt.Color;
 
-interface ShipPalette {
+public interface ShipPalette {
     Color BACKGROUND = new Color(12, 22, 30, 242);
     Color SURFACE = new Color(28, 42, 53);
     Color BORDER = new Color(71, 97, 112);

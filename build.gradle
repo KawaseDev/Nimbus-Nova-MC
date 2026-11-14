@@ -210,3 +210,12 @@ tasks.register('shipAssetTest', JavaExec) {
 }
 
 check.dependsOn shipMissionTest, shipAssetTest
+
+tasks.register('shipHoldActionsTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.ship.ShipHoldActionsTest'
+    enableAssertions = true
+}
+
+check.dependsOn shipHoldActionsTest
