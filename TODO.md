@@ -210,8 +210,10 @@ Next proposed build: **Moon Rescue: Return Window**, a separate spacecraft map u
 - [x] Add teacher selection/lifecycle controls and operator/student ship commands without removing the other missions.
 - [x] Add five crew roles, server-validated station actions, finite supplies, teaching pauses and consequence reports.
 - [x] Complete a native Minecraft rescue attempt and inspect station models, task screens and success report.
-- [ ] Replace the initial reused Mars puzzle mechanics with distinct spacecraft minigames requested during testing.
-- [ ] Inspect the revised minigames and new casing material in Minecraft; rerun the rescue sequence.
-- [ ] Finish the play guide/source notes and push the final batch after checking for another map update.
+- [x] Replace the initial reused Mars puzzle mechanics with distinct spacecraft minigames requested during testing.
+- [x] Inspect the revised minigames and new casing material in Minecraft; rerun the rescue sequence.
+- [x] Finish the play guide/source notes and push the final batch after checking for another map update.
 
-The initial ship playthrough passed circuits, alignment, emergency isolation, filtering, heating and safe return. The subsequent minigame redesign remains in progress until its own runtime check passes. Classroom-sized multiplayer and learner observation remain open.
+The initial ship playthrough passed circuits, alignment, emergency isolation, filtering, heating and safe return. The subsequent minigame redesign also passed its full native runtime check. Classroom-sized multiplayer and learner observation remain open.
+
+Final ship verification: Java 25 `build runClientGameTest` passed the complete Mars regression and Return Window rescue, including the revised cartridge, momentum, constellation, signal, adapter and burn tasks. All station approaches were checked for actual visibility/collision clearance; native captures were inspected. Teacher relay tests pass 14/14, and the built-in browser checked selection/start/pause/acknowledgement/resume against an isolated fixture. Single-client verification does not establish classroom-sized multiplayer or learning effectiveness. Latest source remains `1794683726306.schem`; no newer remote map was present at the final check.

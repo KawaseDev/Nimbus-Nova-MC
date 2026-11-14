@@ -186,12 +186,12 @@ This is an Apollo-13-inspired engineering lesson, not a reconstruction of its sp
 
 ## Current limits
 
-- One transient mission runs per server. Resource state and roles do not survive a server restart; station bindings do. The authored outpost persists; joining it rebinds its built-in consoles.
+- One transient mission runs per server. Resource state and roles do not survive a server restart; station bindings do. The authored outpost and imported ship persist; joining the outpost rebinds its built-in consoles.
 - Rejoining the same running server retains the player's role in memory. The mission pauses when no players remain; an operator resumes it.
-- The prototype counts a fixed crew demand rather than deriving oxygen use from individual suits or player count.
+- The Mars base counts a fixed shared crew demand; personal EVA air is a separate authored reserve.
 - Equipment uses normalized game units. Only the dust storm's sunlight curve comes from NASA data. There is no claim of a calibrated habitat or radiation model.
-- The mission drives both solar supply and a bounded dust-particle effect; atmosphere, pressure, radiation, and a physically calibrated storm model remain outside the simulation.
-- Persistent reports, task minigames, suit life support, rover resource costs, and controllable spacecraft remain roadmap work unless their status is explicitly completed in [TODO.md](TODO.md). NPC dialogue and basic rover driving are implemented.
+- Solar supply and dust effects are implemented. Habitat-air zones, shielding, docking and burn windows are authored teaching models rather than calibrated physical simulations.
+- Task minigames, suit air, the spacecraft rescue, NPC dialogue and basic rover driving are implemented. Persistent reports, rover resource costs, multiple isolated crews and free spacecraft flight remain roadmap work.
 - Minecraft's proprietary dependency remains an organizer eligibility question. Public mod source alone does not resolve it.
 
 ## Project documents
