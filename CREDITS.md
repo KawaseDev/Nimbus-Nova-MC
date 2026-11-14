@@ -13,7 +13,22 @@
 | [SLF4J](https://www.slf4j.org/license.html) | Logging API provided by the game | MIT |
 | [Minecraft](https://www.minecraft.net/eula) | Required, separately obtained host game | Proprietary Mojang/Microsoft terms; outside this repository's MIT license |
 
-See [rules.md](rules.md) for competition references. No NASA dataset, imagery, NASA branding, or third-party game assets have been bundled. A challenge link alone is not meaningful NASA data integration.
+See [rules.md](rules.md) for competition references. No NASA imagery, NASA branding, or third-party game assets have been bundled.
+
+## NASA data: The Darkening Sky
+
+The solar supply in `DustStormProfile.java` follows one of two real storms Opportunity lived through, defined in `DustStorm.java`. Each reset picks one at random unless Mission Control pins it with `/mission storm 2018|2007`. Retrieved November 14, 2026. The numbers are typed into the code; no dataset file is bundled, and nothing is live.
+
+| Value | Source | Used for |
+| --- | --- | --- |
+| 21 Wh of solar energy and tau 10.5 on June 10, 2018 (sol 5111) | NASA Science, [On Mars, Light Is Energy](https://science.nasa.gov/resource/on-mars-light-is-energy/) (June 13, 2018) | Storm peak and the tau shown to players |
+| About 645 Wh on June 1, 2018 | The Planetary Society, [Opportunity Pummeled by Massive Dust Storm](https://www.planetary.org/articles/06-mer-update-opportunity-dust-storm-sleep) (June 14, 2018) | Clear-sky reference |
+| Storm detected May 30; last signal June 10; JPL reported tau 10.8; the 2007 storm reached tau above 5.5 | NASA JPL, [Opportunity Hunkers Down During Dust Storm](https://www.jpl.nasa.gov/news/opportunity-hunkers-down-during-dust-storm/) (updated to July 26, 2018) | Mission timeline, debrief text, 2007 opacity |
+| About 700 Wh per day before the 2007 storms; 128 Wh on July 18, 2007; the team skipped communications to save energy | NASA JPL, [NASA Mars Rovers Braving Severe Dust Storms](https://www.jpl.nasa.gov/news/nasa-mars-rovers-braving-severe-dust-storms) (July 20, 2007, updated July 23) | 2007 storm peak and debrief text |
+
+**Observed:** the ratios 21 / 645 ≈ 3% (2018) and 128 / 700 ≈ 18% (2007) set how much sunlight remains at each storm's peak. Opportunity survived the 2007 storm and was lost in 2018, which the debrief tells players. NASA's graphic gives tau 10.5 and JPL's article gives 10.8 for the same day; the game shows 10.5 from the graphic.
+
+**Game assumptions, not measurements:** about 10 sols of dimming compressed into 60 seconds with a straight-line fall, battery and oxygen capacities, every energy rate, the 0.15 backup generator (inspired by nuclear-powered Curiosity working through the same storm), and the recovery to 50% sunlight. Opportunity did not recover from this storm.
 
 ## AI assistance
 
@@ -23,8 +38,9 @@ Carry this disclosure into the competition submission's AI/SI field. Update it a
 
 ## Future science sources
 
-When adding NASA data, record the exact dataset/study URL, retrieval date, units, transformations, use terms, and which mechanic uses it. Label archived data as archived and game balance values as simplified assumptions. An Earth-directed space-weather alert is not a calibrated lunar or Mars surface radiation dose. The current four-minute mission rates, dust timing, and equipment capacities are authored game balance. NASA data integration remains pending until an exact source and transformation are documented.
+When adding NASA data, record the exact dataset/study URL, retrieval date, units, transformations, use terms, and which mechanic uses it. Label archived data as archived and game balance values as simplified assumptions. An Earth-directed space-weather alert is not a calibrated lunar or Mars surface radiation dose. The dust storm's sunlight curve uses the Opportunity data documented above; the four-minute mission rates, time compression, and equipment capacities remain authored game balance.
 
 ## Rendering and font
 
 The Nova renderer uses original RenderPearl/Blaze3D GUI render states and shaders. Sapphire in the team's existing mod informed the design; its engine implementation was not copied. The bundled Geist MTSDF atlas is derived from [Geist](https://github.com/vercel/geist-font), licensed under SIL OFL 1.1; the full license is bundled at `assets/nimbus_nova/fonts/OFL.txt`. RGB-median distance reconstruction follows the technique documented by [msdf-atlas-gen](https://github.com/Chlumsky/msdf-atlas-gen). The font software remains under OFL, separately from the repository's MIT code.
+

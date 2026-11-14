@@ -24,8 +24,9 @@ public final class MissionStateTest {
         assert Math.abs(initial.snapshot().battery() - 79.85) < 0.00001 : "Power balance uses generation minus demand";
         assert Math.abs(initial.snapshot().oxygen() - 75.15) < 0.00001 : "Production and crew consumption both apply";
         assert initial.replenishOxygen();
-        assert initial.snapshot().oxygen() == 100 : "Canisters cap at reserve capacity";
-        assert !initial.replenishOxygen() : "A full reserve must not consume a canister";
+        assert Math.abs(initial.snapshot().oxygen() - 83.15) < 0.00001 : "A canister adds a small emergency buffer";
+        assert initial.replenishOxygen() && initial.snapshot().canistersLeft() == 0;
+        assert !initial.replenishOxygen() : "Used-up canisters must not add oxygen";
         initial.pause();
         final MissionState.Snapshot paused = initial.snapshot();
         for (int second = 0; second < 50; second++)
@@ -35,7 +36,7 @@ public final class MissionStateTest {
         initial.resume();
         initial.setEquipment(MissionState.Equipment.RESEARCH, false);
         initial.setEquipment(MissionState.Equipment.RESEARCH, false);
-        assert initial.snapshot().decisions() == 2 : "Repeating the same command must not count a second decision";
+        assert initial.snapshot().decisions() == 3 :"Repeating the same command must not count a second decision";
         initial.abort();
         final MissionState.Snapshot aborted = initial.snapshot();
         initial.tickSecond();
@@ -58,6 +59,31 @@ public final class MissionStateTest {
         assert survivalOnly.snapshot().phase() == MissionState.Phase.PARTIAL : "Disabling research forever is not full success";
         assert survivalOnly.snapshot().researchSeconds() == 0;
 
+        final DustStorm storm2018 = DustStorm.OPPORTUNITY_2018;
+        final double peak = DustStormProfile.BACKUP_OUTPUT + DustStormProfile.SOLAR_OUTPUT * 21 / 645;
+        assert storm2018.peakPercent() == 3 && DustStorm.OPPORTUNITY_2007.peakPercent() == 18 : "Peaks come from observed Wh drops";
+        assert DustStormProfile.solarFactor(storm2018, 0) == 1 && DustStormProfile.solarFactor(storm2018, MissionState.DURATION_SECONDS)
+                == DustStormProfile.RECOVERY_SOLAR_FACTOR : "Solar curve starts clear and ends at the authored recovery";
+
+        final MissionState greedy = new MissionState();
+        greedy.start();
+        for (int second = 0; second < MissionState.DURATION_SECONDS; second++) {
+            if (second == 110)
+                greedy.setEquipment(MissionState.Equipment.RESEARCH, false);
+
+            if (second == MissionState.STORM_END_SECONDS)
+                greedy.setEquipment(MissionState.Equipment.RESEARCH, true);
+
+            greedy.tickSecond();
+        }
+
+        assert greedy.snapshot().phase() == MissionState.Phase.FAILED : "Late cuts plus an early restart must drain the battery";
+        assert greedy.snapshot().phase().ended() && !MissionState.Phase.PAUSED.ended();
+        assert greedy.snapshot().lowestBattery() == 0 && greedy.snapshot().firstResearchCutSecond() == 110;
+        final String greedyStory = String.join(" ", MissionDebrief.consequences(greedy.snapshot()));
+        assert greedyStory.contains("battery ran out") && greedyStory.contains("research still switched on")
+                && greedyStory.contains("01:50 while the sky was darkening") : greedyStory;
+
         final MissionState managed = new MissionState();
         managed.start();
         for (int second = 0; second < MissionState.DURATION_SECONDS; second++) {
@@ -68,16 +94,38 @@ public final class MissionStateTest {
                 managed.setEquipment(MissionState.Equipment.RESEARCH, true);
 
             managed.tickSecond();
-            if (managed.snapshot().elapsedSeconds() == MissionState.STORM_START_SECONDS)
-                assert managed.snapshot().storm() && managed.snapshot().generation() == 0.2 : "Storm must reduce generation at its boundary";
+            final int elapsed = managed.snapshot().elapsedSeconds();
+            if (elapsed == MissionState.STORM_START_SECONDS)
+                assert managed.snapshot().storm() && Math.abs(managed.snapshot().generation() - 1.1) < 1e-9 : "Dimming starts from clear sky";
 
-            if (managed.snapshot().elapsedSeconds() == MissionState.STORM_END_SECONDS)
-                assert !managed.snapshot().storm() && managed.snapshot().generation() == 1.1 : "Generation must recover at storm end";
+            if (elapsed == MissionState.STORM_START_SECONDS + 30)
+                assert managed.snapshot().generation() < 1.1 && managed.snapshot().generation() > peak : "Dust dims the sun gradually";
+
+            if (elapsed == DustStormProfile.PEAK_START_SECONDS || elapsed == MissionState.STORM_END_SECONDS)
+                assert Math.abs(managed.snapshot().generation() - peak) < 1e-9 : "The peak holds Opportunity's observed 21/645 ratio";
+
+            if (elapsed == MissionState.STORM_END_SECONDS + 1)
+                assert !managed.snapshot().storm() && managed.snapshot().generation() > peak : "Generation recovers after the storm";
         }
 
         assert managed.snapshot().phase() == MissionState.Phase.SUCCESS : "A balanced allocation must be winnable";
         assert managed.snapshot().researchSeconds() >= MissionState.RESEARCH_TARGET_SECONDS;
+        assert managed.snapshot().lowestBattery() > 0 && managed.snapshot().lowestBattery() < 80 : "Debrief records the lowest reserve";
+        assert MissionDebrief.consequences(managed.snapshot()).getFirst().contains("01:00 before the dust arrived");
         assert managed.snapshot().oxygen() <= 100 && managed.snapshot().battery() <= 100 : "Reserves cannot exceed capacity";
+
+        final MissionState canisters = new MissionState();
+        canisters.start();
+        canisters.setEquipment(MissionState.Equipment.OXYGEN, false);
+        int used = 0;
+        for (int second = 0; second < MissionState.DURATION_SECONDS; second++) {
+            canisters.tickSecond();
+            if (canisters.snapshot().oxygen() < 50 && canisters.replenishOxygen())
+                used++;
+        }
+
+        assert used == MissionState.OXYGEN_CANISTERS && canisters.snapshot().canistersLeft() == 0 : "Canisters are limited";
+        assert canisters.snapshot().phase() == MissionState.Phase.FAILED : "Canisters alone cannot replace oxygen production";
 
         final MissionState noOxygen = new MissionState();
         noOxygen.start();
@@ -91,6 +139,33 @@ public final class MissionStateTest {
         assert !CrewRole.POWER.canControl(MissionState.Equipment.OXYGEN);
         assert CrewRole.LIFE_SUPPORT.canControl(MissionState.Equipment.OXYGEN);
         assert !CrewRole.OBSERVER.canControl(MissionState.Equipment.RESEARCH);
+        assert CrewRole.WEATHER.seesWeather() && !CrewRole.POWER.seesWeather() : "Only the weather officer reads the sky";
+        assert !CrewRole.WEATHER.canControl(MissionState.Equipment.RESEARCH) && !CrewRole.WEATHER.canControl(MissionState.Equipment.OXYGEN);
+        assert DustStormProfile.forecast(storm2018, MissionState.STORM_START_SECONDS).contains("falling") : "Forecast warns before the peak";
+        assert DustStormProfile.forecast(storm2018, 0).contains("steady");
+
+        // The milder real 2007 storm is easier but still punishes running everything.
+        final MissionState mild = new MissionState(DustStorm.OPPORTUNITY_2007);
+        mild.start();
+        for (int second = 0; second < MissionState.DURATION_SECONDS; second++)
+            mild.tickSecond();
+
+        assert mild.snapshot().phase() == MissionState.Phase.FAILED : "Even the 2007 storm cannot power everything";
+        final MissionState mildManaged = new MissionState(DustStorm.OPPORTUNITY_2007);
+        mildManaged.start();
+        for (int second = 0; second < MissionState.DURATION_SECONDS; second++) {
+            if (second == 110)
+                mildManaged.setEquipment(MissionState.Equipment.RESEARCH, false);
+
+            if (second == MissionState.STORM_END_SECONDS)
+                mildManaged.setEquipment(MissionState.Equipment.RESEARCH, true);
+
+            mildManaged.tickSecond();
+        }
+
+        assert mildManaged.snapshot().phase() == MissionState.Phase.SUCCESS : "A late cut that fails in 2018 survives the 2007 storm";
+        assert MissionDebrief.realStory(mildManaged.snapshot()).contains("survived");
+        assert DustStorm.byId("2018") == storm2018;
         System.out.println("Mission self-check passed: resource balance, phases, dust, outcomes, idempotency and roles.");
     }
 }

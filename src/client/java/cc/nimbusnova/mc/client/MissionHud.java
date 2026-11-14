@@ -33,7 +33,10 @@ final class MissionHud implements MissionPalette {
         NovaRenderer.rect(graphics, x + 4, y + 9, 2, 20, 1, status);
         MissionUi.text(graphics, "NIMBUS NOVA", x + 12, y + 10, TEXT);
         MissionUi.rightText(graphics, MissionUi.time(MissionState.DURATION_SECONDS - state.elapsedSeconds()), x + width - 10, y + 10, status);
-        MissionUi.text(graphics, state.phase().name() + " / " + (state.storm() ? "DUST EVENT" : "HABITAT SYSTEMS"), x + 12, y + 25, MUTED);
+        final String sky = MissionUi.seesWeather(packet)
+                ? "SUN " + MissionUi.sunPercent(state) + "% > " + MissionUi.forecastPercent(state) + "%"
+                : state.storm() ? "DUST: ASK WEATHER" : "HABITAT SYSTEMS";
+        MissionUi.text(graphics, state.phase().name() + " / " + sky, x + 12, y + 25, MUTED);
 
         MissionUi.text(graphics, "Battery", x + 12, y + 45, MUTED);
         MissionUi.rightText(graphics, Math.round(state.battery()) + "%", x + width - 12, y + 45, state.battery() <= 25 ? DANGER : ACCENT);
@@ -77,7 +80,8 @@ final class MissionHud implements MissionPalette {
         MissionUi.bar(graphics, x + 10, y + 52, meterWidth, state.battery(), state.battery() <= 25 ? DANGER : ACCENT);
         MissionUi.bar(graphics, x + 26 + meterWidth, y + 52, meterWidth, state.oxygen(), state.oxygen() <= 25 ? DANGER : OXYGEN);
         MissionUi.text(graphics, "Science " + Math.min(state.researchSeconds(), MissionState.RESEARCH_TARGET_SECONDS) + "/90s", x + 10, y + 65, SUCCESS);
-        MissionUi.rightText(graphics, state.storm() ? "DUST / solar reduced" : MissionUi.rate(state.generation() - state.demand()) + " energy/s",
-                x + width - 10, y + 65, state.storm() ? DANGER : MUTED);
+        final String sky = MissionUi.seesWeather(packet) ? "Sun " + MissionUi.sunPercent(state) + "% > " + MissionUi.forecastPercent(state) + "%"
+                : state.storm() ? "DUST: ASK WEATHER" : MissionUi.rate(state.generation() - state.demand()) + " energy/s";
+        MissionUi.rightText(graphics, sky, x + width - 10, y + 65, state.storm() ? DANGER : MUTED);
     }
 }

@@ -25,7 +25,7 @@ The official rubric uses impact, creativity, validity, relevance, and presentati
 
 | Priority | Weakness | Minimum improvement | Current disposition |
 | --- | --- | --- | --- |
-| 1 | NASA may become decoration around an invented storm | Choose one exact observation or documented condition; record dates/site and transform it into a visible resource effect | Evidence-selection gate added to PLAN/TODO; integration pending |
+| 1 | NASA may become decoration around an invented storm | Choose one exact observation or documented condition; record dates/site and transform it into a visible resource effect | Integrated: Opportunity's 2018 sunlight drop (645 → 21 Wh, tau 10.5) drives solar supply; sources in CREDITS.md |
 | 2 | Turning research off forever could become the obvious winning strategy | Make full success require survival plus science progress; survival-only earns partial success | Implemented in the core under integration: 90 seconds of powered research; verification tracked in TODO |
 | 3 | Engagement alone does not demonstrate learning | Ask two questions before/after a small test and record anonymous answers/limitations | Learning-check procedure added; participant testing pending |
 | 4 | Five specialist roles can overwhelm ages 7–12 | Begin with two roles and shared emergency warnings; add complexity through later missions | Initial acceptance scope narrowed; five-role roadmap retained |

@@ -1,7 +1,7 @@
 package cc.nimbusnova.mc.world;
 
 import cc.nimbusnova.mc.mission.MissionController;
-import cc.nimbusnova.mc.mission.MissionState;
+import cc.nimbusnova.mc.mission.Station;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.commands.CommandSourceStack;
@@ -209,8 +209,8 @@ public final class MarsTrainingMap {
 
     private static void bindStations(final MinecraftServer server) {
         final MissionController controller = MissionController.get(server);
-        controller.bindStation(GlobalPos.of(DIMENSION, RESEARCH_STATION), MissionState.Equipment.RESEARCH);
-        controller.bindStation(GlobalPos.of(DIMENSION, OXYGEN_STATION), MissionState.Equipment.OXYGEN);
+        controller.bindStation(GlobalPos.of(DIMENSION, RESEARCH_STATION), Station.RESEARCH);
+        controller.bindStation(GlobalPos.of(DIMENSION, OXYGEN_STATION), Station.OXYGEN);
     }
 
     private static void buildPaths(final ServerLevel level) {
