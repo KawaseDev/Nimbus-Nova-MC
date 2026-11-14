@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { createMissionApi, bridgeAddress } = require('./mission-api');
 const { createAccounts } = require('./accounts');
+const { createServerControl } = require('./server-control');
 
 const minecraftHost = process.env.MINECRAFT_HOST || '127.0.0.1';
 const minecraftPort = Number(process.env.MINECRAFT_PORT || 25565);
@@ -22,10 +23,32 @@ function checkServer(host, port) {
 function createServer(options = {}) {
   const missionApi = createMissionApi(options);
   const accounts = createAccounts(options.accountsFile || path.join(__dirname, 'data', 'teachers.json'));
+  const control = options.control || createServerControl({ checkServer: () => checkServer(minecraftHost, minecraftPort) });
   return http.createServer(async (request, response) => {
     if (!/^(?:localhost|127\.0\.0\.1)(?::[0-9]+)?$/i.test(request.headers.host || '')) { response.writeHead(400).end(); return; }
     if (await accounts.handle(request, response)) return;
     if (await missionApi(request, response)) return;
+    if (request.url === '/api/server') {
+      if (!accounts.current(request)) { response.writeHead(401).end(); return; }
+      if (request.method !== 'POST' || request.headers.origin !== `http://${request.headers.host}` ||
+          !/^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] || '')) {
+        response.writeHead(403).end(); return;
+      }
+      let action;
+      try {
+        let body = '';
+        for await (const chunk of request) { body += chunk; if (Buffer.byteLength(body) > 256) throw new Error(); }
+        action = JSON.parse(body).action;
+        if (!['start', 'stop', 'restart'].includes(action)) throw new Error();
+      } catch { response.writeHead(400).end(); return; }
+      try {
+        await control.command(action);
+        response.writeHead(202).end();
+      } catch (error) {
+        response.writeHead(409, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: error.message }));
+      }
+      return;
+    }
     if (request.url === '/api/kick') {
       if (!accounts.current(request)) { response.writeHead(401).end(); return; }
       if (request.method !== 'POST' || request.headers.origin !== `http://${request.headers.host}` ||
@@ -80,9 +103,9 @@ function createServer(options = {}) {
       return;
     }
     if (request.url === '/api/status') {
-      const reachable = await checkServer(minecraftHost, minecraftPort);
+      const status = await control.status();
       response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      response.end(JSON.stringify({ reachable, host: minecraftHost, port: minecraftPort }));
+      response.end(JSON.stringify({ ...status, host: minecraftHost, port: minecraftPort }));
       return;
     }
     if (request.url === '/') {

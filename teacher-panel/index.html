@@ -35,7 +35,7 @@
   <div class="intro"><h1>Mission Control</h1></div>
   <div class="grid">
     <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p>Mission bridge unavailable.</p><div class="actions"><button disabled>Start mission</button><button disabled>Pause mission</button><button disabled>End mission</button></div></section>
-    <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p></section>
+    <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p><div class="actions"><button id="power" disabled>Start server</button><button id="restart" disabled>Restart</button></div><p id="server-error" role="alert"></p></section>
     <section class="card wide" aria-labelledby="crew-title"><h2 id="crew-title">Player roster</h2><div class="empty" id="roster" role="status" aria-live="polite">Loading roster…</div><p id="roster-error" role="alert"></p></section>
     <section class="card" aria-labelledby="mission-title"><div class="eyebrow">Mission library</div><h2 id="mission-title">The Darkening Sky</h2><p class="tag">In development</p></section>
   </div>
@@ -45,6 +45,25 @@
     const response = await fetch('/api/account/logout', { method: 'POST' });
     if (response.ok) location.reload();
   });
+  let serverAction = false;
+  async function serverCommand(action) {
+    if (serverAction) return;
+    serverAction = true;
+    document.getElementById('power').disabled = true;
+    document.getElementById('restart').disabled = true;
+    const error = document.getElementById('server-error');
+    error.textContent = '';
+    try {
+      const response = await fetch('/api/server', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Server operation failed.');
+      }
+    } catch (failure) { error.textContent = failure.message; }
+    finally { serverAction = false; await refreshStatus(); }
+  }
+  document.getElementById('power').addEventListener('click', event => serverCommand(event.currentTarget.dataset.action));
+  document.getElementById('restart').addEventListener('click', () => serverCommand('restart'));
   async function refreshStatus() {
     const label = document.getElementById('status');
     const dot = document.getElementById('dot');
@@ -52,12 +71,22 @@
       const response = await fetch('/api/status', { cache: 'no-store' });
       if (!response.ok) throw new Error('Status unavailable');
       const status = await response.json();
-      label.textContent = status.reachable ? 'Port reachable' : 'Port unreachable';
+      const names = { starting: 'Starting…', running: 'Running', stopping: 'Stopping…', stopped: 'Stopped', external: 'Running outside panel' };
+      label.textContent = names[status.state] || 'Status unavailable';
+      const power = document.getElementById('power');
+      const running = status.state === 'running' || status.state === 'starting';
+      power.textContent = running || status.state === 'stopping' || status.state === 'external' ? 'Stop server' : 'Start server';
+      power.dataset.action = running ? 'stop' : 'start';
+      power.disabled = serverAction || status.state === 'starting' || status.state === 'stopping' || status.state === 'external';
+      document.getElementById('restart').disabled = serverAction || status.state !== 'running';
+      if (status.error) document.getElementById('server-error').textContent = status.error;
       dot.classList.toggle('online', status.reachable);
       document.getElementById('address').textContent = `${status.host}:${status.port}`;
     } catch {
       label.textContent = 'Panel connection lost';
       dot.classList.remove('online');
+      document.getElementById('power').disabled = true;
+      document.getElementById('restart').disabled = true;
     }
   }
   async function refreshRoster() {

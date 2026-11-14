@@ -156,3 +156,65 @@ test('roster requires a teacher session and uses the authenticated bridge', asyn
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('server controls manage only their own process and stop it before restarting', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { EventEmitter } = require('node:events');
+  const { PassThrough } = require('node:stream');
+  const { createServerControl } = require('./server-control');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-control-'));
+  fs.mkdirSync(path.join(dir, 'run'));
+  fs.writeFileSync(path.join(dir, 'run', 'eula.txt'), 'eula=true\n');
+  let occupied = true, launches = 0, stops = 0;
+  const controller = createServerControl({ root: dir, checkServer: async () => occupied, spawnServer: () => {
+    launches++;
+    const child = new EventEmitter();
+    child.stdout = new PassThrough(); child.stderr = new PassThrough(); child.stdin = new PassThrough();
+    child.stdin.on('data', data => {
+      assert.equal(data.toString(), 'stop\n');
+      stops++;
+      setImmediate(() => child.emit('close', 0));
+    });
+    setImmediate(() => child.stdout.write('Done (1s)!'));
+    return child;
+  } });
+  try {
+    assert.equal((await controller.status()).state, 'external');
+    await assert.rejects(controller.command('start'), /already using/);
+    await assert.rejects(controller.command('stop'), /not started/);
+    occupied = false;
+    await controller.command('start');
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal((await controller.status()).state, 'running');
+    await controller.command('restart');
+    assert.equal(launches, 2);
+    assert.equal(stops, 1);
+    await controller.command('stop');
+    assert.equal(stops, 2);
+    assert.equal((await controller.status()).state, 'stopped');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('server power API requires a session and same-origin request', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-power-'));
+  let action;
+  const control = { status: async () => ({ state: 'stopped', reachable: false }), command: async value => { action = value; } };
+  const server = createServer({ accountsFile: path.join(dir, 'users.json'), control });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const post = (url, headers, body) => fetch(`${base}${url}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+    assert.equal((await post('/api/server', { Origin: base }, { action: 'stop' })).status, 401);
+    const registration = await post('/api/account/register', { Origin: base }, { username: 'teacher', password: 'x' });
+    const cookie = registration.headers.get('set-cookie').split(';')[0];
+    assert.equal((await post('/api/server', { Origin: 'http://evil.example', Cookie: cookie }, { action: 'stop' })).status, 403);
+    assert.equal((await post('/api/server', { Origin: base, Cookie: cookie }, { action: 'shell' })).status, 400);
+    assert.equal((await post('/api/server', { Origin: base, Cookie: cookie }, { action: 'restart' })).status, 202);
+    assert.equal(action, 'restart');
+  } finally { await new Promise(resolve => server.close(resolve)); fs.rmSync(dir, { recursive: true, force: true }); }
+});
