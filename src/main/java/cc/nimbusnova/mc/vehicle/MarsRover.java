@@ -64,7 +64,8 @@ public final class MarsRover extends VehicleEntity {
             setYRot(getYRot() + steering * (float) Math.clamp(speed / 0.32, -1, 1) * 3.5F);
 
         final double radians = Math.toRadians(getYRot());
-        final double vertical = onGround() ? -0.08 : Math.max(-0.8, getDeltaMovement().y - 0.08);
+        final double gravity = getGravity();
+        final double vertical = onGround() ? -gravity : Math.max(-0.8, getDeltaMovement().y - gravity);
         setDeltaMovement(-Math.sin(radians) * speed, vertical, Math.cos(radians) * speed);
         move(MoverType.SELF, getDeltaMovement());
         if (horizontalCollision)
@@ -72,6 +73,11 @@ public final class MarsRover extends VehicleEntity {
 
         entityData.set(DRIVE_SPEED, (float) speed);
         entityData.set(STEERING, steering * 0.38F);
+    }
+
+    @Override
+    protected double getDefaultGravity() {
+        return 0.08;
     }
 
     public static double nextSpeed(final double current, final int throttle, final boolean occupied, final boolean brake) {

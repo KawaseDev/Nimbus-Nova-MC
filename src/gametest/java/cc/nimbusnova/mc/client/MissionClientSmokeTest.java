@@ -6,6 +6,7 @@ import cc.nimbusnova.mc.mission.CrewRole;
 import cc.nimbusnova.mc.content.ModContent;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
 import cc.nimbusnova.mc.world.MarsTerrain;
+import cc.nimbusnova.mc.world.MarsGravity;
 import cc.nimbusnova.mc.npc.MissionAstronaut;
 import cc.nimbusnova.mc.npc.MissionNpcs;
 import cc.nimbusnova.mc.vehicle.MarsRover;
@@ -33,12 +34,32 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
     public void runTest(final ClientGameTestContext context) {
         try (final TestSingleplayerContext world = context.worldBuilder().create()) {
             context.waitFor(client -> NimbusNovaClient.snapshot != null);
+            final MarsMovementChecks.Sample earthMovement = world.getServer().computeOnServer(
+                    server -> MarsMovementChecks.sample(world.getConnection().getServerLevel()));
             world.getServer().runOnServer(server -> server.getPlayerList().op(new NameAndId(world.getConnection().getServerPlayer().getGameProfile())));
             world.getServer().runCommand("mars create");
             world.getServer().runCommand("mars create");
             world.getServer().runCommand("mars");
             world.getServer().runCommand("execute as @p run mars join");
             context.waitFor(client -> client.level != null && client.level.dimension().equals(MarsTrainingMap.DIMENSION));
+            final MarsMovementChecks.Sample marsMovement = world.getServer().computeOnServer(
+                    server -> MarsMovementChecks.sample(world.getConnection().getServerLevel()));
+            if (Math.abs(marsMovement.gravity() - earthMovement.gravity() * MarsGravity.EARTH_GRAVITY_RATIO) > 0.000001
+                    || Math.abs(marsMovement.itemGravity() - earthMovement.itemGravity() * MarsGravity.EARTH_GRAVITY_RATIO) > 0.000001)
+                throw new AssertionError("Mars gravity must scale living entities and dropped items consistently");
+
+            if (marsMovement.jumpHeight() < earthMovement.jumpHeight() * 1.8
+                    || marsMovement.airborneTicks() < earthMovement.airborneTicks() * 1.5)
+                throw new AssertionError("Mars movement must produce higher jumps and longer airtime");
+
+            if (marsMovement.fallDamage() >= earthMovement.fallDamage())
+                throw new AssertionError("The same fall must cause less damage under Mars gravity");
+
+            final double clientGravity = context.computeOnClient(client -> world.getConnection().getClientPlayer().getGravity());
+            if (Math.abs(clientGravity - marsMovement.gravity()) > 0.000001)
+                throw new AssertionError("Client prediction and server gravity disagree");
+
+            System.out.println("Movement checks: Earth=" + earthMovement + "; Mars=" + marsMovement);
             world.getConnection().waitForChunksRender();
             context.takeScreenshot("mars-outpost");
             if (MissionTutorial.consoleOpened)
@@ -210,6 +231,12 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             context.runOnClient(client -> client.gui.hud.toggle());
             world.getServer().runCommand("execute as @p run mars leave");
             context.waitFor(client -> client.level != null && !client.level.dimension().equals(MarsTrainingMap.DIMENSION));
+            final MarsMovementChecks.Sample returnedMovement = world.getServer().computeOnServer(
+                    server -> MarsMovementChecks.sample(world.getConnection().getServerLevel()));
+            if (Math.abs(returnedMovement.gravity() - earthMovement.gravity()) > 0.000001
+                    || Math.abs(returnedMovement.jumpHeight() - earthMovement.jumpHeight()) > 0.000001
+                    || returnedMovement.fallDamage() != earthMovement.fallDamage())
+                throw new AssertionError("Leaving Mars must restore ordinary movement and fall damage");
         }
 
         context.runOnClient(client -> {

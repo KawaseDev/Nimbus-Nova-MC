@@ -11,6 +11,7 @@
   },
   "license": "MIT",
   "environment": "*",
+  "mixins": ["nimbus_nova.mixins.json"],
   "entrypoints": {
     "main": ["cc.nimbusnova.mc.NimbusNovaMod"],
     "client": ["cc.nimbusnova.mc.client.NimbusNovaClient"]

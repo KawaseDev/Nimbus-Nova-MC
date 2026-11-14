@@ -111,6 +111,12 @@ python3 tools/import_marscraft.py --archive "$HOME/Downloads/Marscraft Updated.z
 Create a **new test world**, then run `/mars create` and `/mars join`. `/mars` reports the active terrain source. For the isolated imported-world smoke test, run `./gradlew runClientGameTest -PmarsHeightmap=.local/marscraft/marscraft-heights.nms.gz`. Without the option, the mod uses its procedural fallback. Existing chunks and saves are never regenerated automatically; changing generation sources mid-world can create seams.
 
 
+## Mars movement
+
+The Mars dimension uses **38% of normal Minecraft gravity** for living entities, dropped items, and other entities using the native gravity API. Jumps rise higher and stay airborne longer, falls are slower, and fall damage scales with the lower gravity. Walking controls and jump impulse stay familiar. The rover uses the same gravity path. Returning to another dimension restores its normal physics automatically.
+
+This applies the Mars/Earth gravity ratio to Minecraft physics; it is a gameplay approximation, not a calibrated astronaut or atmosphere simulation. Native drag, creative flight, and no-gravity behavior remain intact. Runtime checks measured jumps of about 1.25 blocks/12 ticks on the Overworld and 2.69 blocks/27 ticks on Mars, verified client/server agreement, and checked restoration on return.
+
 ## Current limits
 
 - One transient mission runs per server. Resource state and roles do not survive a server restart; station bindings do. The authored outpost persists; joining it rebinds its built-in consoles.

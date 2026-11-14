@@ -1,0 +1,9 @@
+{
+  "required": true,
+  "package": "cc.nimbusnova.mc.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": ["EntityGravityMixin", "LivingFallDamageMixin"],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

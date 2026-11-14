@@ -54,3 +54,7 @@ When adding NASA data, record the exact dataset/study URL, retrieval date, units
 
 The Nova renderer uses original RenderPearl/Blaze3D GUI render states and shaders for rounded surfaces, strokes, glow, native screen blur, and MTSDF text. The mission-driven dust path uses a separate original soft-particle shader with fog and transparency support. Sapphire in the team's existing mod informed the design; its engine implementation was not copied. The bundled Geist MTSDF atlas is derived from [Geist](https://github.com/vercel/geist-font), licensed under SIL OFL 1.1; the full license is bundled at `assets/nimbus_nova/fonts/OFL.txt`. RGB-median distance reconstruction follows the technique documented by [msdf-atlas-gen](https://github.com/Chlumsky/msdf-atlas-gen). The font software remains under OFL, separately from the repository's MIT code.
 
+
+## Gravity reference
+
+The [NASA Mars Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html) gives a Mars/Earth surface-gravity ratio of about 0.38. The mod applies that ratio to vanilla gravity and fall-distance damage calculations; other Minecraft movement assumptions remain.
