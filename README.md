@@ -41,7 +41,9 @@ Connect the teacher session, two Minecraft clients, and one role action that cha
 
 With Node.js 18 or newer installed, run `node teacher-panel/server.js` and open <http://127.0.0.1:3000>. The panel listens only on the local machine. Set `PANEL_PORT`, `MINECRAFT_HOST`, or `MINECRAFT_PORT` before starting it to change the defaults (3000, 127.0.0.1, and 25565). Run `node --test teacher-panel/server.test.js` to check the panel.
 
-The connection indicator checks only whether the configured TCP port is reachable; it does not verify a Minecraft server or connect to mission state. The roster and session controls need the planned authenticated Fabric server bridge and are not implemented yet. This local development panel has no login and is not ready for public hosting or classroom use.
+Create a teacher account on the sign-in screen. Usernames use 3–32 letters, digits, dots, underscores, or hyphens; passwords need at least 12 characters. Accounts are stored in `teacher-panel/data/teachers.json` with salted password hashes. Keep a backup of that file; deleting it deletes the accounts. Sessions expire after 12 hours or when the server restarts. There is no password reset yet.
+
+The connection indicator checks only whether the configured TCP port is reachable; it does not verify a Minecraft server or connect to mission state. The roster and session controls need the planned authenticated Fabric server bridge and are not implemented yet. Registration is open to anyone with access to this local service; it is not ready for public hosting or classroom use.
 
 ### Mission backend foundation
 
@@ -51,6 +53,6 @@ The local Node service also exposes a first bridge API. Configure `TEACHER_TOKEN
 - `POST /api/commands` requires the same authorization and a JSON body with UUID strings `id` and `sessionId`, an `action` (`start`, `pause`, `resume`, `end`, or `assign_role`), and an optional `parameters` object. It forwards to `POST /commands` on the bridge.
 - The backend authenticates to the bridge with `Authorization: Bearer <BRIDGE_TOKEN>` and passes its JSON response and status back to the teacher. Missing configuration fails closed; an unreachable bridge returns an error.
 
-The Fabric bridge is not implemented. It must authenticate the backend, own mission state, validate session ownership and each action and its parameters, and reject duplicate command IDs before applying effects. The dashboard does not yet sign in or call these endpoints. The backend does not yet create or reserve sessions, assign roles, or persist reports.
+The Fabric bridge is not implemented. It must authenticate the backend, own mission state, validate session ownership and each action and its parameters, and reject duplicate command IDs before applying effects. Teacher accounts do not yet authorize these bridge endpoints; they still require the separate token. The dashboard does not yet call them. The backend does not yet create or reserve sessions, assign roles, or persist reports.
 
 Original code is MIT licensed. Minecraft retains its own license. Independent student project; no NASA, Mojang, or Microsoft endorsement.

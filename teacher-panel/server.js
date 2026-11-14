@@ -3,6 +3,7 @@ const net = require('node:net');
 const fs = require('node:fs');
 const path = require('node:path');
 const { createMissionApi } = require('./mission-api');
+const { createAccounts } = require('./accounts');
 
 const minecraftHost = process.env.MINECRAFT_HOST || '127.0.0.1';
 const minecraftPort = Number(process.env.MINECRAFT_PORT || 25565);
@@ -20,10 +21,17 @@ function checkServer(host, port) {
 
 function createServer(options = {}) {
   const missionApi = createMissionApi(options);
+  const accounts = createAccounts(options.accountsFile || path.join(__dirname, 'data', 'teachers.json'));
   return http.createServer(async (request, response) => {
+    if (!/^(?:localhost|127\.0\.0\.1)(?::[0-9]+)?$/i.test(request.headers.host || '')) { response.writeHead(400).end(); return; }
+    if (await accounts.handle(request, response)) return;
     if (await missionApi(request, response)) return;
     if (request.method !== 'GET') {
       response.writeHead(405, { Allow: 'GET' }).end();
+      return;
+    }
+    if (request.url === '/api/status' && !accounts.current(request)) {
+      response.writeHead(401).end();
       return;
     }
     if (request.url === '/api/status') {
@@ -34,7 +42,7 @@ function createServer(options = {}) {
     }
     if (request.url === '/') {
       response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-      response.end(fs.readFileSync(path.join(__dirname, 'index.html')));
+      response.end(fs.readFileSync(path.join(__dirname, accounts.current(request) ? 'index.html' : 'login.html')));
       return;
     }
     response.writeHead(404).end();

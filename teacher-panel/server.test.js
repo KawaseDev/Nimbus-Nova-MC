@@ -17,10 +17,10 @@ test('panel serves its page and rejects requests outside its API', async () => {
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   try {
     const base = `http://127.0.0.1:${server.address().port}`;
-    assert.match(await (await fetch(base)).text(), /Mission Control/);
+    assert.match(await (await fetch(base)).text(), /Teacher sign in/);
     assert.equal((await fetch(`${base}/missing`)).status, 404);
     assert.equal((await fetch(`${base}/api/status`, { method: 'POST' })).status, 405);
-    assert.equal(typeof (await (await fetch(`${base}/api/status`)).json()).reachable, 'boolean');
+    assert.equal((await fetch(`${base}/api/status`)).status, 401);
   } finally {
     await new Promise((resolve) => server.close(resolve));
   }
@@ -65,5 +65,46 @@ test('mission API fails closed when authentication or bridge is not configured',
       const response = await fetch(`http://127.0.0.1:${server.address().port}/api/mission`, { headers: { Authorization: `Bearer ${'t'.repeat(32)}` } });
       assert.equal(response.status, 503);
     } finally { await new Promise((resolve) => server.close(resolve)); }
+  }
+});
+
+
+test('teacher accounts persist, protect the dashboard, and sign out', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-accounts-'));
+  const accountsFile = path.join(dir, 'teachers.json');
+  async function start() {
+    const server = createServer({ accountsFile });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    return [server, `http://127.0.0.1:${server.address().port}`];
+  }
+  let [server, base] = await start();
+  const credentials = { username: 'Teacher', password: 'a long password' };
+  async function post(endpoint, data, cookie, origin = base) {
+    return fetch(`${base}/api/account/${endpoint}`, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) }, body: JSON.stringify(data) });
+  }
+  try {
+    assert.equal((await post('register', credentials, null, 'http://evil.example')).status, 403);
+    let response = await post('register', credentials);
+    assert.equal(response.status, 200);
+    let cookie = response.headers.get('set-cookie').split(';')[0];
+    assert.match(await (await fetch(base, { headers: { Cookie: cookie } })).text(), /Mission Control/);
+    assert.equal((await fetch(`${base}/api/status`, { headers: { Cookie: cookie } })).status, 200);
+    assert.equal((await post('register', credentials)).status, 409);
+    assert.doesNotMatch(fs.readFileSync(accountsFile, 'utf8'), /a long password/);
+    assert.equal((await post('logout', {}, cookie)).status, 200);
+    assert.equal((await fetch(`${base}/api/account/me`, { headers: { Cookie: cookie } })).status, 401);
+    await new Promise((resolve) => server.close(resolve));
+    [server, base] = await start();
+    assert.equal((await post('login', { ...credentials, password: 'wrong password' })).status, 401);
+    response = await post('login', credentials);
+    assert.equal(response.status, 200);
+    cookie = response.headers.get('set-cookie').split(';')[0];
+    assert.deepEqual(await (await fetch(`${base}/api/account/me`, { headers: { Cookie: cookie } })).json(), { username: 'teacher' });
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 });

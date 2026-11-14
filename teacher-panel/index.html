@@ -29,7 +29,7 @@
   </style>
 </head>
 <body>
-<header><div class="brand"><span>✦</span> NIMBUS NOVA</div><div class="tag">Teacher workspace</div></header>
+<header><div class="brand"><span>✦</span> NIMBUS NOVA</div><button id="logout" type="button">Sign out</button></header>
 <main>
   <div class="intro"><h1>Mission Control</h1></div>
   <div class="grid">
@@ -40,6 +40,10 @@
   </div>
 </main>
 <script>
+  document.getElementById('logout').addEventListener('click', async () => {
+    const response = await fetch('/api/account/logout', { method: 'POST' });
+    if (response.ok) location.reload();
+  });
   async function refreshStatus() {
     const label = document.getElementById('status');
     const dot = document.getElementById('dot');
