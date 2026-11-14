@@ -59,6 +59,7 @@ public final class MarsTrainingMap {
     }
 
     public static void register() {
+        MissionController.setShelterCheck(player -> player.level().dimension() != DIMENSION ? null : !inShelter(player.blockPosition()));
         Registry.register(BuiltInRegistries.CHUNK_GENERATOR, Identifier.parse("nimbus_nova:mars_surface"), MarsTerrainGenerator.CODEC);
         ServerLifecycleEvents.SERVER_STOPPED.register(RETURN_POINTS::remove);
         CommandRegistrationCallback.EVENT.register((dispatcher, _, _) -> dispatcher.register(Commands.literal("mars")
@@ -314,6 +315,12 @@ public final class MarsTrainingMap {
         sign(level, 21, FLOOR_Y + 1, -3, "GREENHOUSE", "Demonstration crops", "Food model planned", "Water is limited");
     }
 
+    /** Inside the crew shelter's walls, built by {@link #buildShelter}. */
+    public static boolean inShelter(final BlockPos position) {
+        return position.getX() >= -7 && position.getX() <= 7 && position.getZ() >= 21 && position.getZ() <= 31
+                && position.getY() >= FLOOR_Y + 1 && position.getY() <= FLOOR_Y + 4;
+    }
+
     private static void buildShelter(final ServerLevel level) {
         room(level, -8, 20, 8, 32, Blocks.POLISHED_DEEPSLATE, Blocks.DEEPSLATE_TILES);
         fill(level, -1, FLOOR_Y + 1, 20, 1, FLOOR_Y + 3, 20, Blocks.AIR);
@@ -323,7 +330,7 @@ public final class MarsTrainingMap {
             place(level, x, FLOOR_Y + 2, 29, Blocks.BARREL);
 
         place(level, 0, FLOOR_Y + 4, 26, Blocks.SEA_LANTERN);
-        sign(level, -4, FLOOR_Y + 1, 18, "CREW SHELTER", "Protection has cost", "Stock supplies first", "Radiation planned");
+        sign(level, -4, FLOOR_Y + 1, 18, "CREW SHELTER", "Solar storm? Get in", "No consoles inside", "Plan before alerts");
     }
 
     private static void buildRoverBay(final ServerLevel level) {
