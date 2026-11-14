@@ -24,8 +24,8 @@ function checkServer(host, port) {
 function createServer(options = {}) {
   const missionApi = createMissionApi(options);
   const accounts = createAccounts(options.accountsFile || path.join(__dirname, 'data', 'teachers.json'));
-  const control = options.control || createServerControl({ checkServer: () => checkServer(minecraftHost, minecraftPort) });
   const sessions = options.sessions || createSessions({ checkServer: () => checkServer(minecraftHost, minecraftPort) });
+  const control = options.control || createServerControl({ checkServer: () => checkServer(minecraftHost, minecraftPort), onExit: () => sessions.clear() });
   const server = http.createServer(async (request, response) => {
     if (!/^(?:localhost|127\.0\.0\.1)(?::[0-9]+)?$/i.test(request.headers.host || '')) { response.writeHead(400).end(); return; }
     if (await accounts.handle(request, response)) return;
@@ -120,20 +120,19 @@ function createServer(options = {}) {
     if (request.url === '/api/session') {
       const owner = accounts.current(request);
       if (!owner) { response.writeHead(401).end(); return; }
-      if (request.method === 'GET') {
-        response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        response.end(JSON.stringify(sessions.teacher(owner))); return;
-      }
-      if (!['POST', 'DELETE'].includes(request.method) || request.headers.origin !== `http://${request.headers.host}`) {
-        response.writeHead(403).end(); return;
-      }
+      if (request.method !== 'GET') { response.writeHead(405).end(); return; }
       try {
-        if (request.method === 'POST') await sessions.create(owner); else sessions.end(owner);
+        const status = await control.status();
+        if (!status.reachable && !status.managed && status.state === 'stopped') sessions.clear();
+        let session = sessions.teacher(owner);
+        if (status.reachable && !['starting', 'stopping'].includes(status.state) && ['available', 'expired'].includes(session.status)) {
+          try { await sessions.create(owner); } catch { /* Another teacher may have claimed it. */ }
+          session = sessions.teacher(owner);
+        }
+        if ((!status.reachable || ['starting', 'stopping'].includes(status.state)) && session.status !== 'occupied') session = { status: 'offline' };
         response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        response.end(JSON.stringify(sessions.teacher(owner)));
-      } catch (error) {
-        response.writeHead(409, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: error.message }));
-      }
+        response.end(JSON.stringify(session));
+      } catch { response.writeHead(503).end(); }
       return;
     }
     if (request.url === '/api/server') {
@@ -150,9 +149,14 @@ function createServer(options = {}) {
         if (!['start', 'stop', 'restart'].includes(action)) throw new Error();
       } catch { response.writeHead(400).end(); return; }
       try {
+        if (action === 'start') sessions.reserve(teacher);
+        if (action === 'restart') sessions.expire(teacher);
         await control.command(action);
+        if (action === 'stop') sessions.clear();
         response.writeHead(202).end();
       } catch (error) {
+        const status = await control.status();
+        if (!status.managed && !status.reachable) sessions.clear();
         response.writeHead(409, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: error.message }));
       }
       return;

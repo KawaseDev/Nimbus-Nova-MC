@@ -15,25 +15,33 @@ function createSessions({ gameAddress = '127.0.0.1:25565', discoveryAddress = '1
   let session;
   const attempts = new Map();
   function active() { return session; }
-  async function create(owner) {
+  function reserve(owner) {
     const existing = active();
     if (existing) {
       if (existing.owner !== owner) throw new Error('The server is reserved by another teacher');
       if (existing.expires > Date.now()) return existing;
     }
-    if (!await checkServer()) throw new Error('Start the Minecraft server first');
-    if (active() && (active().owner !== owner || active().expires > Date.now())) throw new Error('The server is already reserved');
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
     for (let i = 0; i < 8; i++) code += alphabet[crypto.randomInt(alphabet.length)];
     session = { owner, code, expires: Date.now() + 60 * 60 * 1000 };
     return session;
   }
+  async function create(owner) {
+    if (!await checkServer()) throw new Error('Start the Minecraft server first');
+    return reserve(owner);
+  }
+  function expire(owner) {
+    const existing = active();
+    if (existing && existing.owner !== owner) throw new Error('The server is reserved by another teacher');
+    if (existing) existing.expires = 0;
+  }
   function end(owner) {
     const existing = active();
     if (existing && existing.owner !== owner) throw new Error('The server is reserved by another teacher');
     session = undefined;
   }
+  function clear() { session = undefined; }
   function teacher(owner) {
     const existing = active();
     if (!existing) return { status: 'available', discoveryAddress };
@@ -67,6 +75,6 @@ function createSessions({ gameAddress = '127.0.0.1:25565', discoveryAddress = '1
       response.end(JSON.stringify({ address: gameAddress }));
     });
   }
-  return { create, end, teacher, listener };
+  return { create, reserve, expire, end, clear, teacher, listener };
 }
 module.exports = { createSessions };

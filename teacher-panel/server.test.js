@@ -370,28 +370,80 @@ test('session codes resolve only while active and reserve one server per teacher
   } finally { await new Promise(resolve => listener.close(resolve)); }
 });
 
-test('session management requires a teacher and same-origin mutations', async () => {
+test('session follows server availability and is private to the owning teacher', async () => {
   const fs = require('node:fs');
   const os = require('node:os');
   const path = require('node:path');
   const { createSessions } = require('./sessions');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-session-'));
-  const sessions = createSessions({ checkServer: async () => true });
-  const server = createServer({ accountsFile: path.join(dir, 'users.json'), sessions });
+  let online = false;
+  const sessions = createSessions({ checkServer: async () => online });
+  const control = { status: async () => ({ reachable: online, managed: online, state: online ? 'running' : 'stopped' }) };
+  const server = createServer({ accountsFile: path.join(dir, 'users.json'), sessions, control });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   try {
     assert.equal((await fetch(`${base}/api/session`)).status, 401);
     const registration = await fetch(`${base}/api/account/register`, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'teacher', password: 'x' }) });
     const cookie = registration.headers.get('set-cookie').split(';')[0];
-    assert.equal((await fetch(`${base}/api/session`, { method: 'POST', headers: { Cookie: cookie, Origin: 'http://evil.example' } })).status, 403);
-    const created = await fetch(`${base}/api/session`, { method: 'POST', headers: { Cookie: cookie, Origin: base } });
+    assert.equal((await fetch(`${base}/api/session`, { method: 'POST', headers: { Cookie: cookie, Origin: base } })).status, 405);
+    assert.equal((await (await fetch(`${base}/api/session`, { headers: { Cookie: cookie } })).json()).status, 'offline');
+    online = true;
+    const created = await fetch(`${base}/api/session`, { headers: { Cookie: cookie } });
     assert.equal((await created.json()).status, 'open');
     const otherRegistration = await fetch(`${base}/api/account/register`, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'otherteacher', password: 'x' }) });
     const otherCookie = otherRegistration.headers.get('set-cookie').split(';')[0];
     assert.equal((await (await fetch(`${base}/api/session`, { headers: { Cookie: otherCookie } })).json()).status, 'occupied');
     assert.equal((await fetch(`${base}/api/status`, { headers: { Cookie: otherCookie } })).status, 403);
-    assert.equal((await fetch(`${base}/api/session`, { method: 'DELETE', headers: { Cookie: otherCookie, Origin: base } })).status, 409);
-    assert.equal((await fetch(`${base}/api/session`, { method: 'DELETE', headers: { Cookie: cookie, Origin: base } })).status, 200);
+    assert.equal((await fetch(`${base}/api/session`, { method: 'DELETE', headers: { Cookie: otherCookie, Origin: base } })).status, 405);
+    online = false;
+    assert.equal((await (await fetch(`${base}/api/session`, { headers: { Cookie: cookie } })).json()).status, 'offline');
+    assert.equal(sessions.teacher('teacher').status, 'available');
+  } finally { await new Promise(resolve => server.close(resolve)); fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('server start, restart, stop and unexpected exit control the session code', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { EventEmitter } = require('node:events');
+  const { PassThrough } = require('node:stream');
+  const { createSessions } = require('./sessions');
+  const { createServerControl } = require('./server-control');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-lifecycle-'));
+  fs.mkdirSync(path.join(dir, 'run'));
+  fs.writeFileSync(path.join(dir, 'run', 'eula.txt'), 'eula=true\n');
+  let online = false, current;
+  const sessions = createSessions({ checkServer: async () => online });
+  const control = createServerControl({ root: dir, checkServer: async () => online, onExit: () => sessions.clear(), spawnServer: () => {
+    const child = new EventEmitter(); current = child;
+    child.stdout = new PassThrough(); child.stderr = new PassThrough(); child.stdin = new PassThrough();
+    child.stdin.on('data', () => setImmediate(() => { online = false; child.emit('close', 0); }));
+    setImmediate(() => { online = true; child.stdout.write('Done (1s)!'); });
+    return child;
+  } });
+  const server = createServer({ accountsFile: path.join(dir, 'users.json'), sessions, control });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const post = (url, headers, body) => fetch(`${base}${url}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+  try {
+    const registration = await post('/api/account/register', { Origin: base }, { username: 'teacher', password: 'x' });
+    const cookie = registration.headers.get('set-cookie').split(';')[0];
+    const headers = { Cookie: cookie, Origin: base };
+    const session = async () => (await (await fetch(`${base}/api/session`, { headers: { Cookie: cookie } })).json());
+    assert.equal((await session()).status, 'offline');
+    assert.equal((await post('/api/server', headers, { action: 'start' })).status, 202);
+    await new Promise(resolve => setImmediate(resolve));
+    const first = await session(); assert.equal(first.status, 'open');
+    assert.equal((await post('/api/server', headers, { action: 'restart' })).status, 202);
+    await new Promise(resolve => setImmediate(resolve));
+    const second = await session(); assert.equal(second.status, 'open'); assert.notEqual(second.code, first.code);
+    assert.equal((await post('/api/server', headers, { action: 'stop' })).status, 202);
+    assert.equal((await session()).status, 'offline');
+    assert.equal((await post('/api/server', headers, { action: 'start' })).status, 202);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal((await session()).status, 'open');
+    online = false; current.emit('close', 1);
+    assert.equal((await session()).status, 'offline');
   } finally { await new Promise(resolve => server.close(resolve)); fs.rmSync(dir, { recursive: true, force: true }); }
 });
