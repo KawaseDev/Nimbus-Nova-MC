@@ -147,7 +147,7 @@ With Node.js 18 or newer installed, run `node teacher-panel/server.js` and open 
 
 The panel can start, stop, and restart a Minecraft server that it started. Start the panel with JDK 25 available in `JAVA_HOME` or `PATH`, and accept the Minecraft EULA in `run/eula.txt` before starting the server. Stop and restart send Minecraft's `stop` command so the world is saved. A server started outside the panel must be stopped separately before the panel can manage it. If the panel exits while its server is running, stop that server separately before starting it again from the panel.
 
-To test student joining on this computer, start the server in the panel and select **Create session**. Enter the displayed code and `127.0.0.1:3002` in the mod. The nickname appears in the teacher roster and is linked to the player's Minecraft identity while the server is running.
+To test student joining on this computer, start the server in the panel. The session code appears automatically while the server is running and closes when it stops. Enter the displayed code and `127.0.0.1:3002` in the mod. The nickname appears in the teacher roster and is linked to the player's Minecraft identity while the server is running.
 
 For a local network, set the server computer's LAN address in `run/server.properties` as `server-ip`, keep `online-mode=true`, and start the panel with these variables set to that same address:
 
@@ -158,7 +158,7 @@ export SESSION_GAME_ADDRESS=192.168.1.10:25565
 export MINECRAFT_HOST=192.168.1.10
 ```
 
-Replace `192.168.1.10` with the server computer's actual LAN address, and allow TCP ports 3002 and 25565 through its firewall. Students need Minecraft Java Edition, a valid Minecraft account, Fabric, and the mod. The session code is only for locating the server; it does not replace Minecraft authentication or restrict direct server connections. The code expires after one hour; the owning teacher can renew it or end the reservation. Reservations and nicknames are held in memory and are lost when the corresponding process restarts. Creating a session does not reset the world.
+Replace `192.168.1.10` with the server computer's actual LAN address, and allow TCP ports 3002 and 25565 through its firewall. Students need Minecraft Java Edition, a valid Minecraft account, Fabric, and the mod. The session code is only for locating the server; it does not replace Minecraft authentication or restrict direct server connections. The code expires after one hour and renews automatically while the server is running. Restarting the server issues a new code. Reservations and nicknames are held in memory and are lost when the corresponding process restarts. Starting a session does not reset the world.
 
 Create a teacher account on the sign-in screen. Usernames use 3–32 letters, digits, dots, underscores, or hyphens; a password is required. Accounts are stored in `teacher-panel/data/teachers.json` with salted password hashes. Keep a backup of that file; deleting it deletes the accounts. Sessions expire after 12 hours or when the server restarts. There is no password reset yet.
 

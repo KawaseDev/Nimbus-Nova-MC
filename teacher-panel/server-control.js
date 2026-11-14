@@ -2,11 +2,12 @@ const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
-function createServerControl({ checkServer, spawnServer = spawn, root = path.resolve(__dirname, '..') }) {
+function createServerControl({ checkServer, spawnServer = spawn, root = path.resolve(__dirname, '..'), onExit = () => {} }) {
   let child = null;
   let state = 'stopped';
   let error = '';
   let busy = false;
+  let restarting = false;
 
   async function start() {
     if (child) throw new Error('Server is already managed by the panel');
@@ -37,6 +38,7 @@ function createServerControl({ checkServer, spawnServer = spawn, root = path.res
       if (state !== 'stopping' && code !== 0 && !error) error = 'Server exited unexpectedly';
       child = null;
       state = 'stopped';
+      if (!restarting) onExit();
     });
   }
 
@@ -59,14 +61,20 @@ function createServerControl({ checkServer, spawnServer = spawn, root = path.res
     try {
       if (action === 'start') await start();
       else if (action === 'stop') await stop();
-      else if (action === 'restart') { await stop(); await start(); }
+      else if (action === 'restart') {
+        restarting = true;
+        try { await stop(); await start(); }
+        catch (error) { if (!child) onExit(); throw error; }
+        finally { restarting = false; }
+      }
       else throw new Error('Invalid operation');
     } finally { busy = false; }
   }
 
   async function status() {
     const reachable = await checkServer();
-    return { reachable, managed: !!child, state: child ? state : reachable ? 'external' : 'stopped', error };
+    const starting = restarting || (busy && state === 'starting');
+    return { reachable, managed: !!child || starting, state: starting ? 'starting' : child ? state : reachable ? 'external' : 'stopped', error };
   }
   return { command, status };
 }
