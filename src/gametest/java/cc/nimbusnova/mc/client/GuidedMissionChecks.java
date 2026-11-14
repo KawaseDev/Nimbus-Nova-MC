@@ -2,6 +2,8 @@ package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
+import cc.nimbusnova.mc.mission.MissionPreparation;
+import cc.nimbusnova.mc.mission.MissionTaskOpenPayload;
 import cc.nimbusnova.mc.npc.MissionAstronaut;
 import cc.nimbusnova.mc.npc.MissionNpcs;
 import cc.nimbusnova.mc.client.npc.NpcDialogueScreen;
@@ -9,7 +11,6 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
@@ -36,20 +37,23 @@ final class GuidedMissionChecks {
             guide.interact(player, InteractionHand.MAIN_HAND, Vec3.ZERO);
         });
         context.waitForScreen(NpcDialogueScreen.class);
-        context.takeScreenshot("guided-briefing");
+        GuidedMissionChecks.capture(context, "guided-briefing");
         context.setScreen(() -> null);
+        world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 7 66 -6 0 0");
+        use(world, new BlockPos(7, 66, -3));
+        context.waitFor(client -> GuidedMissionClient.progress() != null && GuidedMissionClient.progress().stage().equals("POWER"));
         repair(context, world, true, true);
         repair(context, world, false, false);
         world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 40 66 -19 0 0");
         use(world, new BlockPos(40, 66, -16));
         context.waitFor(client -> GuidedMissionClient.progress() != null && GuidedMissionClient.progress().stage().equals("DELIVER"));
-        context.takeScreenshot("guided-sample-return");
+        GuidedMissionChecks.capture(context, "guided-sample-return");
         world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 6 66 -2 0 0");
         use(world, new BlockPos(6, 66, 1));
         context.waitFor(client -> GuidedMissionClient.progress() != null && GuidedMissionClient.progress().ready());
         if (NimbusNovaClient.snapshot.state().elapsedSeconds() != 0)
             throw new AssertionError("The timer advanced during preparation");
-        context.takeScreenshot("guided-crew-ready");
+        GuidedMissionChecks.capture(context, "guided-crew-ready");
     }
 
     static void repair(final ClientGameTestContext context, final TestSingleplayerContext world, final boolean power, final boolean tryWrongAction) {
@@ -58,23 +62,52 @@ final class GuidedMissionChecks {
                 : "execute in nimbus_nova:mars_training run tp @p -5 66 0 0 20");
         use(world, position);
         context.waitForScreen(TaskScreen.class);
-        context.takeScreenshot(power ? "guided-power-task" : "guided-oxygen-task");
-        if (tryWrongAction)
-            choose(context, "Reconnect");
+        GuidedMissionChecks.capture(context, power ? "guided-power-task" : "guided-oxygen-task");
+        if (power) {
+            if (tryWrongAction)
+                choose(context, "Rotate tile 9");
 
-        for (final String action : power ? new String[] { "Isolate supply", "Replace fuse", "Reconnect" }
-                : new String[] { "Seal valve", "Read pressure", "Start recycler" })
-            choose(context, action);
+            for (int cell = 0; cell < 9 && !task(context).complete(); cell++) {
+                int turns = 0;
+                while (!task(context).complete() && (task(context).puzzleState() >> cell * 2 & 3) != 0 && turns++ < 4)
+                    choose(context, "Rotate tile " + (cell + 1));
+            }
+        } else {
+            final String[] valves = { "intake", "pump", "vent" };
+            final int[] target = { 2, 2, 0 };
+            for (int valve = 0; valve < valves.length; valve++) {
+                int turns = 0;
+                while (MissionPreparation.oxygenValve(task(context).puzzleState(), valve) != target[valve] && turns++ < 5)
+                    choose(context, (MissionPreparation.oxygenValve(task(context).puzzleState(), valve) < target[valve]
+                            ? "Increase " : "Decrease ") + valves[valve]);
+            }
 
-        context.takeScreenshot(power ? "guided-power-complete" : "guided-oxygen-complete");
+            world.getServer().runOnServer(server -> {
+                for (int tick = 0; tick < MissionPreparation.OXYGEN_STABLE_TICKS; tick++)
+                    ServerTickEvents.END_SERVER_TICK.invoker().onEndTick(server);
+            });
+            context.waitFor(client -> client.gui.screen() instanceof TaskScreen screen
+                    && screen.serverState().aux() >>> 16 >= MissionPreparation.OXYGEN_STABLE_TICKS);
+            choose(context, "Start recycler");
+        }
+
+        if (!task(context).complete())
+            throw new AssertionError("The visual equipment puzzle did not complete");
+
+        GuidedMissionChecks.capture(context, power ? "guided-power-complete" : "guided-oxygen-complete");
         context.clickScreenButton("Next task");
         context.waitForScreen(null);
     }
 
+    private static MissionTaskOpenPayload task(final ClientGameTestContext context) {
+        return context.computeOnClient(client -> ((TaskScreen) client.gui.screen()).serverState());
+    }
+
     private static void choose(final ClientGameTestContext context, final String action) {
-        final Screen previous = context.computeOnClient(client -> client.gui.screen());
+        final int previous = task(context).step();
         context.clickScreenButton(action);
-        context.waitFor(client -> client.gui.screen() instanceof TaskScreen && client.gui.screen() != previous);
+        context.waitFor(client -> client.gui.screen() instanceof TaskScreen screen
+                && (screen.serverState().complete() || screen.serverState().step() > previous));
     }
 
     static void use(final TestSingleplayerContext world, final BlockPos position) {
@@ -84,6 +117,11 @@ final class GuidedMissionChecks {
                     new BlockHitResult(Vec3.atCenterOf(position), Direction.UP, position, false));
         });
         world.getConnection().waitForClientboundPackets();
+    }
+
+    static void capture(final ClientGameTestContext context, final String name) {
+        context.runOnClient(client -> client.gui.hud.getChat().clearMessages(false));
+        context.takeScreenshot(name);
     }
 
     static void advanceTo(final TestSingleplayerContext world, final int targetSecond) {

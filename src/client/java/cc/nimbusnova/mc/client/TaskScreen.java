@@ -29,7 +29,7 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
     private final float[] valveAngles = new float[3];
     private boolean awaitingServer;
     private int left, top, panelWidth, panelHeight, cellSize, boardX, boardY, boardWidth;
-    private int selectedCell = -1;
+    private int selectedCell = -1, selectedValve = -1;
     private long lastFrame = System.nanoTime(), completedAt;
     private double animationTime;
     private @Nullable MissionButton activate;
@@ -39,6 +39,9 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
         this.state = state;
         for (int cell = 0; cell < 9; cell++)
             cableAngles[cell] = cableTargets[cell] = (state.puzzleState() >> cell * 2 & 3) * 90;
+
+        for (int valve = 0; valve < 3; valve++)
+            valveAngles[valve] = -135 + MissionPreparation.oxygenValve(state.puzzleState(), valve) * 67.5F;
 
         if (state.step() < 0)
             completedAt = System.nanoTime();
@@ -84,11 +87,10 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
             boardWidth = cellSize * 3 + 8;
             boardX = left + 27;
             boardY = top + 61;
-            for (int cell = 0; cell < 9; cell++) {
-                final int index = cell;
+            for (int cell = 0; cell < 9; cell++)
                 controls.add(addRenderableWidget(new CircuitTile(boardX + cell % 3 * (cellSize + 4),
-                        boardY + cell / 3 * (cellSize + 4), cellSize, index)));
-            }
+                        boardY + cell / 3 * (cellSize + 4), cellSize, cell)));
+
         } else {
             final String[] labels = { "intake", "pump", "vent" };
             final int spacing = (panelWidth - 28) / 3;
@@ -111,6 +113,8 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
         if (awaitingServer || state.step() < 0 || !ClientPlayNetworking.canSend(MissionTaskActionPayload.TYPE)) return;
         if (state.kind() == MissionPreparation.TaskKind.POWER)
             selectedCell = choice;
+        else if (choice < 6)
+            selectedValve = choice / 2;
         awaitingServer = true;
         refreshControls();
         ClientPlayNetworking.send(new MissionTaskActionPayload(state.kind(), state.step(), choice));
@@ -120,9 +124,15 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
         refreshControls();
     }
 
+    boolean canOperate() {
+        final var mission = NimbusNovaClient.missionSnapshot();
+        return mission != null && (mission.operator() || mission.role().canControl(state.kind() == MissionPreparation.TaskKind.POWER
+                ? MissionState.Equipment.RESEARCH : MissionState.Equipment.OXYGEN));
+    }
+
     private void refreshControls() {
         final var mission = NimbusNovaClient.missionSnapshot();
-        final boolean enabled = !awaitingServer && state.step() >= 0 && mission != null
+        final boolean enabled = !awaitingServer && state.step() >= 0 && canOperate() && mission != null
                 && (mission.state().phase() == MissionState.Phase.READY
                 || mission.state().phase() == MissionState.Phase.ACTIVE);
         for (final Button button : controls)
@@ -151,8 +161,9 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
         } else {
             NovaRenderer.text(graphics, state.kind() == MissionPreparation.TaskKind.POWER ? "Route solar power" : "Balance the oxygen recycler",
                     left + 14, top + 10, 15, TEXT);
-            NovaRenderer.text(graphics, state.kind() == MissionPreparation.TaskKind.POWER
-                            ? "Turn the cables to connect SOLAR to BASE."
+            NovaRenderer.text(graphics, mission != null && mission.state().phase() == MissionState.Phase.PAUSED
+                            ? "Mission paused. Your puzzle progress is safe."
+                            : state.kind() == MissionPreparation.TaskKind.POWER ? "Turn the cables to connect SOLAR to BASE."
                             : "Turn the valves. Hold both gauges green for 2 seconds.",
                     left + 14, top + 34, 9, MUTED);
             if (state.kind() == MissionPreparation.TaskKind.POWER)
@@ -192,7 +203,8 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
             final float target = -135 + MissionPreparation.oxygenValve(packed, valve) * 67.5F;
             valveAngles[valve] = motion ? valveAngles[valve] + (target - valveAngles[valve]) * Math.min(1, elapsed * 14) : target;
             final int centerX = left + 14 + spacing * valve + spacing / 2;
-            NovaRenderer.text(graphics, names[valve], centerX - NovaRenderer.width(names[valve], 8) / 2, top + 105, 8, MUTED);
+            final String label = names[valve] + " " + MissionPreparation.oxygenValve(packed, valve) + "/4";
+            NovaRenderer.text(graphics, label, centerX - NovaRenderer.width(label, 8) / 2, top + 105, 8, selectedValve == valve ? ACCENT : MUTED);
         }
 
         final float stable = Math.clamp((state.aux() >>> 16) / (float) MissionPreparation.OXYGEN_STABLE_TICKS, 0, 1);
@@ -312,7 +324,8 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
         protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
             final float centerX = getX() + 18, centerY = getY() + 18;
             NovaRenderer.rect(graphics, getX(), getY(), 36, 36, 18, SURFACE);
-            NovaRenderer.stroke(graphics, getX(), getY(), 36, 36, 18, isHoveredOrFocused() ? 1.4F : 0.7F, isHoveredOrFocused() ? ACCENT : BORDER);
+            final boolean highlighted = isHoveredOrFocused() || selectedValve == index;
+            NovaRenderer.stroke(graphics, getX(), getY(), 36, 36, 18, highlighted ? 1.4F : 0.7F, highlighted ? ACCENT : BORDER);
             graphics.pose().pushMatrix();
             graphics.pose().translate(centerX, centerY);
             graphics.pose().rotate((float) Math.toRadians(valveAngles[index]));
@@ -328,7 +341,7 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
         }
     }
 
-    private final class AdjustmentButton extends Button {
+    private static final class AdjustmentButton extends Button {
         private final String symbol;
 
         private AdjustmentButton(final int x, final int y, final String label, final String symbol, final Runnable action) {

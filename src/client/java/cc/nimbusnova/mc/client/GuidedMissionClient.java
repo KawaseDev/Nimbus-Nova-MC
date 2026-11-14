@@ -21,8 +21,14 @@ public final class GuidedMissionClient {
         ClientPlayNetworking.registerGlobalReceiver(MissionProgressPayload.TYPE,
                 (packet, context) -> context.client().execute(() -> {
                     progress = packet;
-                    if (context.client().gui.screen() instanceof TaskScreen task)
-                        task.syncProgress();
+                    if (context.client().gui.screen() instanceof TaskScreen task) {
+                        if (packet.stage().equals("BRIEFING") || packet.stage().equals("ARRIVAL") || packet.stage().equals("COMPLETE")
+                                || packet.stage().equals("ROLE") || packet.stage().equals("SHELTER") || packet.stage().equals("SHELTER_SAFE")
+                                || !task.canOperate())
+                            task.onClose();
+                        else
+                            task.syncProgress();
+                    }
                 }));
         ClientPlayNetworking.registerGlobalReceiver(MissionTaskOpenPayload.TYPE, (packet, context) -> context.client().execute(() -> {
             if (packet.kind() != MissionPreparation.TaskKind.POWER && packet.kind() != MissionPreparation.TaskKind.OXYGEN) return;

@@ -17,6 +17,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
@@ -63,17 +64,17 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
 
             System.out.println("Movement checks: Earth=" + earthMovement + "; Mars=" + marsMovement);
             world.getConnection().waitForChunksRender();
-            context.takeScreenshot("mars-outpost");
+            GuidedMissionChecks.capture(context, "mars-outpost");
             if (MissionTutorial.consoleOpened)
                 throw new AssertionError("The tutorial must start with the console step unchecked");
 
-            context.takeScreenshot("tutorial-start");
+            GuidedMissionChecks.capture(context, "tutorial-start");
             context.setScreen(MissionConsoleScreen::new);
             context.clickScreenButton("Crew");
             context.clickScreenButton("Power engineer");
             context.waitFor(client -> NimbusNovaClient.snapshot.role() == CrewRole.POWER);
             context.setScreen(() -> null);
-            context.takeScreenshot("tutorial-ready");
+            GuidedMissionChecks.capture(context, "tutorial-ready");
             if (!MissionTutorial.consoleOpened)
                 throw new AssertionError("Opening the console must tick the tutorial's first step");
 
@@ -82,7 +83,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             context.clickScreenButton("Start mission");
             context.waitFor(client -> NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.ACTIVE);
             context.setScreen(MissionConsoleScreen::new);
-            context.takeScreenshot("mission-overview");
+            GuidedMissionChecks.capture(context, "mission-overview");
             context.clickScreenButton("Crew");
             context.clickScreenButton("Research: ON");
             context.waitFor(client -> !NimbusNovaClient.snapshot.state().researchOnline());
@@ -90,11 +91,11 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
                 if (world.getConnection().getServerLevel().getBlockState(MarsTrainingMap.RESEARCH_STATION).getValue(BlockStateProperties.POWERED))
                     throw new AssertionError("Research console animation must follow the server equipment state");
             });
-            context.takeScreenshot("mission-systems");
+            GuidedMissionChecks.capture(context, "mission-systems");
             context.clickScreenButton("Science");
-            context.takeScreenshot("mission-briefing");
+            GuidedMissionChecks.capture(context, "mission-briefing");
             context.setScreen(() -> null);
-            context.takeScreenshot("mission-hud");
+            GuidedMissionChecks.capture(context, "mission-hud");
             world.getServer().runCommand("mission equipment research true");
             world.getServer().runOnServer(server -> {
                 final var player = world.getConnection().getServerPlayer();
@@ -122,7 +123,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             context.waitFor(client -> client.gui.screen() instanceof MissionConsoleScreen);
             world.getConnection().waitForClientboundPackets();
             context.runOnClient(client -> client.setScreenAndShow(new InventoryScreen(world.getConnection().getClientPlayer())));
-            context.takeScreenshot("expedition-equipment");
+            GuidedMissionChecks.capture(context, "expedition-equipment");
             context.setScreen(() -> null);
             world.getServer().runOnServer(server -> {
                 final var player = world.getConnection().getServerPlayer();
@@ -136,8 +137,8 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
                 server.getCommands().performPrefixedCommand(player.createCommandSourceStack(), "mission reset");
             });
             world.getConnection().waitForClientboundPackets();
-            if (!context.computeOnClient(client -> NimbusNovaClient.snapshot.state().researchOnline()))
-                throw new AssertionError("The power engineer could not operate its bound research station");
+            if (context.computeOnClient(client -> NimbusNovaClient.snapshot.state().researchOnline()))
+                throw new AssertionError("The power engineer could not disable research at its station");
 
             if (!context.computeOnClient(client -> NimbusNovaClient.snapshot.state().oxygenOnline()))
                 throw new AssertionError("The power engineer was allowed to operate the oxygen station");
@@ -147,10 +148,11 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
 
             context.runOnClient(client -> client.gui.hud.toggle());
             world.getServer().runOnServer(server -> world.getConnection().getServerPlayer().setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY));
+            world.getServer().runCommand("mission equipment research true");
             world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p -3.5 66 -6.5 0 0");
             world.getConnection().waitForClientboundEntityUpdates(MissionNpcs.GUIDE, MissionNpcs.ENGINEER);
             context.waitTicks(5);
-            context.takeScreenshot("astronaut-guide");
+            GuidedMissionChecks.capture(context, "astronaut-guide");
             world.getServer().runOnServer(server -> {
                 final var player = world.getConnection().getServerPlayer();
                 final var guides = player.level().getEntitiesOfClass(MissionAstronaut.class, new AABB(-8, 65, -8, 8, 70, 8));
@@ -159,13 +161,13 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             });
             context.waitForScreen(NpcDialogueScreen.class);
             context.clickScreenButton("Power advice");
-            context.takeScreenshot("astronaut-dialogue");
+            GuidedMissionChecks.capture(context, "astronaut-dialogue");
             context.setScreen(() -> null);
             world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p -24 66 -3 0 20");
             world.getConnection().waitForClientboundPackets();
             context.waitTicks(5);
-            context.takeScreenshot("research-console-model");
-            world.getServer().runCommand("mission equipment research false");
+            GuidedMissionChecks.capture(context, "research-console-model");
+            world.getServer().runCommand("mission equipment research true");
             // Wait out the solar particle storm inside the crew shelter, then return outside for the dust capture.
             world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 0.5 66 26.5 0 0");
             GuidedMissionChecks.advanceTo(world, MissionState.SOLAR_END_SECONDS);
@@ -173,7 +175,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             GuidedMissionChecks.advanceTo(world, 80);
             context.waitFor(client -> NimbusNovaClient.snapshot.state().elapsedSeconds() >= 80);
             context.waitTicks(100);
-            context.takeScreenshot("mars-dust-storm");
+            GuidedMissionChecks.capture(context, "mars-dust-storm");
 
             world.getServer().runCommand("mission pause");
             context.waitFor(client -> NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.PAUSED);
@@ -188,9 +190,12 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             GuidedMissionChecks.advanceTo(world, MissionState.STORM_END_SECONDS);
             world.getServer().runCommand("mission equipment research true");
             GuidedMissionChecks.advanceTo(world, MissionState.DURATION_SECONDS);
+            final var finalMission = world.getServer().computeOnServer(server -> MissionController.get(server).snapshot());
+            if (finalMission.phase() != MissionState.Phase.SUCCESS)
+                throw new AssertionError("The balanced guided attempt did not succeed: " + finalMission);
             context.waitFor(client -> NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.SUCCESS);
             context.waitForScreen(MissionConsoleScreen.class);
-            context.takeScreenshot("guided-mission-success");
+            GuidedMissionChecks.capture(context, "guided-mission-success");
             context.setScreen(() -> null);
             world.getServer().runCommand("mission reset");
             context.waitFor(client -> NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.READY);
@@ -219,17 +224,17 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 24 68 19 -55 20");
             world.getConnection().waitForClientboundPackets();
             context.waitTicks(5);
-            context.takeScreenshot("aster-rover");
+            GuidedMissionChecks.capture(context, "aster-rover");
             world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 211 "
                     + (MarsTerrain.surfaceHeight(211, -155) + 35) + " -155 90 5");
             world.getConnection().waitForChunksRender();
-            context.takeScreenshot("mars-terrain");
+            GuidedMissionChecks.capture(context, "mars-terrain");
             world.getServer().runCommand("mission debug_start");
             world.getServer().runCommand("mission abort");
             context.waitForScreen(MissionConsoleScreen.class);
-            context.takeScreenshot("mission-debrief");
+            GuidedMissionChecks.capture(context, "mission-debrief");
             context.clickScreenButton("Next");
-            context.takeScreenshot("mission-debrief-page-two");
+            GuidedMissionChecks.capture(context, "mission-debrief-page-two");
             context.setScreen(() -> null);
             context.runOnClient(client -> client.gui.hud.toggle());
             world.getServer().runCommand("execute as @p run mars leave");
@@ -245,19 +250,20 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
         context.runOnClient(client -> {
             final JoinSessionScreen screen = new JoinSessionScreen(new TitleScreen());
             client.setScreenAndShow(screen);
-            final MissionEditBox field = (MissionEditBox) screen.children().stream()
-                    .filter(child -> child instanceof MissionEditBox).findFirst().orElseThrow();
+            final EditBox field = (EditBox) screen.children().stream()
+                    .filter(child -> child instanceof EditBox).findFirst().orElseThrow();
             field.setValue("Astronaut Ada");
             field.moveCursorToEnd(false);
             field.setHighlightPos(0);
             field.insertText("Crew 01");
             if (!field.getValue().equals("Crew 01"))
-                throw new AssertionError("Custom MSDF field lost native selection/replacement behavior");
+                throw new AssertionError("Join field lost native selection/replacement behavior");
 
             field.setFocused(true);
         });
-        context.takeScreenshot("join-session-msdf");
+        GuidedMissionChecks.capture(context, "join-session-msdf");
         context.clickScreenButton("Back");
         context.waitForScreen(TitleScreen.class);
+        System.out.println("Guided mission smoke test passed: preparation, puzzles, shelter, relay repair, full success and report.");
     }
 }

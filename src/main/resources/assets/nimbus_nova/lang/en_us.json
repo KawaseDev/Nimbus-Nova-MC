@@ -22,5 +22,6 @@
   "block.nimbus_nova.sample_deposit": "Mars sample deposit",
   "block.nimbus_nova.sample_analyzer": "Sample analyzer",
   "block.nimbus_nova.outpost_supply_locker": "Crew supply locker",
-  "block.nimbus_nova.outpost_weather_terminal": "Weather terminal"
+  "block.nimbus_nova.outpost_weather_terminal": "Weather terminal",
+  "block.nimbus_nova.outpost_hologram_projector": "Mission hologram projector"
 }

@@ -116,6 +116,13 @@ public final class MissionController {
                 return InteractionResult.SUCCESS;
             }
 
+            if (station == Station.OXYGEN && (serverPlayer.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)
+                    || controller.role(serverPlayer.getUUID()).canControl(MissionState.Equipment.OXYGEN))) {
+                if (ServerPlayNetworking.canSend(serverPlayer, OpenConsolePayload.TYPE))
+                    ServerPlayNetworking.send(serverPlayer, new OpenConsolePayload(1));
+                return InteractionResult.SUCCESS;
+            }
+
             controller.setEquipment(serverPlayer.createCommandSourceStack(), station.equipment,
                     station == Station.OXYGEN ? !controller.mission.snapshot().oxygenOnline()
                             : !controller.mission.snapshot().researchOnline());
@@ -407,7 +414,10 @@ public final class MissionController {
         if (!player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER) && !allowed(role(player.getUUID()), kind)) return;
         final boolean relay = kind == MissionPreparation.TaskKind.POWER && mission.relayFault();
         if (relay ? mission.snapshot().phase() != MissionState.Phase.ACTIVE
-                : mission.snapshot().phase() != MissionState.Phase.READY) return;
+                : mission.snapshot().phase() != MissionState.Phase.READY) {
+            sendTaskState(player, kind, relay);
+            return;
+        }
 
         final boolean accepted = relay ? preparation.repairStep(packet.step(), packet.choice())
                 : preparation.step(kind, packet.step(), packet.choice());
