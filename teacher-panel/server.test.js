@@ -346,7 +346,8 @@ test('student view requires a teacher and only returns valid bounded images', as
 test('session codes resolve only while active and reserve one server per teacher', async () => {
   const { createSessions } = require('./sessions');
   let online = false;
-  const sessions = createSessions({ gameAddress: '127.0.0.1:25565', discoveryAddress: '127.0.0.1:3002', checkServer: async () => online });
+  let offline = false;
+  const sessions = createSessions({ gameAddress: '127.0.0.1:25565', discoveryAddress: '127.0.0.1:3002', checkServer: async () => online, isOffline: async () => offline });
   const listener = sessions.listener();
   await new Promise(resolve => listener.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${listener.address().port}`;
@@ -361,7 +362,9 @@ test('session codes resolve only while active and reserve one server per teacher
     assert.equal(sessions.teacher('other').status, 'occupied');
     assert.equal((await resolveCode('AAAAAAAA')).status, 404);
     const result = await resolveCode(session.code.toLowerCase());
-    assert.deepEqual(await result.json(), { address: '127.0.0.1:25565' });
+    assert.deepEqual(await result.json(), { address: '127.0.0.1:25565', offline: false });
+    offline = true;
+    assert.equal((await (await resolveCode(session.code)).json()).offline, true);
     online = false;
     assert.equal((await resolveCode(session.code)).status, 503);
     online = true;

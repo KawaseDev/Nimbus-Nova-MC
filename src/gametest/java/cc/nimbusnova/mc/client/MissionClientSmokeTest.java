@@ -20,7 +20,10 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -35,6 +38,29 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 public final class MissionClientSmokeTest implements FabricClientGameTest {
     @Override
     public void runTest(final ClientGameTestContext context) {
+        context.setScreen(TitleScreen::new);
+        boolean titleCorrect = context.computeOnClient(client -> {
+            var children = client.gui.screen().children();
+            return children.stream().noneMatch(child -> child instanceof Button b && b.getMessage().equals(Component.translatable("menu.multiplayer")))
+                    && children.stream().anyMatch(child -> child instanceof Button b && b.getMessage().getString().equals("Join session"))
+                    && children.stream().anyMatch(child -> child instanceof Button b && b.getMessage().equals(Component.translatable("menu.online")));
+        });
+        if (!titleCorrect) throw new AssertionError("The title screen must replace Multiplayer with Join session and retain Realms");
+        context.clickScreenButton("Join session");
+        context.waitForScreen(JoinSessionScreen.class);
+        context.setScreen(TitleScreen::new);
+        ServerData sessionServer = new ServerData("Nimbus Nova", "127.0.0.1:25565", ServerData.Type.OTHER);
+        ServerData otherServer = new ServerData("Other", "127.0.0.1:25565", ServerData.Type.OTHER);
+        SessionIdentity.prepare("MoonTest42", true, sessionServer);
+        if (SessionIdentity.takeLogin(otherServer) != null || !"MoonTest42".equals(SessionIdentity.takeLogin(sessionServer)))
+            throw new AssertionError("The chosen offline name must apply only to its session connection");
+        SessionIdentity.prepare("A name with spaces", true, sessionServer);
+        String mapped = SessionIdentity.takeLogin(sessionServer);
+        if (mapped == null || !mapped.matches("[A-Za-z0-9_]{1,16}") || !mapped.equals(SessionIdentity.minecraftName("A name with spaces")))
+            throw new AssertionError("Unrestricted roster names need a stable valid Minecraft profile name");
+        SessionIdentity.prepare("MoonTest42", false, sessionServer);
+        if (SessionIdentity.takeLogin(sessionServer) != null)
+            throw new AssertionError("Online servers must retain the authenticated profile");
         try (final TestSingleplayerContext world = context.worldBuilder().create()) {
             context.waitFor(client -> NimbusNovaClient.snapshot != null && GuidedMissionClient.progress() != null);
             if (!ObjectiveGuidance.turnLabel(-90).equals("To your left") || !ObjectiveGuidance.turnLabel(90).equals("To your right"))
