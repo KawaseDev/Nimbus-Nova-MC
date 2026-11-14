@@ -132,6 +132,26 @@ public final class TeacherBridge {
                     try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
                 } finally { exchange.close(); }
             });
+            bridge.createContext("/session-mode", exchange -> {
+                try {
+                    String authorization = exchange.getRequestHeaders().getFirst("Authorization");
+                    if (!MessageDigest.isEqual(("Bearer " + token).getBytes(StandardCharsets.UTF_8),
+                            authorization == null ? new byte[0] : authorization.getBytes(StandardCharsets.UTF_8))) {
+                        exchange.sendResponseHeaders(401, -1); return;
+                    }
+                    if (!exchange.getRequestMethod().equals("GET") || !exchange.getRequestURI().getPath().equals("/session-mode")) {
+                        exchange.sendResponseHeaders(404, -1); return;
+                    }
+                    CompletableFuture<Boolean> result = new CompletableFuture<>();
+                    server.execute(() -> result.complete(!server.usesAuthentication()));
+                    byte[] body = ("{\"offline\":" + result.get(3, TimeUnit.SECONDS) + "}").getBytes(StandardCharsets.UTF_8);
+                    exchange.getResponseHeaders().set("Content-Type", "application/json");
+                    exchange.sendResponseHeaders(200, body.length);
+                    exchange.getResponseBody().write(body);
+                } catch (Exception error) {
+                    try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
+                } finally { exchange.close(); }
+            });
             bridge.createContext("/mission", exchange -> {
                 try {
                     String authorization = exchange.getRequestHeaders().getFirst("Authorization");

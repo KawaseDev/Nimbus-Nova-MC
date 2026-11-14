@@ -27,7 +27,7 @@ The distributable is `build/libs/nimbus-nova-mc-0.1.0.jar`; the `-sources.jar` i
 
 `./gradlew runServer` starts a development server. Read and accept Minecraft's EULA yourself in `run/eula.txt` before running it.
 
-Students can use **Join session** on the title screen. Enter a nickname, the teacher's session code, and the session server address shown in the teacher panel.
+Students can use **Join session** on the title screen. Enter a name, the teacher's session code, and the session server address shown in the teacher panel. On an offline test server, valid Minecraft names are used for the connection; other names appear in the teacher roster and receive a stable generated Minecraft name.
 
 ## Play The Darkening Sky
 
@@ -185,7 +185,7 @@ export SESSION_GAME_ADDRESS=192.168.1.10:25565
 export MINECRAFT_HOST=192.168.1.10
 ```
 
-Replace `192.168.1.10` with the server computer's actual LAN address, and allow TCP ports 3002 and 25565 through its firewall. Students need Minecraft Java Edition, a valid Minecraft account, Fabric, and the mod. The session code is only for locating the server; it does not replace Minecraft authentication or restrict direct server connections. The code expires after one hour and renews automatically while the server is running. Restarting the server issues a new code. Reservations and nicknames are held in memory and are lost when the corresponding process restarts. Starting a session does not reset the world.
+Replace `192.168.1.10` with the server computer's actual LAN address, and allow TCP ports 3002 and 25565 through its firewall. Students need Minecraft Java Edition, Fabric, and the mod. Online-mode servers also require valid Minecraft accounts. Offline mode is for trusted testing: names are not authenticated and anyone on the network can impersonate a player. The session code locates the server; it does not restrict direct server connections. The code expires after one hour and renews automatically while the server is running. Restarting the server issues a new code. Reservations and nicknames are held in memory and are lost when the corresponding process restarts. Starting a session does not reset the world.
 
 Create a teacher account on the sign-in screen. Usernames use 3–32 letters, digits, dots, underscores, or hyphens; a password is required. Accounts are stored in `teacher-panel/data/teachers.json` with salted password hashes. Keep a backup of that file; deleting it deletes the accounts. Sessions expire after 12 hours or when the server restarts. There is no password reset yet.
 

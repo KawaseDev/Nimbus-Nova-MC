@@ -1,7 +1,7 @@
 const crypto = require('node:crypto');
 const http = require('node:http');
 
-function createSessions({ gameAddress = '127.0.0.1:25565', discoveryAddress = '127.0.0.1:3002', checkServer }) {
+function createSessions({ gameAddress = '127.0.0.1:25565', discoveryAddress = '127.0.0.1:3002', checkServer, isOffline = async () => false }) {
   function address(value, expectedPort) {
     let url;
     try { url = new URL(`http://${value}`); } catch { throw new Error('Invalid session address'); }
@@ -72,7 +72,9 @@ function createSessions({ gameAddress = '127.0.0.1:25565', discoveryAddress = '1
       if (!current || current.expires <= Date.now() || code.toUpperCase() !== current.code) { response.writeHead(404).end(); return; }
       if (!await checkServer()) { response.writeHead(503).end(); return; }
       response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      response.end(JSON.stringify({ address: gameAddress }));
+      let offline = false;
+      try { offline = await isOffline() === true; } catch { /* Keep authenticated login as the default. */ }
+      response.end(JSON.stringify({ address: gameAddress, offline }));
     });
   }
   return { create, reserve, expire, end, clear, teacher, listener };

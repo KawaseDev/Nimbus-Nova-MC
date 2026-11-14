@@ -3,6 +3,7 @@
   "package": "cc.nimbusnova.mc.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": ["EntityGravityMixin", "LivingFallDamageMixin"],
+  "client": ["SessionLoginMixin"],
   "injectors": {
     "defaultRequire": 1
   }

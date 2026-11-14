@@ -237,7 +237,13 @@ if (require.main === module) {
   const gameAddress = process.env.SESSION_GAME_ADDRESS || `127.0.0.1:${minecraftPort}`;
   if (!['127.0.0.1', 'localhost', '::1'].includes(discoveryHost) && !process.env.SESSION_ADDRESS)
     throw new Error('Set SESSION_ADDRESS to the LAN address and port 3002');
-  const sessions = createSessions({ gameAddress, discoveryAddress, checkServer: () => checkServer(minecraftHost, minecraftPort) });
+  const sessions = createSessions({ gameAddress, discoveryAddress, checkServer: () => checkServer(minecraftHost, minecraftPort), isOffline: async () => {
+    const bridge = bridgeAddress(process.env.BRIDGE_URL);
+    if (!bridge || !process.env.BRIDGE_TOKEN || process.env.BRIDGE_TOKEN.length < 32) return false;
+    const response = await fetch(new URL('/session-mode', bridge), { headers: { Authorization: `Bearer ${process.env.BRIDGE_TOKEN}` }, signal: AbortSignal.timeout(4000), redirect: 'error' });
+    if (!response.ok) return false;
+    return (await response.json()).offline === true;
+  } });
   const listener = sessions.listener();
   listener.listen(discoveryPort, discoveryHost, () => {
     createServer({ sessions, teacherToken: process.env.TEACHER_TOKEN, bridgeToken: process.env.BRIDGE_TOKEN, bridgeUrl: process.env.BRIDGE_URL }).listen(panelPort, '127.0.0.1', () => {

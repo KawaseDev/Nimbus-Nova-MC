@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 final class JoinSessionScreen extends Screen {
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
     private static @Nullable String pendingNickname;
+    private record SessionTarget(String address, boolean offline) { }
     private final Screen parent;
     private @Nullable EditBox nickname;
     private @Nullable EditBox code;
@@ -97,22 +98,25 @@ final class JoinSessionScreen extends Screen {
                     if (response.statusCode() != 200) throw new IllegalStateException();
                     byte[] bytes = stream.readNBytes(4097);
                     if (bytes.length > 4096) throw new IllegalStateException();
-                    String address = JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).getAsJsonObject().get("address").getAsString();
+                    JsonObject resolved = JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).getAsJsonObject();
+                    String address = resolved.get("address").getAsString();
                     if (!ServerAddress.isValidAddress(address) || !ServerAddress.parseString(address).getHost().equalsIgnoreCase(base.getHost()))
                         throw new IllegalStateException();
-                    return address;
+                    return new SessionTarget(address, resolved.has("offline") && resolved.get("offline").isJsonPrimitive() && resolved.get("offline").getAsBoolean());
                 }
             } catch (Exception error) { throw new java.util.concurrent.CompletionException(error); }
-        }).whenComplete((address, error) -> minecraft.execute(() -> {
+        }).whenComplete((target, error) -> minecraft.execute(() -> {
             if (minecraft.gui.screen() != this) return;
-            if (error != null || address == null) {
+            if (error != null || target == null) {
                 status = "Could not find the session. Check the code and server.";
                 if (join != null) join.active = true;
                 return;
             }
             pendingNickname = name;
-            ConnectScreen.startConnecting(this, minecraft, ServerAddress.parseString(address),
-                    new ServerData("Nimbus Nova", address, ServerData.Type.OTHER), false, null);
+            ServerData server = new ServerData("Nimbus Nova", target.address(), ServerData.Type.OTHER);
+            SessionIdentity.prepare(name, target.offline(), server);
+            ConnectScreen.startConnecting(this, minecraft, ServerAddress.parseString(target.address()),
+                    server, false, null);
         }));
     }
 
