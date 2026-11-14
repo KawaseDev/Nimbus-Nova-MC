@@ -37,6 +37,7 @@
   <div class="grid">
     <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p id="mission-status" role="status">Mission unavailable.</p><div class="actions"><button id="mission-start" disabled aria-label="Start mission" title="Start mission">▶</button><button id="mission-pause" disabled aria-label="Pause mission" title="Pause mission">❚❚</button><button id="mission-end" disabled aria-label="End mission" title="End mission">■</button><button id="mission-reset" disabled>Reset</button></div><p id="mission-error" role="alert"></p></section>
     <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p><div class="actions"><button id="power" disabled>Start server</button><button id="restart" disabled>Restart</button></div><p id="server-error" role="alert"></p></section>
+    <section class="card" aria-labelledby="world-title"><h2 id="world-title">Mars outpost</h2><div class="actions"><button id="create-world" disabled>Create outpost</button></div><p id="world-status" role="status">Server unavailable.</p></section>
     <section class="card wide" aria-labelledby="crew-title"><h2 id="crew-title">Player roster</h2><div class="empty" id="roster" role="status" aria-live="polite">Loading roster…</div><p id="roster-error" role="alert"></p></section>
     <section class="card wide" aria-labelledby="message-title"><h2 id="message-title">Message crew</h2><form class="actions" id="message-form"><input id="message" aria-label="Message" maxlength="200" required><button type="submit">Send</button></form><p id="message-result" role="status"></p></section>
     <section class="card" aria-labelledby="mission-title"><div class="eyebrow">Mission library</div><h2 id="mission-title">The Darkening Sky</h2><p class="tag">In development</p></section>
@@ -147,6 +148,32 @@
   });
   refreshMission();
   setInterval(refreshMission, 2000);
+  let worldBusy = false;
+  async function refreshWorld() {
+    const button = document.getElementById('create-world');
+    const label = document.getElementById('world-status');
+    try {
+      const response = await fetch('/api/world', { cache: 'no-store' });
+      if (!response.ok) throw new Error();
+      const { status } = await response.json();
+      const labels = { idle: '', creating: 'Creating…', ready: 'Outpost ready.', failed: 'Creation failed. Check the server console.' };
+      label.textContent = labels[status];
+      button.disabled = worldBusy || status === 'creating';
+    } catch { button.disabled = true; label.textContent = 'Server unavailable.'; }
+  }
+  document.getElementById('create-world').addEventListener('click', async () => {
+    if (worldBusy) return;
+    worldBusy = true;
+    document.getElementById('create-world').disabled = true;
+    try {
+      const response = await fetch('/api/world', { method: 'POST' });
+      if (!response.ok) throw new Error();
+      document.getElementById('world-status').textContent = 'Creating…';
+    } catch { document.getElementById('world-status').textContent = 'Could not start creation.'; }
+    finally { worldBusy = false; await refreshWorld(); }
+  });
+  refreshWorld();
+  setInterval(refreshWorld, 3000);
   async function refreshRoster() {
     const roster = document.getElementById('roster');
     try {

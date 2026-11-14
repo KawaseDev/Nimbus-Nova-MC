@@ -3,6 +3,7 @@ package cc.nimbusnova.mc.bridge;
 import cc.nimbusnova.mc.NimbusNovaMod;
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
+import cc.nimbusnova.mc.world.MarsTrainingMap;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.sun.net.httpserver.HttpServer;
@@ -19,9 +20,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public final class TeacherBridge {
     private static HttpServer bridge;
+    private static final AtomicReference<String> worldStatus = new AtomicReference<>("idle");
     // shortcut: duplicate command IDs are remembered only until server restart; persist them with sessions.
     private static final Map<UUID, String> completed = new LinkedHashMap<>();
 
@@ -30,6 +33,7 @@ public final class TeacherBridge {
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             if (bridge != null) { bridge.stop(0); bridge = null; }
             completed.clear();
+            worldStatus.set("idle");
         });
     }
 
@@ -185,6 +189,40 @@ public final class TeacherBridge {
                     exchange.sendResponseHeaders(sent.get(3, TimeUnit.SECONDS), -1);
                 } catch (Exception error) {
                     NimbusNovaMod.LOGGER.warn("Teacher message failed", error);
+                    try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
+                } finally { exchange.close(); }
+            });
+            bridge.createContext("/world", exchange -> {
+                try {
+                    String authorization = exchange.getRequestHeaders().getFirst("Authorization");
+                    if (!MessageDigest.isEqual(("Bearer " + token).getBytes(StandardCharsets.UTF_8),
+                            authorization == null ? new byte[0] : authorization.getBytes(StandardCharsets.UTF_8))) {
+                        exchange.sendResponseHeaders(401, -1); return;
+                    }
+                    if (!exchange.getRequestURI().getPath().equals("/world")) { exchange.sendResponseHeaders(404, -1); return; }
+                    if (exchange.getRequestMethod().equals("POST")) {
+                        if (worldStatus.getAndSet("creating").equals("creating")) { exchange.sendResponseHeaders(409, -1); return; }
+                        server.execute(() -> {
+                            try {
+                                worldStatus.set(MarsTrainingMap.create(server.createCommandSourceStack()) == 1 ? "ready" : "failed");
+                            } catch (Exception error) {
+                                NimbusNovaMod.LOGGER.warn("Mars outpost creation failed", error);
+                                worldStatus.set("failed");
+                            }
+                        });
+                        exchange.sendResponseHeaders(202, -1);
+                        return;
+                    }
+                    if (!exchange.getRequestMethod().equals("GET")) { exchange.sendResponseHeaders(405, -1); return; }
+                    JsonObject result = new JsonObject();
+                    result.addProperty("status", worldStatus.get());
+                    byte[] body = result.toString().getBytes(StandardCharsets.UTF_8);
+                    exchange.getResponseHeaders().set("Content-Type", "application/json");
+                    exchange.getResponseHeaders().set("Cache-Control", "no-store");
+                    exchange.sendResponseHeaders(200, body.length);
+                    exchange.getResponseBody().write(body);
+                } catch (Exception error) {
+                    NimbusNovaMod.LOGGER.warn("Teacher world request failed", error);
                     try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
                 } finally { exchange.close(); }
             });

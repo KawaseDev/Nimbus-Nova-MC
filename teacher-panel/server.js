@@ -70,6 +70,27 @@ function createServer(options = {}) {
       } catch { response.writeHead(503).end(); }
       return;
     }
+    if (request.url === '/api/world') {
+      if (!accounts.current(request)) { response.writeHead(401).end(); return; }
+      if (request.method !== 'GET' && (request.method !== 'POST' || request.headers.origin !== `http://${request.headers.host}`)) {
+        response.writeHead(403).end(); return;
+      }
+      const bridge = bridgeAddress(options.bridgeUrl);
+      if (!bridge || !options.bridgeToken || options.bridgeToken.length < 32) { response.writeHead(503).end(); return; }
+      try {
+        const result = await fetch(new URL('/world', bridge), {
+          method: request.method, headers: { Authorization: `Bearer ${options.bridgeToken}` },
+          signal: AbortSignal.timeout(4000), redirect: 'error'
+        });
+        if (request.method === 'POST') { response.writeHead(result.status === 202 ? 202 : result.status === 409 ? 409 : 503).end(); return; }
+        if (!result.ok) throw new Error();
+        const data = await result.json();
+        if (!['idle', 'creating', 'ready', 'failed'].includes(data.status)) throw new Error();
+        response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        response.end(JSON.stringify(data));
+      } catch { response.writeHead(503).end(); }
+      return;
+    }
     if (request.url === '/api/server') {
       if (!accounts.current(request)) { response.writeHead(401).end(); return; }
       if (request.method !== 'POST' || request.headers.origin !== `http://${request.headers.host}` ||

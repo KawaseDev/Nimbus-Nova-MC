@@ -263,3 +263,36 @@ test('mission controls and crew messages require a teacher and forward only vali
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('world creation requires a teacher and forwards only a fixed request', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const http = require('node:http');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-world-'));
+  const token = 'b'.repeat(32);
+  let creations = 0;
+  const bridge = http.createServer((request, response) => {
+    assert.equal(request.headers.authorization, `Bearer ${token}`);
+    assert.equal(request.url, '/world');
+    if (request.method === 'POST') { creations++; response.writeHead(202).end(); }
+    else response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ status: 'idle' }));
+  });
+  await new Promise(resolve => bridge.listen(0, '127.0.0.1', resolve));
+  const server = createServer({ accountsFile: path.join(dir, 'users.json'), bridgeToken: token, bridgeUrl: `http://127.0.0.1:${bridge.address().port}` });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal((await fetch(`${base}/api/world`)).status, 401);
+    const registration = await fetch(`${base}/api/account/register`, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'teacher', password: 'x' }) });
+    const cookie = registration.headers.get('set-cookie').split(';')[0];
+    assert.equal((await (await fetch(`${base}/api/world`, { headers: { Cookie: cookie } })).json()).status, 'idle');
+    assert.equal((await fetch(`${base}/api/world`, { method: 'POST', headers: { Cookie: cookie, Origin: 'http://evil.example' } })).status, 403);
+    assert.equal((await fetch(`${base}/api/world`, { method: 'POST', headers: { Cookie: cookie, Origin: base } })).status, 202);
+    assert.equal(creations, 1);
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+    await new Promise(resolve => bridge.close(resolve));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
