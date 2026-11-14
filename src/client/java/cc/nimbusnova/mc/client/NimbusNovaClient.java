@@ -10,6 +10,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -38,9 +39,23 @@ public final class NimbusNovaClient implements ClientModInitializer {
         DustStormEffects.register();
         ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
             if (screen instanceof TitleScreen) {
-                Screens.getWidgets(screen).add(Button.builder(Component.literal("Join session"),
-                        button -> client.setScreenAndShow(new JoinSessionScreen(screen)))
-                        .bounds(width - 110, 10, 100, 20).build());
+                var widgets = Screens.getWidgets(screen);
+                for (int i = 0; i < widgets.size(); i++) {
+                    AbstractWidget widget = widgets.get(i);
+                    if (widget instanceof Button && widget.getMessage().equals(Component.translatable("menu.online"))) {
+                        int x = widget.getX(), y = widget.getY();
+                        for (AbstractWidget lower : widgets) {
+                            if (lower.getY() >= y && lower.getY() <= y + 48
+                                    && lower.getX() >= x - 24 && lower.getX() <= x + 200) {
+                                lower.setY(lower.getY() + 24);
+                            }
+                        }
+                        widgets.add(i, Button.builder(Component.literal("Join session"),
+                                button -> client.setScreenAndShow(new JoinSessionScreen(screen)))
+                                .bounds(x, y, 200, 20).build());
+                        break;
+                    }
+                }
             }
         });
         consoleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nimbus_nova.console", InputConstants.KEY_J,
