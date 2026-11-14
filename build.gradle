@@ -55,6 +55,24 @@ tasks.register('missionSelfTest', JavaExec) {
 
 check.dependsOn missionSelfTest
 
+tasks.register('contentAssetTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.content.ContentAssetTest'
+    enableAssertions = true
+}
+
+check.dependsOn contentAssetTest
+
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = 'nimbus-nova-client-test'
+        enableGameTests = false
+        enableClientGameTests = true
+    }
+}
+
 jar {
     def projectName = project.name
     inputs.property 'projectName', projectName

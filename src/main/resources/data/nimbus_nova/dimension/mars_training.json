@@ -1,0 +1,30 @@
+{
+  "type": "nimbus_nova:mars_training",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "nimbus_nova:mars_training",
+      "features": false,
+      "lakes": false,
+      "layers": [
+        {
+          "block": "minecraft:bedrock",
+          "height": 1
+        },
+        {
+          "block": "minecraft:red_sandstone",
+          "height": 126
+        },
+        {
+          "block": "minecraft:red_terracotta",
+          "height": 1
+        },
+        {
+          "block": "minecraft:red_sand",
+          "height": 1
+        }
+      ],
+      "structure_overrides": []
+    }
+  }
+}

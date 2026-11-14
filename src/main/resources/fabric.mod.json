@@ -3,7 +3,7 @@
   "id": "nimbus_nova",
   "version": "${version}",
   "name": "Nimbus Nova MC",
-  "description": "A junior astronaut mission trainer for NASA Space Apps 2026. Starter template; gameplay is in development.",
+  "description": "A cooperative Mars mission prototype with a shared power budget, oxygen, crew roles, outpost, equipment and mission HUD.",
   "authors": ["Nimbus Nova team"],
   "contact": {
     "sources": "https://github.com/KawaseDev/Nimbus-Nova-MC",
@@ -22,6 +22,6 @@
     "fabric-api": ">=0.165.2+26.3"
   },
   "custom": {
-    "ai_assistance": "OpenAI Codex assisted with repository scaffolding, build configuration, Java entry points, and documentation. See CREDITS.md."
+    "ai_assistance": "OpenAI Codex assisted with Java implementation, HUD, authored map, original pixel artwork, tests and documentation. See CREDITS.md."
   }
 }
