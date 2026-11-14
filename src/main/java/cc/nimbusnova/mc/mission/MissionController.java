@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.mission;
 
 import cc.nimbusnova.mc.ship.ShipController;
+import cc.nimbusnova.mc.world.ship.ShipMap;
 
 import cc.nimbusnova.mc.content.ModBlocks;
 import cc.nimbusnova.mc.content.ModContent;
@@ -673,6 +674,10 @@ public final class MissionController {
     }
 
     public void openConsole(final ServerPlayer player) {
+        if (player.level().dimension().equals(ShipMap.DIMENSION)) {
+            ShipController.get(player.level().getServer()).openConsole(player);
+            return;
+        }
         if (!ServerPlayNetworking.canSend(player, OpenConsolePayload.TYPE)) return;
 
         broadcast(player.level().getServer());

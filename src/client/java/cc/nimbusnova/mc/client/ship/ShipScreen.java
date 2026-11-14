@@ -3,7 +3,6 @@ package cc.nimbusnova.mc.client.ship;
 import cc.nimbusnova.mc.client.MissionButton;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.render.NovaScreen;
-import cc.nimbusnova.mc.mission.MissionPreparation;
 import cc.nimbusnova.mc.moon.MoonMission;
 import cc.nimbusnova.mc.ship.ShipActionPayload;
 import cc.nimbusnova.mc.ship.ShipPayload;
@@ -22,6 +21,7 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
     private ShipPayload state;
     private boolean tablet, pending;
     private int lessonPage, left, top, panelWidth, panelHeight;
+    private int selectedCartridge = 1;
 
     public ShipScreen(final ShipPayload state) {
         super(Component.literal("Return Window"));
@@ -101,31 +101,56 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
         }
 
         if (state.complete()) return;
-        if (circuit()) {
-            final int cellSize = Math.min(52, (panelHeight - 130) / 3);
-            for (int cell = 0; cell < 9; cell++)
-                addRenderableWidget(new CircuitTile(left + 18 + cell % 3 * (cellSize + 3), top + 64 + cell / 3 * (cellSize + 3), cellSize, cell));
-        } else if (state.task().equals("PILOT") || state.task().equals("COMMS") || filter()) {
-            final int spacing = (panelWidth - 28) / 3;
-            for (int axis = 0; axis < 3; axis++) {
-                final int centerX = left + 14 + spacing * axis + spacing / 2;
-                addRenderableWidget(new DialButton(centerX - 31, top + 116, "Decrease " + dialName(axis), "-", axis * 2 + 1));
-                addRenderableWidget(new DialButton(centerX + 4, top + 116, "Increase " + dialName(axis), "+", axis * 2));
-            }
-            taskButton(left + 14, top + 150, panelWidth - 28, filter() ? "Activate CO2 filter" : "Validate alignment", 6);
+        final int bodyWidth = panelWidth - 28;
+        if (fuses()) {
+            final int cardWidth = (bodyWidth - 15) / 4;
+            for (int cartridge = 1; cartridge <= 4; cartridge++)
+                addRenderableWidget(new FuseCard(left + 14 + (cartridge - 1) * (cardWidth + 5), top + 57, cardWidth, cartridge));
+            for (int slot = 0; slot < 4; slot++)
+                addRenderableWidget(new FuseSocket(left + 14 + slot * (cardWidth + 5), top + 111, cardWidth, slot));
+        } else if (state.task().equals("PILOT") && state.stage().equals("DOCKING")) {
+            final int controlX = left + 136;
+            taskButton(controlX + 34, top + 76, 32, "Up", 2);
+            taskButton(controlX, top + 102, 32, "Left", 0);
+            taskButton(controlX + 34, top + 102, 48, "Coast", 4);
+            taskButton(controlX + 84, top + 102, 38, "Right", 1);
+            taskButton(controlX + 34, top + 128, 48, "Down", 3);
+            taskButton(controlX + 127, top + 128, Math.max(91, bodyWidth - 249), "Capture port", 5);
+        } else if (state.task().equals("PILOT") && state.stage().equals("NAVIGATION")) {
+            final int chartWidth = bodyWidth * 2 / 3, chartHeight = Math.min(109, panelHeight - 118);
+            for (int star = 0; star < 6; star++)
+                addRenderableWidget(new StarButton(left + 14 + (int) (ShipPuzzleGraphics.STAR_X[star] * chartWidth) - 7,
+                        top + 58 + (int) (ShipPuzzleGraphics.STAR_Y[star] * chartHeight) - 7, star));
+            taskButton(left + chartWidth + 24, top + 143, bodyWidth - chartWidth - 10, "Fix heading", 6);
+        } else if (state.task().equals("PILOT") && state.stage().equals("RETURN")) {
+            taskButton(left + 14, top + 145, 95, "Ignite engine", 0);
+            taskButton(left + 115, top + 145, 95, "Cut off engine", 1);
+        } else if (state.task().equals("COMMS")) {
+            taskButton(left + 69, top + 145, 27, "F-", 1);
+            taskButton(left + 99, top + 145, 27, "F+", 0);
+            taskButton(left + 183, top + 145, 27, "G-", 3);
+            taskButton(left + 213, top + 145, 27, "G+", 2);
+            taskButton(left + bodyWidth - 73, top + 145, 87, "Transmit", 4);
+        } else if (filter()) {
+            final String[] parts = { "Housing", "Fan", "Seal", "Cartridge" };
+            final int partWidth = (bodyWidth - 15) / 4;
+            for (int part = 0; part < 4; part++)
+                taskButton(left + 14 + part * (partWidth + 5), top + 119, partWidth, parts[part], part);
+            taskButton(left + 14, top + 145, (bodyWidth - 5) / 2, "Pressure test", 4);
+            taskButton(left + 19 + (bodyWidth - 5) / 2, top + 145, (bodyWidth - 5) / 2, "Activate scrubber", 5);
         } else if (state.task().equals("ENGINE") && state.stage().equals("EMERGENCY") || state.task().equals("GALLEY") && state.stage().equals("RESTART")) {
-            final String[] loads = state.task().equals("ENGINE") ? new String[] { "Essential power", "Science load", "Heating load" }
-                    : new String[] { "Guidance heat", "Filter heat", "Laboratory heat" };
-            final int buttonWidth = (panelWidth - 38) / 3;
+            final String[] loads = state.task().equals("ENGINE") ? new String[] { "Life support", "Science", "Comfort heat" }
+                    : new String[] { "Guidance", "Air loop", "Laboratory" };
+            final int buttonWidth = (bodyWidth - 10) / 3;
             for (int load = 0; load < 3; load++)
-                taskButton(left + 14 + load * (buttonWidth + 5), top + 91, buttonWidth,
+                taskButton(left + 14 + load * (buttonWidth + 5), top + 116, buttonWidth,
                         loads[load] + ((state.board() & 1 << load) != 0 ? " ON" : " OFF"), load);
-            taskButton(left + 14, top + 131, panelWidth - 28, state.task().equals("ENGINE") ? "Isolate failed engine" : "Commit heating budget", 3);
+            taskButton(left + 14, top + 145, bodyWidth, state.task().equals("ENGINE") ? "Isolate failed engine" : "Commit heating budget", 3);
         } else if (state.task().equals("STORAGE") && state.stage().equals("PREPARATION")) {
-            taskButton(left + 14, top + 90, panelWidth - 28, "Load repair spares", 0);
-            taskButton(left + 14, top + 122, panelWidth - 28, "Load extra science cargo", 1);
+            taskButton(left + 14, top + 90, bodyWidth, "Load repair spares", 0);
+            taskButton(left + 14, top + 122, bodyWidth, "Load extra science cargo", 1);
         } else
-            taskButton(left + 14, top + 100, panelWidth - 28, switch (state.task()) {
+            taskButton(left + 14, top + 100, bodyWidth, switch (state.task()) {
                 case "SCIENCE" -> "Run sample experiment";
                 case "MEDICAL" -> "Complete crew health check";
                 case "GALLEY" -> "Allocate crew water";
@@ -136,13 +161,7 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
             }, 0);
     }
 
-    private String dialName(final int axis) {
-        return filter() ? new String[] { "Intake", "Pump", "Vent" }[axis]
-                : state.task().equals("COMMS") ? new String[] { "Bearing", "Frequency", "Gain" }[axis]
-                : new String[] { "Yaw", "Pitch", "Burn timing" }[axis];
-    }
-
-    private boolean circuit() {
+    private boolean fuses() {
         return state.task().equals("ENGINE") && (state.stage().equals("PREPARATION") || state.stage().equals("RESTART"));
     }
 
@@ -180,27 +199,8 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
         } else if (state.complete()) {
             NovaRenderer.text(graphics, "Station check complete", left + 14, top + 73, 18, SUCCESS);
             NovaRenderer.wrap(graphics, "Close this panel and follow your next crew objective.", left + 14, top + 108, panelWidth - 28, 10, 3, TEXT);
-        } else if (circuit()) {
-            final int cellSize = Math.min(52, (panelHeight - 130) / 3), infoX = left + 27 + 3 * (cellSize + 3);
-            final int infoWidth = panelWidth - (infoX - left) - 14;
-            NovaRenderer.wrap(graphics, "Rotate the cable tiles. Connect the left supply to the right output.", infoX, top + 64, infoWidth, 10, 4, TEXT);
-            NovaRenderer.wrap(graphics, "Bright lines carry power. The repaired path automatically restores the circuit.", infoX, top + 116, infoWidth, 9, 4, MUTED);
-        } else if (state.task().equals("PILOT") || state.task().equals("COMMS") || filter()) {
-            final int spacing = (panelWidth - 28) / 3;
-            for (int axis = 0; axis < 3; axis++) {
-                final int centerX = left + 14 + spacing * axis + spacing / 2;
-                final String label = dialName(axis) + ": " + (state.board() >> axis * 3 & 7);
-                NovaRenderer.text(graphics, label, centerX - NovaRenderer.width(label, 10) / 2, top + 70, 10, TEXT);
-                final String target = "Target " + (filter() ? new int[] { 2, 2, 0 }[axis] : state.aux() >> axis * 3 & 7);
-                NovaRenderer.text(graphics, target, centerX - NovaRenderer.width(target, 9) / 2, top + 90, 9, ACCENT);
-            }
-            if (filter()) {
-                final String status = "Pressure " + (state.aux() & 255) + " / Flow " + (state.aux() >> 8 & 255)
-                        + " / Stable " + (state.aux() >>> 16) + "/3s";
-                NovaRenderer.text(graphics, status, left + 14, top + 54, 8, MUTED);
-            }
         } else
-            NovaRenderer.wrap(graphics, state.instruction(), left + 14, top + 54, panelWidth - 28, 9, 2, TEXT);
+            drawTask(graphics);
 
         if (state.incident().isEmpty())
             NovaRenderer.wrap(graphics, pending ? "Waiting for the crew server..." : state.feedback(), left + 14,
@@ -213,47 +213,123 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
         return false;
     }
 
-    private final class DialButton extends Button {
-        private final String symbol;
+    private void drawTask(final GuiGraphicsExtractor graphics) {
+        final int bodyWidth = panelWidth - 28;
+        if (fuses()) {
+            NovaRenderer.text(graphics, "Choose a rated cartridge, then tap its matching bus socket.", left + 14, top + 94, 8, MUTED);
+        } else if (state.task().equals("PILOT") && state.stage().equals("DOCKING")) {
+            ShipPuzzleGraphics.docking(graphics, state, left + 14, top + 57, 106);
+            final int velocityX = (state.board() >> 8 & 7) - 2, velocityY = (state.board() >> 11 & 7) - 2;
+            NovaRenderer.text(graphics, "Relative drift " + velocityX + ", " + velocityY, left + 136, top + 58, 9, ACCENT);
+            NovaRenderer.wrap(graphics, "Thrust changes drift. Coast to move. Brake with opposite thrust.", left + 267, top + 78, bodyWidth - 253, 8, 4, MUTED);
+            NovaRenderer.text(graphics, "Capture inside the green box at zero drift.", left + 136, top + 156, 7, MUTED);
+        } else if (state.task().equals("PILOT") && state.stage().equals("NAVIGATION")) {
+            final int chartWidth = bodyWidth * 2 / 3, chartHeight = Math.min(109, panelHeight - 118);
+            ShipPuzzleGraphics.stars(graphics, state, left + 14, top + 58, chartWidth, chartHeight);
+            ShipPuzzleGraphics.referenceStars(graphics, state.aux(), left + chartWidth + 24, top + 58, bodyWidth - chartWidth - 10, 53);
+            NovaRenderer.text(graphics, "Match the reference triangle", left + 20, top + 159, 7, MUTED);
+        } else if (state.task().equals("PILOT") && state.stage().equals("RETURN")) {
+            ShipPuzzleGraphics.burn(graphics, state, left + 14, top + 57, bodyWidth, 78);
+            NovaRenderer.text(graphics, "Burn " + (state.board() & 255) + " / cut off at 6-8", left + 219, top + 151, 9,
+                    (state.board() & 256) != 0 ? WARNING : MUTED);
+        } else if (state.task().equals("COMMS")) {
+            ShipPuzzleGraphics.signal(graphics, state, left + 14, top + 69, bodyWidth, 58);
+            NovaRenderer.text(graphics, "Match the gray reference wave. Avoid flat clipped peaks.", left + 14, top + 55, 8, MUTED);
+            NovaRenderer.text(graphics, "Frequency " + (state.board() & 15), left + 14, top + 133, 8, ACCENT);
+            NovaRenderer.text(graphics, "Gain " + (state.board() >> 4 & 15), left + 145, top + 133, 8, ACCENT);
+            NovaRenderer.text(graphics, "Quality " + (state.aux() & 255) + "%" + ((state.aux() & 256) != 0 ? " / CLIPPED" : ""), left + 14, top + 151, 8, MUTED);
+        } else if (filter()) {
+            ShipPuzzleGraphics.adapter(graphics, state, left + 14, top + 57, bodyWidth, 53);
+            NovaRenderer.text(graphics, "Match connectors left to right. Pressure test " + state.aux() + "/3s.", left + 14, top + 108, 8, MUTED);
+        } else if (state.task().equals("GALLEY") && state.stage().equals("RESTART")) {
+            ShipPuzzleGraphics.heating(graphics, state, left + 14, top + 54, bodyWidth, 57);
+            NovaRenderer.text(graphics, "Plan " + ((state.board() & 4) != 0 ? "20" : "8") + " energy / 3 water. Guidance and air loop are essential.", left + 14, top + 104, 8, MUTED);
+        } else if (state.task().equals("ENGINE") && state.stage().equals("EMERGENCY")) {
+            ShipPuzzleGraphics.heating(graphics, state, left + 14, top + 54, bodyWidth, 57);
+            NovaRenderer.text(graphics, "Keep life support powered. Isolate science and comfort loads.", left + 14, top + 104, 8, MUTED);
+        } else
+            NovaRenderer.wrap(graphics, state.instruction(), left + 14, top + 54, bodyWidth, 9, 2, TEXT);
+    }
 
-        private DialButton(final int x, final int y, final String label, final String symbol, final int action) {
-            super(x, y, 27, 23, Component.literal(label), _ -> sendTaskAction(action), DEFAULT_NARRATION);
-            this.symbol = symbol;
-            active = !pending && !state.phase().equals("PAUSED");
+    private final class StarButton extends Button {
+        private final int star;
+
+        private StarButton(final int x, final int y, final int star) {
+            super(x, y, 14, 14, Component.literal("Toggle navigation star " + (char) ('A' + star)), _ -> sendTaskAction(star), DEFAULT_NARRATION);
+            this.star = star;
+            active = !pending;
         }
 
         @Override
         protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
-            NovaRenderer.rect(graphics, getX(), getY(), width, height, 5, isHoveredOrFocused() ? BORDER : SURFACE);
-            NovaRenderer.text(graphics, symbol, getX() + (width - NovaRenderer.width(symbol, 13)) / 2, getY() + 3, 13, active ? TEXT : MUTED);
+            final boolean selected = (state.board() & 1 << star) != 0;
+            final boolean reliable = (state.aux() & 1 << star) != 0;
+            if (reliable) {
+                NovaRenderer.glow(graphics, getX() + 3, getY() + 3, 8, 8, 4, 1.5F, BORDER);
+                NovaRenderer.rect(graphics, getX() + 5, getY() + 5, 4, 4, 1, TEXT);
+                NovaRenderer.rect(graphics, getX() + 6.5F, getY() + 1, 1, 12, 0, TEXT);
+                NovaRenderer.rect(graphics, getX() + 1, getY() + 6.5F, 12, 1, 0, TEXT);
+            } else if (star == 0)
+                NovaRenderer.glow(graphics, getX(), getY(), width, height, 7, 5, MUTED);
+            else if (star == 2) {
+                NovaRenderer.rect(graphics, getX() + 2, getY() + 5, 4, 4, 2, MUTED);
+                NovaRenderer.rect(graphics, getX() + 8, getY() + 5, 4, 4, 2, MUTED);
+            } else {
+                NovaRenderer.rect(graphics, getX() + 1, getY() + 6, 5, 2, 1, BORDER);
+                NovaRenderer.rect(graphics, getX() + 7, getY() + 5, 5, 4, 2, MUTED);
+            }
+            if (selected)
+                NovaRenderer.stroke(graphics, getX() - 2, getY() - 2, width + 4, height + 4, 5, 1, ACCENT);
+            if (isHoveredOrFocused())
+                NovaRenderer.stroke(graphics, getX(), getY(), width, height, 7, 1, WARNING);
+            NovaRenderer.text(graphics, Character.toString((char) ('A' + star)), getX() + 11, getY() - 2, 6, selected ? ACCENT : MUTED);
         }
     }
 
-    private final class CircuitTile extends Button {
-        private final int cell;
+    private final class FuseCard extends Button {
+        private final int cartridge;
 
-        private CircuitTile(final int x, final int y, final int size, final int cell) {
-            super(x, y, size, size, Component.literal("Rotate ship tile " + (cell + 1)), _ -> sendTaskAction(cell), DEFAULT_NARRATION);
-            this.cell = cell;
-            active = !pending && !state.phase().equals("PAUSED");
+        private FuseCard(final int x, final int y, final int cardWidth, final int cartridge) {
+            super(x, y, cardWidth, 29, Component.literal("Choose " + (cartridge * 2 + 2) + " amp cartridge"), _ -> {
+                selectedCartridge = cartridge;
+                rebuildWidgets();
+            }, DEFAULT_NARRATION);
+            this.cartridge = cartridge;
         }
 
         @Override
         protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
-            final boolean powered = (MissionPreparation.energizedCells(state.board()) & 1 << cell) != 0;
-            final float centerX = getX() + width / 2F, centerY = getY() + height / 2F;
             NovaRenderer.rect(graphics, getX(), getY(), width, height, 5, SURFACE);
-            NovaRenderer.stroke(graphics, getX(), getY(), width, height, 5, 0.8F, isHoveredOrFocused() ? ACCENT : BORDER);
-            final int ports = MissionPreparation.powerConnections(cell, state.board());
-            if ((ports & 1) != 0)
-                NovaRenderer.rect(graphics, centerX - 1.5F, getY(), 3, height / 2F, 1, powered ? ACCENT : MUTED);
-            if ((ports & 2) != 0)
-                NovaRenderer.rect(graphics, centerX, centerY - 1.5F, width / 2F, 3, 1, powered ? ACCENT : MUTED);
-            if ((ports & 4) != 0)
-                NovaRenderer.rect(graphics, centerX - 1.5F, centerY, 3, height / 2F, 1, powered ? ACCENT : MUTED);
-            if ((ports & 8) != 0)
-                NovaRenderer.rect(graphics, getX(), centerY - 1.5F, width / 2F, 3, 1, powered ? ACCENT : MUTED);
-            NovaRenderer.rect(graphics, centerX - 3, centerY - 3, 6, 6, 3, powered ? ACCENT : TEXT);
+            NovaRenderer.stroke(graphics, getX(), getY(), width, height, 5, selectedCartridge == cartridge ? 1.5F : 0.5F,
+                    selectedCartridge == cartridge ? ACCENT : BORDER);
+            final float fuseX = getX() + 7, fuseY = getY() + 7;
+            NovaRenderer.rect(graphics, fuseX + 2, fuseY + 2, 24, 13, 2, BORDER);
+            NovaRenderer.rect(graphics, fuseX, fuseY, 24, 13, 2, cartridge % 2 == 0 ? ACCENT : WARNING);
+            NovaRenderer.rect(graphics, fuseX + 3, fuseY + 4, 18, 5, 1, SURFACE);
+            NovaRenderer.text(graphics, cartridge * 2 + 2 + "A", getX() + 39, getY() + 8, 10, TEXT);
+        }
+    }
+
+    private final class FuseSocket extends Button {
+        private final int slot;
+
+        private FuseSocket(final int x, final int y, final int socketWidth, final int slot) {
+            super(x, y, socketWidth, 49, Component.literal("Install cartridge in bus " + (slot + 1)),
+                    _ -> sendTaskAction(slot * 4 + selectedCartridge - 1), DEFAULT_NARRATION);
+            this.slot = slot;
+            active = !pending;
+        }
+
+        @Override
+        protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
+            final int installed = state.board() >> slot * 4 & 15, required = state.aux() >> slot * 4 & 15;
+            NovaRenderer.rect(graphics, getX(), getY(), width, height, 5, SURFACE);
+            NovaRenderer.stroke(graphics, getX() + 5, getY() + 18, width - 10, 24, 3, 1.5F, installed == required ? SUCCESS : BORDER);
+            NovaRenderer.text(graphics, "BUS " + (slot + 1) + " / " + (required * 2 + 2) + "A", getX() + 6, getY() + 5, 7, MUTED);
+            NovaRenderer.text(graphics, installed == 0 ? "Empty" : installed * 2 + 2 + "A", getX() + 12, getY() + 25, 10,
+                    installed == required ? SUCCESS : WARNING);
+            if (isHoveredOrFocused())
+                NovaRenderer.stroke(graphics, getX(), getY(), width, height, 5, 1, ACCENT);
         }
     }
 }

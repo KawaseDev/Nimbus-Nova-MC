@@ -200,3 +200,18 @@ This pass completes the first playable mission's requested systems. Additional s
 Completed verification: Java 25 `build runClientGameTest` passed atmosphere/scan, science stations, original preparation puzzles, incident-learning pauses, shelter/relay response, full mission success and report. Native captures confirm a blue closed field, clear open passage, no legacy plates, revised room surfaces, readable scan progress, personal-air warnings and the mounted first-person rover view. The merge with the teammate's initial Moon sequencing also passes `build` including its self-test. No multiplayer/classroom learning claim is made.
 
 Next proposed build: **Moon Rescue: Return Window**, a separate spacecraft map using the teammate's `MoonMission.RESCUE` sequence. The scaffold exists; it is not a playable second mission yet.
+
+## Spaceship mission: Return Window
+
+- [x] Pull teammate changes and inspect both schematics; use the newer file with lime-wool door markers.
+- [x] Preserve the two-deck layout, ladders and bridge spawn in a bounded, validated runtime import.
+- [x] Replace the supplied pilot, galley, medical, intercom, engine, science, communications, plants, exercise and storage markers with original 3D equipment.
+- [x] Replace lime panels and ordinary iron doors with proximity barriers; omit imported command/inventory NBT.
+- [x] Add teacher selection/lifecycle controls and operator/student ship commands without removing the other missions.
+- [x] Add five crew roles, server-validated station actions, finite supplies, teaching pauses and consequence reports.
+- [x] Complete a native Minecraft rescue attempt and inspect station models, task screens and success report.
+- [ ] Replace the initial reused Mars puzzle mechanics with distinct spacecraft minigames requested during testing.
+- [ ] Inspect the revised minigames and new casing material in Minecraft; rerun the rescue sequence.
+- [ ] Finish the play guide/source notes and push the final batch after checking for another map update.
+
+The initial ship playthrough passed circuits, alignment, emergency isolation, filtering, heating and safe return. The subsequent minigame redesign remains in progress until its own runtime check passes. Classroom-sized multiplayer and learner observation remain open.

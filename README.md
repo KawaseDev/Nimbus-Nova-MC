@@ -148,6 +148,42 @@ The Mars dimension uses **38% of normal Minecraft gravity** for living entities,
 
 This applies the Mars/Earth gravity ratio to Minecraft physics; it is a gameplay approximation, not a calibrated astronaut or atmosphere simulation. Native drag, creative flight, and no-gravity behavior remain intact. Runtime checks measured jumps of about 1.25 blocks/12 ticks on the Overworld and 2.69 blocks/27 ticks on Mars, verified client/server agreement, and checked restoration on return.
 
+## Play Return Window: spacecraft rescue
+
+Select **Return Window** in the teacher menu, or run `/ship select` as an operator. This creates the separate `nimbus_nova:return_window` dimension and brings the connected crew aboard. `/ship join` admits students who arrive later; J opens the ship tablet. End the current Mars/Moon attempt before selecting it, and use `/ship end` when switching to another mission.
+
+The ship is imported from the team's newer `ananaslafelie-1794683726306.schem`: 26×31×82, with two decks and preserved ladder routes. [SHIP_LAYOUT.md](docs/SHIP_LAYOUT.md) documents station coordinates, doorway panels, provenance and import format. Source command blocks, inventories and sign NBT are omitted. Known unsupported decorative stairs/slabs receive documented shape-preserving substitutes; waterlogged furniture is made dry. Existing builds are checked before installation and never silently cleared. Re-importing a changed schematic requires a fresh test world; `/ship reset` resets the attempt, not the structure.
+
+Choose the five roles before launch: power, life support, supplies, maintenance and pilot. Each student sees their system's readings; the crew shares the reserves. Operators can use every station for solo development. Normal station actions validate dimension, distance, role, revision and phase on the server. Roles survive a reconnect during the same server session; resetting clears assignments for another crew setup.
+
+1. **Prepare without a timer.** Assemble correctly rated power cartridges at an engine manifold and choose repair spares or extra science cargo in storage. Optional galley, medical, plant and exercise activities improve readiness at a finite water/parts/energy cost.
+2. **Dock using momentum.** Apply thruster impulses, coast and counter-thrust to stop inside the capture corridor. Being near the target is insufficient while still drifting. Maintenance tunes the communications carrier and gain without clipping the signal.
+3. **Navigate by a star fix.** Identify the three stars matching the reference constellation rather than matching numerical dials.
+4. **Isolate the emergency.** Retain life support while shedding nonessential engine loads. The engineering bay shows the authored fault with smoke and active equipment lights.
+5. **Build the CO2 adapter.** Assemble the seal, housing, cartridge and fan in the correct connection order; run a pressure test and verify the seal before activating filtration. Adding oxygen does not remove CO2.
+6. **Restart essential systems.** Reassemble the changed cartridge layout, then allocate heating to navigation and the air loop while preserving the return reserve.
+7. **Make the return burn.** Ignite, observe the growing burn meter and cut off inside the six-to-eight-second model window. Maintenance verifies the return signal. Early/late burns consume reserves and require correction.
+
+The active return window is six minutes; preparation and teacher/incident pauses do not consume it. Teachers read the NASA-linked incident cards, confirm understanding and resume. Full success requires safe return plus reserve/readiness targets; partial success and failure explain missed conditions. The student report summarizes consequences, and the authenticated teacher snapshot includes the decision journal. Ship mission state and reports remain in server memory; the imported map persists.
+
+| Original marker | Replacement and activity |
+| --- | --- |
+| Lectern | Flight console: docking, constellation fix, return burn |
+| Brewing stand | Galley/thermal module: crew rations and heating budget |
+| Fletching table | Medical/filter bay: crew check and CO2 adapter assembly |
+| Note block | Crew intercom: up to two paused discussion breaks |
+| Furnaces | Engine manifolds: power cartridges and emergency load isolation |
+| Beacon | Science archive: preserve observations at an energy cost |
+| Cartography table | Comms array: waveform/carrier reconstruction |
+| Composter | Hydroponics: finite watering/readiness choice |
+| Red wool | Custom punching bag: five physical hits complete a finite exercise set |
+| Chest | Cargo locker: spares-versus-science choice |
+| Lime wool | Substantial proximity portal frames and visible locked blue fields |
+
+Operator commands: `/ship select`, `/ship start`, `/ship pause`, `/ship acknowledge`, `/ship resume`, `/ship abort`, `/ship reset`, `/ship end`. Students use `/ship`, `/ship join` and `/ship leave`. Teacher controls use the existing authenticated bridge; Mars and the teammate's Moon prototypes retain their own controls.
+
+This is an Apollo-13-inspired engineering lesson, not a reconstruction of its spacecraft or measurements. The historical life-support emergency is described in [NASA's Apollo 13 mission details](https://www.nasa.gov/missions/apollo/apollo-13-mission-details/). Capacities, synthetic signals, star patterns, cartridge ratings, timing windows and artificial cabin gravity are authored game assumptions. Flight happens through bounded instruments and mission state; the block structure is not a freely flyable vehicle.
+
 ## Current limits
 
 - One transient mission runs per server. Resource state and roles do not survive a server restart; station bindings do. The authored outpost persists; joining it rebinds its built-in consoles.

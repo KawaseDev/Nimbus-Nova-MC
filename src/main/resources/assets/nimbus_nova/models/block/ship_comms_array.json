@@ -11,7 +11,8 @@
     "plant": "minecraft:block/green_concrete",
     "water": "minecraft:block/blue_concrete",
     "amber": "minecraft:block/orange_concrete",
-    "particle": "nimbus_nova:block/scifi_hull_panel"
+    "particle": "nimbus_nova:block/scifi_hull_panel",
+    "casing": "nimbus_nova:block/ship_casing"
   },
   "elements": [
     {
