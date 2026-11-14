@@ -1,6 +1,5 @@
 package cc.nimbusnova.mc.ship;
 
-import cc.nimbusnova.mc.mission.MissionPreparation;
 import cc.nimbusnova.mc.moon.MoonMission;
 
 import java.util.ArrayList;
@@ -22,12 +21,14 @@ public final class ShipMission {
     private final List<String> journal = new ArrayList<>();
     private Phase phase = Phase.READY;
     private int revision, elapsed, stageComplete, optionalComplete, completedTasks, decisions, meetings;
-    private int engineBoard = 1 | 1 << 2 | 1 << 4 | 1 << 6 | 2 << 8 | 1 << 10 | 2 << 12 | 3 << 14 | 1 << 16;
-    private int pilotBoard, commsBoard, valves, stableSeconds, heaterMask, exerciseRepetitions;
+    private int engineBoard;
+    private int pilotBoard, commsBoard, medicalAssembly, stableSeconds, heaterMask, exerciseRepetitions;
+    private int dockingX = 1, dockingY = 1;
+    private int dockingVelocityX, dockingVelocityY, burnUnits;
     private int loadMask = 7, parts = 6;
     private double battery = 100, oxygen = 100, water = 100, fuel = 100, co2 = 12, readiness = 70;
-    private boolean cargoSelected, extraInstrument, filterOnline, heaterCommitted;
-    private String feedback = "Prepare the power circuit and choose cargo before Mission Control starts the clock.";
+    private boolean cargoSelected, extraInstrument, filterOnline, heaterCommitted, filterTesting, burnRunning;
+    private String feedback = "Assemble the rated power cartridges and choose cargo before Mission Control starts the clock.";
 
     public MoonMission underlying() {
         return moon;
@@ -43,7 +44,7 @@ public final class ShipMission {
 
     public void start() {
         if (phase != Phase.READY || !ready())
-            throw new IllegalStateException("Repair the power circuit and load cargo before launch.");
+            throw new IllegalStateException("Fit all four rated power cartridges and load cargo before launch.");
 
         phase = Phase.ACTIVE;
         advance(!extraInstrument);
@@ -84,6 +85,7 @@ public final class ShipMission {
             throw new IllegalStateException("This ship attempt has ended.");
 
         phase = Phase.ABORTED;
+        burnRunning = false;
         feedback = "Mission Control ended the attempt. Review the crew's choices before trying again.";
         revision++;
     }
@@ -92,7 +94,8 @@ public final class ShipMission {
         if (task == null || expectedRevision != revision || phase == Phase.PAUSED || phase.ended() || !activeTask(task)) return false;
         final boolean accepted = switch (task) {
             case ENGINE -> engine(action);
-            case PILOT, COMMS -> alignment(task, action);
+            case PILOT -> pilot(action);
+            case COMMS -> comms(action);
             case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER ? filter(action) : optional(task, action);
             case GALLEY -> moon.stage() == MoonMission.Stage.RESTART ? heating(action) : optional(task, action);
             case STORAGE -> cargo(action);
@@ -126,70 +129,177 @@ public final class ShipMission {
             return true;
         }
 
-        if (action < 0 || action > 8 || completed(ShipTask.ENGINE)) return false;
-        final int shift = action * 2;
-        engineBoard = engineBoard & ~(3 << shift) | (((engineBoard >> shift & 3) + 1) & 3) << shift;
-        if (MissionPreparation.powerConnected(engineBoard)) {
+        if (action < 0 || action > 15 || completed(ShipTask.ENGINE)) return false;
+        final int socket = action / 4, cartridge = action % 4 + 1, previous = engineBoard >> socket * 4 & 15;
+        if (previous == cartridge) return false;
+        for (int slot = 0; slot < 4; slot++) {
+            if (slot != socket && (engineBoard >> slot * 4 & 15) == cartridge)
+                engineBoard = engineBoard & ~(15 << slot * 4) | previous << slot * 4;
+        }
+        engineBoard = engineBoard & ~(15 << socket * 4) | cartridge << socket * 4;
+        if (engineBoard == target(ShipTask.ENGINE)) {
             complete(ShipTask.ENGINE);
             feedback = moon.stage() == MoonMission.Stage.PREPARATION
-                    ? "Power path verified. Cargo must also be ready before launch."
-                    : "Restart circuit verified. Allocate essential heat at the galley thermal controls.";
+                    ? "All socket ratings match. Cargo must also be ready before launch."
+                    : "Restart cartridges match the changed loads. Allocate essential heat at the galley controls.";
         } else
-            feedback = "Rotate cable tiles to connect the left supply to the right output. Connected ports must face each other.";
+            feedback = "Fit each cartridge to the socket's required current rating. Moving a fitted cartridge swaps it; the ship has one of each.";
         return true;
     }
 
-    private boolean alignment(final ShipTask task, final int action) {
-        if (completed(task) || action < 0 || action > 6) return false;
-        final int board = task == ShipTask.PILOT ? pilotBoard : commsBoard;
-        if (action == 6) {
-            if (board != target(task)) {
-                if (task == ShipTask.PILOT)
-                    fuel = Math.max(0, fuel - 1);
-                else
-                    battery = Math.max(0, battery - 0.5);
-                feedback = "The observed readings do not match the planned target. An unnecessary correction used a small reserve; compare all three axes.";
+    private boolean pilot(final int action) {
+        if (completed(ShipTask.PILOT)) return false;
+        return switch (moon.stage()) {
+            case DOCKING -> docking(action);
+            case NAVIGATION -> starFix(action);
+            case RETURN -> returnBurn(action);
+            default -> false;
+        };
+    }
+
+    private boolean docking(final int action) {
+        if (action < 0 || action > 5) return false;
+        if (action == 5) {
+            if (Math.abs(dockingX - 4) > 1 || Math.abs(dockingY - 4) > 1 || dockingVelocityX != 0 || dockingVelocityY != 0) {
+                feedback = "Contact is not a lock. Enter the central capture box and cancel both drift velocities before capturing.";
                 return true;
             }
 
-            complete(task);
-            feedback = task == ShipTask.PILOT ? "Guidance matches the planned corridor." : "Communication lock confirmed on all three channels.";
-            if (completed(ShipTask.PILOT) && (moon.stage() == MoonMission.Stage.NAVIGATION || completed(ShipTask.COMMS)))
-                advance(true);
+            verifyFlight(ShipTask.PILOT);
             return true;
         }
 
-        final int axis = action / 2, value = dial(board, axis), next = value + (action % 2 == 0 ? 1 : -1);
-        if (next < 0 || next > 4) return false;
-        final int changed = board & ~(7 << axis * 3) | next << axis * 3;
-        if (task == ShipTask.PILOT)
-            pilotBoard = changed;
-        else
-            commsBoard = changed;
-        feedback = "Match all three observed readings to the target, then validate. Previewing a change does not consume propellant.";
+        if (action < 4) {
+            if (fuel < 0.2) return false;
+            fuel -= 0.2;
+            switch (action) {
+                case 0 -> dockingVelocityX = Math.max(-2, dockingVelocityX - 1);
+                case 1 -> dockingVelocityX = Math.min(2, dockingVelocityX + 1);
+                case 2 -> dockingVelocityY = Math.max(-2, dockingVelocityY - 1);
+                case 3 -> dockingVelocityY = Math.min(2, dockingVelocityY + 1);
+                default -> throw new IllegalStateException("Unexpected docking control");
+            }
+        }
+
+        final int nextX = dockingX + dockingVelocityX, nextY = dockingY + dockingVelocityY;
+        dockingX = Math.clamp(nextX, 0, 8);
+        dockingY = Math.clamp(nextY, 0, 8);
+        if (nextX < 0 || nextX > 8)
+            dockingVelocityX = 0;
+        if (nextY < 0 || nextY > 8)
+            dockingVelocityY = 0;
+        feedback = action == 4 ? "Coasting preserves fuel but does not cancel momentum. Counter-thrust removes drift."
+                : "A thruster pulse changes velocity, not just position. Counter-thrust before the capture box.";
         return true;
+    }
+
+    private boolean starFix(final int action) {
+        if (action < 0 || action > 6) return false;
+        if (action < 6) {
+            pilotBoard ^= 1 << action;
+            feedback = "Choose the three sharp guide-star readings; broad, split or moving detections are unreliable.";
+            return true;
+        }
+
+        if (pilotBoard != target(ShipTask.PILOT)) {
+            feedback = "The star fix includes an unreliable reading or misses a sharp guide star. Compare the detector shapes.";
+            return true;
+        }
+
+        record("Validated a star fix using three reliable guide detections instead of an unnecessary correction burn.");
+        verifyFlight(ShipTask.PILOT);
+        return true;
+    }
+
+    private boolean returnBurn(final int action) {
+        if (action < 0 || action > 1) return false;
+        if (action == 0) {
+            if (burnRunning || fuel < 1) return false;
+            burnUnits = 0;
+            burnRunning = true;
+            feedback = "Return engine lit. Watch the predicted velocity change and cut off inside the 6-8 model-unit corridor.";
+            return true;
+        }
+
+        if (!burnRunning) return false;
+        burnRunning = false;
+        if (burnUnits < 6 || burnUnits > 8) {
+            feedback = "Cutoff missed the approved corridor. Review the prediction before retrying; spent fuel cannot be recovered.";
+            return true;
+        }
+
+        record("Cut off the return burn at " + burnUnits + " model units inside the approved corridor.");
+        verifyFlight(ShipTask.PILOT);
+        return true;
+    }
+
+    private boolean comms(final int action) {
+        if (completed(ShipTask.COMMS) || action < 0 || action > 4) return false;
+        final int frequency = commsBoard & 15, gain = commsBoard >> 4 & 15;
+        if (action == 4) {
+            if (signalQuality() < 90 || gain > 3) {
+                feedback = gain > 3 ? "Receiver clipped. More gain can distort a signal; reduce gain and compare the waveform."
+                        : "Carrier lock is weak. Tune frequency and gain before transmitting the recovery report.";
+                return true;
+            }
+
+            verifyFlight(ShipTask.COMMS);
+            return true;
+        }
+
+        final int nextFrequency = frequency + (action == 0 ? 1 : action == 1 ? -1 : 0);
+        final int nextGain = gain + (action == 2 ? 1 : action == 3 ? -1 : 0);
+        if (nextFrequency < 0 || nextFrequency > 8 || nextGain < 0 || nextGain > 4) return false;
+        commsBoard = nextFrequency | nextGain << 4;
+        feedback = nextGain > 3 ? "Receiver clipped: the waveform is distorted. Back off the gain."
+                : "Compare the received waveform and lock quality. Stronger amplification is not always a clearer signal.";
+        return true;
+    }
+
+    public int signalQuality() {
+        final int frequency = commsBoard & 15, gain = commsBoard >> 4 & 15;
+        final int quality = Math.max(0, 100 - Math.abs(frequency - target(ShipTask.COMMS)) * 18 - Math.abs(gain - 2) * 25);
+        return gain > 3 ? Math.min(65, quality) : quality;
+    }
+
+    private void verifyFlight(final ShipTask task) {
+        complete(task);
+        feedback = task == ShipTask.PILOT ? "Physical guidance check verified." : "Communication lock verified without clipping.";
+        if (completed(ShipTask.PILOT) && (moon.stage() == MoonMission.Stage.NAVIGATION || completed(ShipTask.COMMS)))
+            advance(true);
     }
 
     private boolean filter(final int action) {
-        if (action < 0 || action > 6) return false;
-        if (action == 6) {
-            if (stableSeconds < 3) {
-                feedback = "Seal the adapter and hold balanced flow for three seconds before starting the filter.";
+        if (action < 0 || action > 5) return false;
+        if (action < 4) {
+            if (filterTesting || medicalAssembly == 4) return false;
+            final int required = switch (medicalAssembly) { case 0 -> 2; case 1 -> 0; case 2 -> 3; default -> 1; };
+            if (action != required) {
+                feedback = "That part cannot seal this joint yet. Fit seal, housing, cartridge and fan in the exploded diagram's order.";
                 return true;
             }
 
-            filterOnline = true;
-            complete(ShipTask.MEDICAL);
-            record("Restored CO2 removal with a balanced adapter; adding oxygen alone would not remove CO2.");
-            advance(true);
+            medicalAssembly++;
+            feedback = "Adapter component seated: " + medicalAssembly + " / 4. The seal must close the bypass before the fan can drive filtered air.";
             return true;
         }
 
-        final int valve = action / 2, value = dial(valves, valve), next = value + (action % 2 == 0 ? 1 : -1);
-        if (next < 0 || next > 4) return false;
-        valves = valves & ~(7 << valve * 3) | next << valve * 3;
-        stableSeconds = 0;
-        feedback = "Balance intake, filter pump and bypass. Pressure must be 55-65 and flow 35-45 model units.";
+        if (action == 4) {
+            if (medicalAssembly != 4 || filterTesting) return false;
+            filterTesting = true;
+            feedback = "Pressure test running. Hold the assembled adapter for three seconds and watch for a stable seal.";
+            return true;
+        }
+
+        if (!filterTesting || stableSeconds < 3) {
+            feedback = "Complete the adapter and its three-second pressure test before starting airflow.";
+            return true;
+        }
+
+        filterOnline = true;
+        complete(ShipTask.MEDICAL);
+        record("Assembled and pressure-tested the CO2-filter adapter; adding oxygen alone would not remove CO2.");
+        advance(true);
         return true;
     }
 
@@ -202,7 +312,7 @@ public final class ShipMission {
         }
 
         if (!completed(ShipTask.ENGINE) || (heaterMask & 3) != 3) {
-            feedback = "Repair the engine restart circuit, then select navigation and air-loop heating before committing.";
+            feedback = "Fit the engine restart cartridges, then select navigation and air-loop heating before committing.";
             return true;
         }
 
@@ -320,7 +430,7 @@ public final class ShipMission {
         pilotBoard = 0;
         commsBoard = 0;
         if (moon.stage() == MoonMission.Stage.RESTART)
-            engineBoard = 2 | 3 << 2 | 1 << 4 | 2 << 6 | 2 << 10 | 1 << 12 | 1 << 14 | 3 << 16;
+            engineBoard = 0;
         if (moon.stage() == MoonMission.Stage.COMPLETE) {
             phase = battery >= 20 && oxygen >= 25 && fuel >= 25 && readiness >= 60 ? Phase.SUCCESS : Phase.PARTIAL;
             feedback = phase == Phase.SUCCESS ? "Crew recovered inside the approved return corridor with essential reserves intact."
@@ -344,8 +454,22 @@ public final class ShipMission {
             co2 = Math.clamp(co2 + (filterOnline ? -1 : 0.6), 0, 100);
         if (co2 > 60)
             readiness = Math.max(0, readiness - 0.2);
-        if (moon.stage() == MoonMission.Stage.FILTER)
-            stableSeconds = MissionPreparation.oxygenBalanced(valves) ? Math.min(3, stableSeconds + 1) : 0;
+        if (moon.stage() == MoonMission.Stage.FILTER && filterTesting)
+            stableSeconds = Math.min(3, stableSeconds + 1);
+        if (moon.stage() == MoonMission.Stage.RETURN && burnRunning) {
+            burnUnits++;
+            fuel = Math.max(0, fuel - 1);
+            if (fuel == 0) {
+                burnRunning = false;
+                phase = Phase.FAILED;
+                feedback = "Return burn exhausted the propellant before a verified cutoff.";
+                record(feedback);
+            } else if (burnUnits > 10) {
+                burnRunning = false;
+                feedback = "Automatic burn abort: the prediction exceeded 10 model units. A retry uses more fuel; cut off inside 6-8.";
+                record("Return burn exceeded the corridor and automatically aborted.");
+            }
+        }
         checkFailure();
     }
 
@@ -384,9 +508,14 @@ public final class ShipMission {
     public int board(final ShipTask task) {
         return switch (task) {
             case ENGINE -> moon.stage() == MoonMission.Stage.EMERGENCY ? loadMask : engineBoard;
-            case PILOT -> pilotBoard;
+            case PILOT -> switch (moon.stage()) {
+                case DOCKING -> dockingX | dockingY << 4 | (dockingVelocityX + 2) << 8 | (dockingVelocityY + 2) << 11;
+                case RETURN -> burnUnits | (burnRunning ? 1 << 8 : 0);
+                default -> pilotBoard;
+            };
             case COMMS -> commsBoard;
-            case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER ? valves : (optionalComplete & 1 << task.ordinal()) != 0 ? 1 : 0;
+            case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER ? medicalAssembly | (filterTesting ? 1 << 8 : 0)
+                    : (optionalComplete & 1 << task.ordinal()) != 0 ? 1 : 0;
             case GALLEY -> moon.stage() == MoonMission.Stage.RESTART ? heaterMask : (optionalComplete & 1 << task.ordinal()) != 0 ? 1 : 0;
             case STORAGE -> cargoSelected ? extraInstrument ? 2 : 1 : 0;
             case EXERCISE -> exerciseRepetitions;
@@ -396,21 +525,23 @@ public final class ShipMission {
 
     public int aux(final ShipTask task) {
         return switch (task) {
-            case ENGINE -> moon.stage() == MoonMission.Stage.EMERGENCY ? 1 : MissionPreparation.energizedCells(engineBoard);
-            case PILOT, COMMS -> target(task);
-            case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER
-                    ? MissionPreparation.oxygenPressure(valves) | MissionPreparation.oxygenFlow(valves) << 8 | stableSeconds << 16 : 0;
+            case ENGINE -> moon.stage() == MoonMission.Stage.EMERGENCY ? 1 : target(task);
+            case PILOT -> target(task);
+            case COMMS -> signalQuality() | ((commsBoard >> 4 & 15) > 3 ? 1 << 8 : 0);
+            case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER ? stableSeconds : 0;
             default -> 0;
         };
     }
 
     public int target(final ShipTask task) {
+        if (task == ShipTask.ENGINE)
+            return moon.stage() == MoonMission.Stage.RESTART ? 3 | 4 << 4 | 2 << 8 | 1 << 12 : 2 | 1 << 4 | 3 << 8 | 4 << 12;
         if (task == ShipTask.COMMS)
-            return moon.stage() == MoonMission.Stage.RETURN ? 1 | 4 << 3 | 2 << 6 : 3 | 1 << 3 | 2 << 6;
+            return moon.stage() == MoonMission.Stage.RETURN ? 5 : 3;
         return switch (moon.stage()) {
-            case NAVIGATION -> 4 | 1 << 3 | 3 << 6;
-            case RETURN -> 3 | 2 << 3 | 4 << 6;
-            default -> 2 | 3 << 3 | 1 << 6;
+            case NAVIGATION -> 0b101010;
+            case RETURN -> 6 | 8 << 8;
+            default -> 4 | 4 << 4;
         };
     }
 
@@ -432,13 +563,13 @@ public final class ShipMission {
 
     public String instruction() {
         return switch (moon.stage()) {
-            case PREPARATION -> "Route startup power at the engines and choose the cargo load at storage. Preparation has no timer.";
-            case DOCKING -> "Pilot: match the docking alignment. Communications: tune all three channels to verify the lock.";
-            case NAVIGATION -> "Pilot: compare the new predicted route with the three observed guidance readings.";
+            case PREPARATION -> "Match four rated power cartridges at the engines and choose cargo at storage. Preparation has no timer.";
+            case DOCKING -> "Pilot: cancel drift inside the docking capture box. Communications: tune the carrier without clipping the receiver.";
+            case NAVIGATION -> "Pilot: select three reliable guide stars from the detector readings to verify the return route.";
             case EMERGENCY -> "Power engineer: isolate science and comfort heating while keeping life support on.";
-            case FILTER -> "Life-support engineer: balance the CO2 filter adapter and hold stable flow before activation.";
-            case RESTART -> "Power engineer: repair the restart circuit. Supplies: allocate heat to navigation and the air loop.";
-            case RETURN -> "Pilot: align the approved return corridor. Communications: confirm the recovery link.";
+            case FILTER -> "Life-support engineer: assemble the CO2 adapter in order, pressure-test the seal and start filtered airflow.";
+            case RESTART -> "Power engineer: fit cartridges to the new restart loads. Supplies: allocate heat to navigation and the air loop.";
+            case RETURN -> "Pilot: ignite and cut off the return burn inside the predicted corridor. Communications: establish the recovery link.";
             case COMPLETE -> feedback;
             default -> throw new IllegalStateException("Unexpected rescue stage " + moon.stage());
         };

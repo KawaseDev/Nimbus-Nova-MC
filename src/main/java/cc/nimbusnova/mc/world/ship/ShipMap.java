@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.TrapDoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
@@ -86,6 +87,7 @@ public final class ShipMap {
         final Path marker = server.getWorldPath(LevelResource.ROOT).resolve("nimbus-nova/return-window-v1.txt");
         if (Files.exists(marker)) {
             if (!Files.readString(marker).equals("complete")) throw new IOException("Ship construction was interrupted. Restore a backup or use a fresh world.");
+            exposeEngineControls(level);
             return;
         }
 
@@ -130,14 +132,32 @@ public final class ShipMap {
         }
 
         for (final Marker station : MARKERS) {
-            final Direction facing = station.task == ShipTask.ENGINE ? Direction.SOUTH
+            final Direction facing = station.task == ShipTask.ENGINE
+                    ? station.position.getX() < 0 ? Direction.WEST : Direction.EAST
                     : station.position.getX() < -2 ? Direction.EAST
                     : station.position.getX() > 2 ? Direction.WEST : Direction.NORTH;
             level.setBlock(station.position, block(station.task).defaultBlockState().setValue(HorizontalDirectionalBlock.FACING, facing), Block.UPDATE_CLIENTS);
         }
+        exposeEngineControls(level);
         level.setBlock(new BlockPos(-5, 78, 12), ScifiBlocks.SUPPORT_BEAM.defaultBlockState(), Block.UPDATE_CLIENTS);
         Files.writeString(marker, "complete");
         NimbusNovaMod.LOGGER.info("Installed Return Window from team schematic: {} source blocks, {} equipment anchors", blocks.size(), MARKERS.size());
+    }
+
+    private static void exposeEngineControls(final ServerLevel level) {
+        for (final int x : new int[] { -9, 9 }) {
+            final BlockPos cover = new BlockPos(x, 82, -38);
+            final BlockState state = level.getBlockState(cover);
+            if (state.getBlock() instanceof TrapDoorBlock)
+                level.setBlock(cover, state.setValue(BlockStateProperties.OPEN, false), Block.UPDATE_CLIENTS);
+        }
+        for (final Marker marker : MARKERS) {
+            if (marker.task != ShipTask.ENGINE) continue;
+            final BlockState state = level.getBlockState(marker.position);
+            if (state.is(ShipContent.ENGINE_CORE))
+                level.setBlock(marker.position, state.setValue(HorizontalDirectionalBlock.FACING,
+                        marker.position.getX() < 0 ? Direction.WEST : Direction.EAST), Block.UPDATE_CLIENTS);
+        }
     }
 
     private static void installPanel(final ServerLevel level, final Set<BlockPos> cells) {
@@ -191,11 +211,12 @@ public final class ShipMap {
     private static BlockState parse(final MinecraftServer server, final String original) throws IOException {
         final String name = original.substring(0, original.contains("[") ? original.indexOf('[') : original.length());
         if (name.endsWith("_sign") || name.endsWith("command_block")) return Blocks.AIR.defaultBlockState();
-        if (Set.of("minecraft:smooth_quartz", "minecraft:white_concrete", "minecraft:gray_concrete", "minecraft:light_gray_concrete", "minecraft:gray_wool").contains(name))
+        if (Set.of("minecraft:smooth_quartz", "minecraft:white_concrete", "minecraft:gray_concrete", "minecraft:light_gray_concrete", "minecraft:gray_wool", "minecraft:spruce_planks", "minecraft:mangrove_planks").contains(name))
             return ScifiBlocks.HULL_PANEL.defaultBlockState();
         if (name.equals("minecraft:polished_deepslate")) return ScifiBlocks.FLOOR_TILE.defaultBlockState();
         try {
-            return BlockStateParser.parseForBlock(server.registryAccess().lookupOrThrow(Registries.BLOCK), original, false).blockState();
+            return BlockStateParser.parseForBlock(server.registryAccess().lookupOrThrow(Registries.BLOCK),
+                    name.equals("minecraft:spruce_slab") ? original.replace(name, "minecraft:smooth_stone_slab") : original, false).blockState();
         } catch (final CommandSyntaxException error) {
             final String fallback = FALLBACKS.get(name.replace("minecraft:", ""));
             if (fallback == null) throw new IOException("Unsupported schematic material " + original, error);

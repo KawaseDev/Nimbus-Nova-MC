@@ -28,6 +28,7 @@ import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -234,9 +235,13 @@ public final class ShipController {
     }
 
     private static boolean near(final ServerPlayer player, final BlockPos position) {
-        return player.isAlive() && !player.isSpectator() && player.level().dimension().equals(ShipMap.DIMENSION)
-                && player.distanceToSqr(Vec3.atCenterOf(position)) <= 36
-                && ShipMap.task(player.level().getBlockState(position).getBlock()) != null;
+        if (!player.isAlive() || player.isSpectator() || !player.level().dimension().equals(ShipMap.DIMENSION)
+                || player.distanceToSqr(Vec3.atCenterOf(position)) > 36
+                || ShipMap.task(player.level().getBlockState(position).getBlock()) == null) return false;
+        return player.level().getBlockState(position).getShape(player.level(), position).toAabbs().stream()
+                .map(box -> box.getCenter().add(Vec3.atLowerCornerOf(position)))
+                .anyMatch(point -> player.level().clip(new ClipContext(player.getEyePosition(), point,
+                        ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player)).getBlockPos().equals(position));
     }
 
     private void action(final ServerPlayer player, final ShipActionPayload packet) {

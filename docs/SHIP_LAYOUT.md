@@ -75,3 +75,9 @@ python3 tools/inspect_ship_schematic.py
 ```
 
 The exporter bounds compressed/decompressed input, volume and palette size; validates VarInts, palette references and safe spawn clearance; and round-trips every exported entry. [Floor plan](ship-layout.svg) shows both decks and marker numbers. Game tests must still verify station visibility, actual player collision, ladders and custom door passage.
+
+## In-game fitting and verification
+
+The runtime replaces the marked equipment with custom stations, full gray/white hull blocks with the project material kit, and the source spruce/mangrove desk material with metal equivalents while retaining footprint/half/facing geometry. The two engine manifolds face their original service alleys (west on the left engine, east on the right); their copper service covers are folded clear so the interfaces can actually be reached. This correction also applies when selecting an already imported ship. Native station checks require a visible, collision-free standing approach rather than repairing through a wall.
+
+The importer leaves the original file and generated source data intact. It deliberately omits command/inventory/sign NBT and clears waterlogging. Existing ship attempts reset independently of the persisted structure. The final native client test reached every custom station, exercised the bag through physical attack callbacks, completed the unique rescue tasks and produced a successful return report. Real multi-client classroom navigation remains untested.

@@ -11,7 +11,8 @@
     "plant": "minecraft:block/green_concrete",
     "water": "minecraft:block/blue_concrete",
     "amber": "minecraft:block/orange_concrete",
-    "particle": "nimbus_nova:block/scifi_hull_panel"
+    "particle": "nimbus_nova:block/scifi_hull_panel",
+    "casing": "nimbus_nova:block/ship_casing"
   },
   "elements": [
     {
@@ -234,12 +235,12 @@
       ],
       "faces": {
         "west": {
-          "texture": "#metal",
+          "texture": "#casing",
           "uv": [
-            0.05,
-            0.05,
-            0.35,
-            0.35
+            0,
+            0,
+            16,
+            16
           ]
         }
       }
@@ -257,12 +258,12 @@
       ],
       "faces": {
         "east": {
-          "texture": "#metal",
+          "texture": "#casing",
           "uv": [
-            0.05,
-            0.05,
-            0.35,
-            0.35
+            0,
+            0,
+            16,
+            16
           ]
         }
       }
@@ -487,12 +488,12 @@
       ],
       "faces": {
         "south": {
-          "texture": "#metal",
+          "texture": "#casing",
           "uv": [
-            0.05,
-            0.05,
-            0.35,
-            0.35
+            0,
+            0,
+            16,
+            16
           ]
         }
       }

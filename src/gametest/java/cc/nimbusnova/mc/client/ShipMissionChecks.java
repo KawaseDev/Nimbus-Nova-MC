@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.client.ship.ShipClient;
+import cc.nimbusnova.mc.content.ModContent;
 import cc.nimbusnova.mc.client.ship.ShipScreen;
 import cc.nimbusnova.mc.ship.ShipController;
 import cc.nimbusnova.mc.ship.ShipMission;
@@ -13,6 +14,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.players.NameAndId;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.InteractionHand;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import java.util.EnumSet;
@@ -62,7 +64,7 @@ final class ShipMissionChecks {
                 throw new AssertionError("Five physical bag hits did not complete a finite exercise set");
         });
         open(context, world, ShipTask.ENGINE);
-        GuidedMissionChecks.capture(context, "ship-engine-circuit");
+        GuidedMissionChecks.capture(context, "ship-power-cartridges");
         circuit(context);
         open(context, world, ShipTask.STORAGE);
         action(context, 0);
@@ -81,13 +83,12 @@ final class ShipMissionChecks {
         action(context, 3);
         resume(context, world);
         open(context, world, ShipTask.MEDICAL);
-        for (int valve = 0; valve < 2; valve++) {
-            action(context, valve * 2);
-            action(context, valve * 2);
-        }
-        context.waitFor(client -> client.gui.screen() instanceof ShipScreen screen && screen.state().aux() >>> 16 >= 3);
-        GuidedMissionChecks.capture(context, "ship-co2-filter");
-        action(context, 6);
+        for (final int component : new int[] { 2, 0, 3, 1 })
+            action(context, component);
+        action(context, 4);
+        context.waitFor(client -> client.gui.screen() instanceof ShipScreen screen && screen.state().aux() >= 3);
+        GuidedMissionChecks.capture(context, "ship-co2-adapter-test");
+        action(context, 5);
         resume(context, world);
         open(context, world, ShipTask.ENGINE);
         circuit(context);
@@ -103,12 +104,13 @@ final class ShipMissionChecks {
         if (result.phase() != ShipMission.Phase.SUCCESS || result.battery() < 20 || result.oxygen() < 25)
             throw new AssertionError("The physical ship mission did not recover the crew");
         context.setScreen(() -> null);
-        world.getServer().runCommand("execute as @p run ship");
+        world.getServer().runOnServer(server -> ModContent.MISSION_TABLET.use(world.getConnection().getServerLevel(),
+                world.getConnection().getServerPlayer(), InteractionHand.MAIN_HAND));
         context.waitForScreen(ShipScreen.class);
         GuidedMissionChecks.capture(context, "ship-success-report");
         world.getServer().runCommand("ship end");
         context.waitFor(client -> client.level != null && !client.level.dimension().equals(ShipMap.DIMENSION));
-        System.out.println("Ship runtime checks passed: schematic import, custom stations, circuits, navigation, emergency isolation, CO2 filter, heat budget and full rescue success.");
+        System.out.println("Ship runtime checks passed: schematic import, custom stations, cartridge assembly, momentum docking, star navigation, signal tuning, CO2 adapter, timed burn, heat budget and full rescue success.");
     }
 
     private static void resume(final ClientGameTestContext context, final TestSingleplayerContext world) {
@@ -120,23 +122,39 @@ final class ShipMissionChecks {
     }
 
     private static void circuit(final ClientGameTestContext context) {
-        for (int cell = 0; cell < 9 && !state(context).complete(); cell++) {
-            int turns = 0;
-            while (!state(context).complete() && (state(context).board() >> cell * 2 & 3) != 0 && turns++ < 4)
-                action(context, cell);
+        for (int socket = 0; socket < 4 && !state(context).complete(); socket++) {
+            final int cartridge = state(context).aux() >> socket * 4 & 15;
+            action(context, socket * 4 + cartridge - 1);
         }
-        if (!state(context).complete()) throw new AssertionError("The ship circuit did not connect");
+        if (!state(context).complete()) throw new AssertionError("The power cartridges did not energize the bus");
     }
 
     private static void align(final ClientGameTestContext context, final TestSingleplayerContext world, final ShipTask task) {
         open(context, world, task);
-        for (int axis = 0; axis < 3; axis++) {
-            int turns = 0;
-            while (ShipMission.dial(state(context).board(), axis) != ShipMission.dial(state(context).aux(), axis) && turns++ < 5)
-                action(context, axis * 2);
+        if (task == ShipTask.COMMS) {
+            final int carrier = state(context).stage().equals("RETURN") ? 5 : 3;
+            for (int step = 0; step < 8 && (state(context).board() & 15) != carrier; step++)
+                action(context, (state(context).board() & 15) < carrier ? 0 : 1);
+            for (int step = 0; step < 4 && (state(context).board() >> 4 & 7) != 2; step++)
+                action(context, (state(context).board() >> 4 & 7) < 2 ? 2 : 3);
+            GuidedMissionChecks.capture(context, "ship-signal-reconstruction");
+            action(context, 4);
+        } else if (state(context).stage().equals("DOCKING")) {
+            for (final int impulse : new int[] { 1, 1, 0, 0, 3, 3, 2, 2 })
+                action(context, impulse);
+            GuidedMissionChecks.capture(context, "ship-momentum-docking");
+            action(context, 5);
+        } else if (state(context).stage().equals("NAVIGATION")) {
+            for (final int star : new int[] { 1, 3, 5 })
+                action(context, star);
+            GuidedMissionChecks.capture(context, "ship-constellation-fix");
+            action(context, 6);
+        } else {
+            action(context, 0);
+            context.waitFor(client -> client.gui.screen() instanceof ShipScreen screen && (screen.state().board() & 255) >= 6);
+            GuidedMissionChecks.capture(context, "ship-return-burn-window");
+            action(context, 1);
         }
-        GuidedMissionChecks.capture(context, "ship-" + task.name().toLowerCase() + "-alignment");
-        action(context, 6);
     }
 
     private static ShipPayload state(final ClientGameTestContext context) {
@@ -152,19 +170,27 @@ final class ShipMissionChecks {
     private static void open(final ClientGameTestContext context, final TestSingleplayerContext world, final ShipTask task) {
         context.setScreen(() -> null);
         final BlockPos station = ShipMap.MARKERS.stream().filter(marker -> marker.task() == task).findFirst().orElseThrow().position();
-        final Vec3 feet = world.getServer().computeOnServer(server -> {
+        final Approach approach = world.getServer().computeOnServer(server -> {
             final var player = world.getConnection().getServerPlayer();
             final var level = player.level();
+            final var targets = level.getBlockState(station).getShape(level, station).toAabbs().stream()
+                    .map(box -> box.getCenter().add(Vec3.atLowerCornerOf(station))).toList();
             return BlockPos.betweenClosedStream(station.offset(-3, -2, -3), station.offset(3, 3, 3))
                     .filter(point -> point.getX() != station.getX() || point.getZ() != station.getZ())
                     .filter(point -> level.getBlockState(point.below()).isFaceSturdy(level, point.below(), Direction.UP))
                     .map(Vec3::atBottomCenterOf)
                     .filter(point -> level.noCollision(player, player.getBoundingBox().move(point.subtract(player.position()))))
-                    .min(Comparator.comparingDouble(point -> point.distanceToSqr(Vec3.atCenterOf(station)))).orElseThrow();
+                    .flatMap(feet -> targets.stream().filter(target -> level.clip(new ClipContext(feet.add(0, 1.62, 0), target,
+                            ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player)).getBlockPos().equals(station))
+                            .map(target -> new Approach(feet, target)))
+                    .min(Comparator.comparingDouble(candidate -> Math.abs(candidate.feet.distanceToSqr(Vec3.atCenterOf(station)) - 4)))
+                    .orElseThrow(() -> new AssertionError("No visible, standable approach to " + task + " at " + station));
         });
-        world.getServer().runCommand("execute in nimbus_nova:return_window run tp @p " + feet.x + " " + feet.y + " " + feet.z + " " + Math.toDegrees(Math.atan2(-(station.getX() + 0.5 - feet.x), station.getZ() + 0.5 - feet.z))
-                + " " + -Math.toDegrees(Math.atan2(station.getY() + 0.5 - feet.y - 1.62,
-                Math.hypot(station.getX() + 0.5 - feet.x, station.getZ() + 0.5 - feet.z))));
+        final Vec3 feet = approach.feet;
+        final Vec3 direction = approach.focus.subtract(feet.add(0, 1.62, 0));
+        world.getServer().runCommand("execute in nimbus_nova:return_window run tp @p " + feet.x + " " + feet.y + " " + feet.z
+                + " " + Math.toDegrees(Math.atan2(-direction.x, direction.z))
+                + " " + -Math.toDegrees(Math.atan2(direction.y, Math.hypot(direction.x, direction.z))));
         world.getServer().runOnServer(server -> world.getConnection().getServerPlayer().setDeltaMovement(Vec3.ZERO));
         context.waitFor(client -> client.player != null && client.player.position().distanceToSqr(feet) < 4);
         context.waitTicks(5);
@@ -180,4 +206,8 @@ final class ShipMissionChecks {
         context.waitForScreen(ShipScreen.class);
         context.waitFor(client -> client.gui.screen() instanceof ShipScreen screen && screen.state().task().equals(task.name()));
     }
+    private record Approach(Vec3 feet, Vec3 focus) {
+        /* w */
+    }
+
 }
