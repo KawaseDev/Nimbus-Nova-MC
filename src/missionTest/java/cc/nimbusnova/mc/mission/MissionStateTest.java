@@ -58,6 +58,24 @@ public final class MissionStateTest {
         assert survivalOnly.snapshot().phase() == MissionState.Phase.PARTIAL : "Disabling research forever is not full success";
         assert survivalOnly.snapshot().researchSeconds() == 0;
 
+        final double peak = DustStormProfile.BACKUP_OUTPUT + DustStormProfile.SOLAR_OUTPUT * 21 / 645;
+        assert DustStormProfile.solarFactor(0) == 1 && DustStormProfile.solarFactor(MissionState.DURATION_SECONDS)
+                == DustStormProfile.RECOVERY_SOLAR_FACTOR : "Solar curve starts clear and ends at the authored recovery";
+
+        final MissionState greedy = new MissionState();
+        greedy.start();
+        for (int second = 0; second < MissionState.DURATION_SECONDS; second++) {
+            if (second == 110)
+                greedy.setEquipment(MissionState.Equipment.RESEARCH, false);
+
+            if (second == MissionState.STORM_END_SECONDS)
+                greedy.setEquipment(MissionState.Equipment.RESEARCH, true);
+
+            greedy.tickSecond();
+        }
+
+        assert greedy.snapshot().phase() == MissionState.Phase.FAILED : "Late cuts plus an early restart must drain the battery";
+
         final MissionState managed = new MissionState();
         managed.start();
         for (int second = 0; second < MissionState.DURATION_SECONDS; second++) {
@@ -68,11 +86,18 @@ public final class MissionStateTest {
                 managed.setEquipment(MissionState.Equipment.RESEARCH, true);
 
             managed.tickSecond();
-            if (managed.snapshot().elapsedSeconds() == MissionState.STORM_START_SECONDS)
-                assert managed.snapshot().storm() && managed.snapshot().generation() == 0.2 : "Storm must reduce generation at its boundary";
+            final int elapsed = managed.snapshot().elapsedSeconds();
+            if (elapsed == MissionState.STORM_START_SECONDS)
+                assert managed.snapshot().storm() && Math.abs(managed.snapshot().generation() - 1.1) < 1e-9 : "Dimming starts from clear sky";
 
-            if (managed.snapshot().elapsedSeconds() == MissionState.STORM_END_SECONDS)
-                assert !managed.snapshot().storm() && managed.snapshot().generation() == 1.1 : "Generation must recover at storm end";
+            if (elapsed == MissionState.STORM_START_SECONDS + 30)
+                assert managed.snapshot().generation() < 1.1 && managed.snapshot().generation() > peak : "Dust dims the sun gradually";
+
+            if (elapsed == DustStormProfile.PEAK_START_SECONDS || elapsed == MissionState.STORM_END_SECONDS)
+                assert Math.abs(managed.snapshot().generation() - peak) < 1e-9 : "The peak holds Opportunity's observed 21/645 ratio";
+
+            if (elapsed == MissionState.STORM_END_SECONDS + 1)
+                assert !managed.snapshot().storm() && managed.snapshot().generation() > peak : "Generation recovers after the storm";
         }
 
         assert managed.snapshot().phase() == MissionState.Phase.SUCCESS : "A balanced allocation must be winnable";

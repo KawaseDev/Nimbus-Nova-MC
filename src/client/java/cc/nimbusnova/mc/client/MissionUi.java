@@ -1,5 +1,7 @@
 package cc.nimbusnova.mc.client;
 
+import cc.nimbusnova.mc.mission.DustStormProfile;
+import cc.nimbusnova.mc.mission.MissionState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
@@ -45,6 +47,10 @@ final class MissionUi implements MissionPalette {
 
     static String time(final int seconds) {
         return String.format(Locale.ROOT, "%02d:%02d", Math.max(0, seconds) / 60, Math.max(0, seconds) % 60);
+    }
+
+    static long sunPercent(final MissionState.Snapshot state) {
+        return Math.round(DustStormProfile.solarFactor(state.elapsedSeconds()) * 100);
     }
 
     static String rate(final double rate) {

@@ -76,9 +76,8 @@ public final class MissionState {
         if (phase != Phase.ACTIVE) return;
 
         elapsedSeconds++;
-        final boolean storm = elapsedSeconds >= STORM_START_SECONDS && elapsedSeconds < STORM_END_SECONDS;
-        // shortcut: normalized prototype rates, replace with a sourced scenario model before science claims.
-        final double generation = storm ? 0.2 : 1.1;
+        // Solar supply follows Opportunity's 2018 record; battery size and demand are authored game units.
+        final double generation = DustStormProfile.generation(elapsedSeconds);
         final double demand = 0.15 + (oxygenOnline ? 0.45 : 0) + (researchOnline ? 0.65 : 0);
         battery = Math.clamp(battery + generation - demand, 0, 100);
         oxygen = Math.clamp(oxygen + (oxygenOnline && battery > 0 ? 0.55 : 0) - 0.4, 0, 100);
@@ -90,10 +89,13 @@ public final class MissionState {
             lastEvent = "Dust front approaching. Solar output will drop in 20 seconds.";
 
         if (elapsedSeconds == STORM_START_SECONDS)
-            lastEvent = "Dust front arrived. Solar output is down. Rebalance power with your crew.";
+            lastEvent = "Dust front arrived. The sky is darkening and solar output is falling. Rebalance power with your crew.";
+
+        if (elapsedSeconds == DustStormProfile.PEAK_START_SECONDS)
+            lastEvent = "Storm peak: the sun gives only 3% of its usual energy, like Opportunity's 21 Wh on June 10, 2018.";
 
         if (elapsedSeconds == STORM_END_SECONDS)
-            lastEvent = "The dust front has passed. Solar generation is recovering.";
+            lastEvent = "The dust is thinning and solar output is slowly recovering. Opportunity never woke up after its storm.";
 
         if (battery <= 0 || oxygen <= 0) {
             phase = Phase.FAILED;
@@ -118,9 +120,8 @@ public final class MissionState {
     }
 
     public Snapshot snapshot() {
-        final boolean storm = elapsedSeconds >= STORM_START_SECONDS && elapsedSeconds < STORM_END_SECONDS;
         return new Snapshot(phase, elapsedSeconds, battery, oxygen, oxygenOnline, researchOnline,
-                storm ? 0.2 : 1.1, 0.15 + (oxygenOnline ? 0.45 : 0) + (researchOnline ? 0.65 : 0),
+                DustStormProfile.generation(elapsedSeconds), 0.15 + (oxygenOnline ? 0.45 : 0) + (researchOnline ? 0.65 : 0),
                 decisions, researchSeconds, lastEvent);
     }
 

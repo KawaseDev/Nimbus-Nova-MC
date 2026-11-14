@@ -27,7 +27,7 @@ final class MissionHud implements MissionPalette {
         graphics.fill(x, y, x + 3, y + 28, status.getRGB());
         MissionUi.text(graphics, "NIMBUS NOVA", x + 12, y + 10, TEXT);
         MissionUi.rightText(graphics, MissionUi.time(MissionState.DURATION_SECONDS - state.elapsedSeconds()), x + width - 10, y + 10, status);
-        MissionUi.text(graphics, state.phase().name() + " / " + (state.storm() ? "DUST EVENT" : "HABITAT SYSTEMS"), x + 12, y + 25, MUTED);
+        MissionUi.text(graphics, state.phase().name() + " / " + (state.storm() ? "DUST / SUN " + MissionUi.sunPercent(state) + "%" : "HABITAT SYSTEMS"), x + 12, y + 25, MUTED);
 
         MissionUi.text(graphics, "Battery", x + 12, y + 45, MUTED);
         MissionUi.rightText(graphics, Math.round(state.battery()) + "%", x + width - 12, y + 45, state.battery() <= 25 ? DANGER : ACCENT);

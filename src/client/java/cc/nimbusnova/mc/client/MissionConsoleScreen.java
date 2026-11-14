@@ -111,7 +111,8 @@ public final class MissionConsoleScreen extends Screen implements MissionPalette
                     MissionUi.text(graphics, "Oxygen  " + Math.round(state.oxygen()) + "%", contentX + meterWidth + 16, contentY + 23, OXYGEN);
                     MissionUi.bar(graphics, contentX + meterWidth + 16, contentY + 37, meterWidth, state.oxygen(), state.oxygen() <= 25 ? DANGER : OXYGEN);
                     MissionUi.text(graphics, "Science " + Math.min(state.researchSeconds(), MissionState.RESEARCH_TARGET_SECONDS)
-                            + "/90s  |  " + MissionUi.rate(state.generation() - state.demand()) + " energy/s", contentX, contentY + 52, MUTED);
+                            + "/90s  |  " + MissionUi.rate(state.generation() - state.demand()) + " energy/s  |  Sun "
+                            + MissionUi.sunPercent(state) + "%", contentX, contentY + 52, MUTED);
                     MissionUi.bar(graphics, contentX, contentY + 66, contentWidth,
                             state.researchSeconds() * 100.0 / MissionState.RESEARCH_TARGET_SECONDS, SUCCESS);
                     MissionUi.wrap(graphics, state.lastEvent(), contentX, contentY + 81, contentWidth,
@@ -126,7 +127,8 @@ public final class MissionConsoleScreen extends Screen implements MissionPalette
                 case 1 -> {
                     MissionUi.text(graphics, "Your role: " + packet.role().label, contentX, contentY, ACCENT);
                     MissionUi.text(graphics, "Habitat equipment", contentX, contentY + 49, TEXT);
-                    MissionUi.wrap(graphics, "Research uses 0.65 energy/s. Oxygen uses 0.45 energy/s.", contentX,
+                    MissionUi.wrap(graphics, "Research uses 0.65 energy/s. Oxygen uses 0.45 energy/s. The habitat always uses 0.15. "
+                                    + "Solar panels give up to 0.95 and the backup generator always gives 0.15.", contentX,
                             contentY + 100, contentWidth, Math.max(1, (panelHeight - 210) / 11), MUTED);
 
                     if (panelHeight >= 290) {
@@ -137,14 +139,15 @@ public final class MissionConsoleScreen extends Screen implements MissionPalette
                 }
                 default -> {
                     MissionUi.text(graphics, "Crew briefing", contentX, contentY, ACCENT);
-                    MissionUi.wrap(graphics, "A dust front will reduce solar supply at 01:15 and clear at 03:15. "
-                                    + "Coordinate research power with oxygen production. Keep both reserves above zero until 04:00; "
-                                    + "earn full success by completing 90 seconds of research.",
-                            contentX, contentY + 18, contentWidth, panelHeight >= 290 ? 7 : 6, TEXT);
+                    MissionUi.wrap(graphics, "A dust storm starts dimming the sun at 01:15. By 02:15 only 3% of the sunlight is left, "
+                                    + "and the dust starts to thin at 03:15. Keep battery and oxygen above zero until 04:00; "
+                                    + "finish 90 seconds of research for full success. The storm follows NASA's Opportunity rover "
+                                    + "in June 2018: 645 Wh of solar energy per day before the storm, 21 Wh on June 10 (dust opacity tau 10.5).",
+                            contentX, contentY + 18, contentWidth, panelHeight >= 290 ? 8 : 6, TEXT);
 
                     if (panelHeight >= 290) {
-                        MissionUi.wrap(graphics, "Prototype simulation: all rates and event timing are authored game balance. "
-                                        + "NASA measurements are not integrated yet. Surviving without the research target earns partial success.",
+                        MissionUi.wrap(graphics, "Real data: the 3% sunlight ratio and tau. Game assumptions: battery size, energy use, "
+                                        + "10 Mars days squeezed into 1 minute, the backup generator and the recovery. Opportunity never recovered.",
                                 contentX, contentY + 116, contentWidth, 5, MUTED);
                     }
                 }

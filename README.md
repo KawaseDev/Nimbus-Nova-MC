@@ -2,7 +2,7 @@
 
 # Nimbus Nova MC — mission trainer
 
-Minecraft Fabric starter for NASA Space Apps 2026's **Build a Junior Astronaut Mission Trainer**. Current state: common/client initialization only; gameplay and NASA data integration come later.
+Minecraft Fabric starter for NASA Space Apps 2026's **Build a Junior Astronaut Mission Trainer**. Current state: a shared four-minute dust-storm mission with roles, HUD, and console. Its solar supply follows NASA's record of the Opportunity rover in the 2018 Mars dust storm; see [CREDITS.md](CREDITS.md) for sources and game assumptions.
 
 ## Development
 
