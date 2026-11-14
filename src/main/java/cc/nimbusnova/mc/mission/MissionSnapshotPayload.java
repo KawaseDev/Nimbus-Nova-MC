@@ -15,7 +15,8 @@ public record MissionSnapshotPayload(MissionState.Snapshot state, CrewRole role,
     private MissionSnapshotPayload(final RegistryFriendlyByteBuf buffer) {
         this(new MissionState.Snapshot(MissionState.Phase.valueOf(buffer.readUtf(16)), buffer.readVarInt(),
                         buffer.readDouble(), buffer.readDouble(), buffer.readBoolean(), buffer.readBoolean(),
-                        buffer.readDouble(), buffer.readDouble(), buffer.readVarInt(), buffer.readVarInt(), buffer.readUtf(512)),
+                        buffer.readDouble(), buffer.readDouble(), buffer.readVarInt(), buffer.readVarInt(), buffer.readUtf(512),
+                        buffer.readDouble(), buffer.readDouble(), buffer.readVarInt()),
                 CrewRole.valueOf(buffer.readUtf(16)), buffer.readBoolean(), buffer.readVarInt());
     }
 
@@ -31,6 +32,9 @@ public record MissionSnapshotPayload(MissionState.Snapshot state, CrewRole role,
         buffer.writeVarInt(state.decisions());
         buffer.writeVarInt(state.researchSeconds());
         buffer.writeUtf(state.lastEvent(), 512);
+        buffer.writeDouble(state.lowestBattery());
+        buffer.writeDouble(state.lowestOxygen());
+        buffer.writeVarInt(state.firstResearchCutSecond());
         buffer.writeUtf(role.name(), 16);
         buffer.writeBoolean(operator);
         buffer.writeVarInt(crew);

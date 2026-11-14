@@ -75,6 +75,11 @@ public final class MissionStateTest {
         }
 
         assert greedy.snapshot().phase() == MissionState.Phase.FAILED : "Late cuts plus an early restart must drain the battery";
+        assert greedy.snapshot().phase().ended() && !MissionState.Phase.PAUSED.ended();
+        assert greedy.snapshot().lowestBattery() == 0 && greedy.snapshot().firstResearchCutSecond() == 110;
+        final String greedyStory = String.join(" ", MissionDebrief.consequences(greedy.snapshot()));
+        assert greedyStory.contains("battery ran out") && greedyStory.contains("research still switched on")
+                && greedyStory.contains("01:50 while the sky was darkening") : greedyStory;
 
         final MissionState managed = new MissionState();
         managed.start();
@@ -102,6 +107,8 @@ public final class MissionStateTest {
 
         assert managed.snapshot().phase() == MissionState.Phase.SUCCESS : "A balanced allocation must be winnable";
         assert managed.snapshot().researchSeconds() >= MissionState.RESEARCH_TARGET_SECONDS;
+        assert managed.snapshot().lowestBattery() > 0 && managed.snapshot().lowestBattery() < 80 : "Debrief records the lowest reserve";
+        assert MissionDebrief.consequences(managed.snapshot()).getFirst().contains("01:00 before the dust arrived");
         assert managed.snapshot().oxygen() <= 100 && managed.snapshot().battery() <= 100 : "Reserves cannot exceed capacity";
 
         final MissionState noOxygen = new MissionState();

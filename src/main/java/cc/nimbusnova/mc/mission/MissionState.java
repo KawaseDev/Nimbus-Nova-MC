@@ -7,7 +7,11 @@ public final class MissionState {
     public static final int RESEARCH_TARGET_SECONDS = 90;
 
     public enum Phase {
-        READY, ACTIVE, PAUSED, SUCCESS, PARTIAL, FAILED, ABORTED
+        READY, ACTIVE, PAUSED, SUCCESS, PARTIAL, FAILED, ABORTED;
+
+        public boolean ended() {
+            return this == SUCCESS || this == PARTIAL || this == FAILED || this == ABORTED;
+        }
     }
 
     public enum Equipment {
@@ -20,6 +24,9 @@ public final class MissionState {
     private boolean oxygenOnline = true, researchOnline = true;
     private int decisions;
     private int researchSeconds;
+    // Debrief measurements: what happened, not why.
+    private double lowestBattery = battery, lowestOxygen = oxygen;
+    private int firstResearchCutSecond = -1;
     private String lastEvent = "Choose your role. Mission Control starts the simulation.";
 
     public void start() {
@@ -64,6 +71,8 @@ public final class MissionState {
         } else {
             if (researchOnline == online) return;
             researchOnline = online;
+            if (!online && firstResearchCutSecond < 0)
+                firstResearchCutSecond = elapsedSeconds;
         }
 
         decisions++;
@@ -82,6 +91,8 @@ public final class MissionState {
         battery = Math.clamp(battery + generation - demand, 0, 100);
         oxygen = Math.clamp(oxygen + (oxygenOnline && battery > 0 ? 0.55 : 0) - 0.4, 0, 100);
 
+        lowestBattery = Math.min(lowestBattery, battery);
+        lowestOxygen = Math.min(lowestOxygen, oxygen);
         if (researchOnline && battery > 0)
             researchSeconds++;
 
@@ -122,12 +133,13 @@ public final class MissionState {
     public Snapshot snapshot() {
         return new Snapshot(phase, elapsedSeconds, battery, oxygen, oxygenOnline, researchOnline,
                 DustStormProfile.generation(elapsedSeconds), 0.15 + (oxygenOnline ? 0.45 : 0) + (researchOnline ? 0.65 : 0),
-                decisions, researchSeconds, lastEvent);
+                decisions, researchSeconds, lastEvent, lowestBattery, lowestOxygen, firstResearchCutSecond);
     }
 
     public record Snapshot(Phase phase, int elapsedSeconds, double battery, double oxygen,
                            boolean oxygenOnline, boolean researchOnline, double generation, double demand,
-                           int decisions, int researchSeconds, String lastEvent) {
+                           int decisions, int researchSeconds, String lastEvent,
+                           double lowestBattery, double lowestOxygen, int firstResearchCutSecond) {
         public boolean storm() {
             return elapsedSeconds >= STORM_START_SECONDS && elapsedSeconds < STORM_END_SECONDS;
         }

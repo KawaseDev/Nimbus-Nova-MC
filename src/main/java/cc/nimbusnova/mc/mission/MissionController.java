@@ -36,6 +36,7 @@ public final class MissionController {
     private final Map<UUID, CrewRole> roles = new HashMap<>();
     private final Map<GlobalPos, MissionState.Equipment> stations = new HashMap<>();
     private int ticks;
+    private MissionState.Phase lastBroadcastPhase = MissionState.Phase.READY;
 
     public static MissionController get(final MinecraftServer server) {
         return SESSIONS.computeIfAbsent(server, ignored -> new MissionController());
@@ -250,13 +251,19 @@ public final class MissionController {
     }
 
     public void broadcast(final MinecraftServer server) {
+        final MissionState.Snapshot state = mission.snapshot();
+        // The debrief opens once for everyone when the mission ends.
+        final boolean justEnded = state.phase().ended() && !lastBroadcastPhase.ended();
+        lastBroadcastPhase = state.phase();
         for (final ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!ServerPlayNetworking.canSend(player, MissionSnapshotPayload.TYPE)) continue;
 
-            ServerPlayNetworking.send(player, new MissionSnapshotPayload(mission.snapshot(),
+            ServerPlayNetworking.send(player, new MissionSnapshotPayload(state,
                     roles.getOrDefault(player.getUUID(), CrewRole.OBSERVER),
                     player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER),
                     server.getPlayerList().getPlayerCount()));
+            if (justEnded && ServerPlayNetworking.canSend(player, OpenConsolePayload.TYPE))
+                ServerPlayNetworking.send(player, new OpenConsolePayload());
         }
     }
 }

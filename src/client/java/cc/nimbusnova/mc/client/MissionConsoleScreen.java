@@ -1,19 +1,29 @@
 package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.mission.CrewRole;
+import cc.nimbusnova.mc.mission.MissionDebrief;
 import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
 import cc.nimbusnova.mc.mission.MissionState;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import java.awt.Color;
+
 public final class MissionConsoleScreen extends Screen implements MissionPalette {
     private int tab;
     private int panelX, panelY, panelWidth, panelHeight;
     private MissionButton start, pause, reset, oxygen, research, forecast, powerRole, lifeRole, weatherRole;
 
+    static final int DEBRIEF_TAB = 3;
+
     public MissionConsoleScreen() {
+        this(0);
+    }
+
+    public MissionConsoleScreen(final int tab) {
         super(Component.literal("Nimbus Nova mission console"));
+        this.tab = tab;
     }
 
     @Override
@@ -23,8 +33,8 @@ public final class MissionConsoleScreen extends Screen implements MissionPalette
         panelX = (width - panelWidth) / 2;
         panelY = (height - panelHeight) / 2;
 
-        final String[] names = { "Overview", "Systems", "Briefing" };
-        final int tabWidth = (panelWidth - 36) / 3;
+        final String[] names = { "Overview", "Systems", "Briefing", "Debrief" };
+        final int tabWidth = (panelWidth - 42) / 4;
         for (int index = 0; index < names.length; index++) {
             final int selectedTab = index;
             final MissionButton button = addRenderableWidget(new MissionButton(panelX + 12 + index * (tabWidth + 6),
@@ -140,6 +150,30 @@ public final class MissionConsoleScreen extends Screen implements MissionPalette
                                         + "can see the sunlight and its 30-second forecast, so tell the crew what is coming. "
                                         + "Mission Control can do everything for solo testing. Choose roles before starting.",
                                 contentX, contentY + 134, contentWidth, 4, TEXT);
+                    }
+                }
+                case DEBRIEF_TAB -> {
+                    if (!state.phase().ended()) {
+                        MissionUi.wrap(graphics, "The debrief opens when the mission ends. Survive until 04:00 and finish 90 seconds of research.",
+                                contentX, contentY, contentWidth, 3, MUTED);
+                    } else {
+                        final Color outcome = state.phase() == MissionState.Phase.SUCCESS ? SUCCESS
+                                : state.phase() == MissionState.Phase.PARTIAL ? ACCENT : DANGER;
+                        MissionUi.text(graphics, state.objective(), contentX, contentY, outcome);
+                        int line = contentY + 18;
+                        for (final String fact : MissionDebrief.facts(state)) {
+                            MissionUi.text(graphics, fact, contentX, line, TEXT);
+                            line += 13;
+                        }
+
+                        for (final String consequence : MissionDebrief.consequences(state)) {
+                            MissionUi.wrap(graphics, consequence, contentX, line, contentWidth, 2, ACCENT);
+                            line += 24;
+                        }
+
+                        MissionUi.wrap(graphics, MissionDebrief.REAL_STORY, contentX, line + 2, contentWidth, 3, MUTED);
+                        if (panelHeight >= 290)
+                            MissionUi.wrap(graphics, MissionDebrief.REFLECTION, contentX, line + 40, contentWidth, 2, TEXT);
                     }
                 }
                 default -> {
