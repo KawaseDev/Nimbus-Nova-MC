@@ -89,6 +89,7 @@ public final class MarsTrainingMap {
         final int constructionStage = readConstructionStage(source.getServer());
         if (constructionStage == 2) {
             bindStations(source.getServer());
+            OutpostNpcs.ensureSpawned(level);
             source.sendSuccess(() -> Component.literal("The Mars outpost already exists. It was preserved; use /mars join."), false);
             return 1;
         }
@@ -120,6 +121,7 @@ public final class MarsTrainingMap {
         verifyArrival(level);
         writeConstructionStage(source.getServer(), true);
         bindStations(source.getServer());
+        OutpostNpcs.ensureSpawned(level);
         source.sendSuccess(() -> Component.literal("Mars outpost ready. Students can use /mars join. Fictional training site / authored terrain."), false);
         return 1;
     }
@@ -139,6 +141,7 @@ public final class MarsTrainingMap {
 
         verifyArrival(destination);
         bindStations(server);
+        OutpostNpcs.ensureSpawned(destination);
         player.teleportTo(destination, 0.5, FLOOR_Y + 1, -27.5, Set.of(), 0, 0, true);
         player.resetFallDistance();
         player.sendSystemMessage(Component.literal("Welcome to Aster Outpost. Fictional training site / authored terrain. Press J for mission controls. /mars leave returns you."));

@@ -4,10 +4,12 @@ import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.mission.CrewRole;
 import cc.nimbusnova.mc.content.ModContent;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
+import cc.nimbusnova.mc.world.OutpostNpcs;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
@@ -33,6 +35,28 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
                 throw new AssertionError("The tutorial must start with the console step unchecked");
 
             context.takeScreenshot("tutorial-start");
+            world.getServer().runOnServer(server -> {
+                final var level = server.getLevel(MarsTrainingMap.DIMENSION);
+                final var npcs = level.getEntitiesOfClass(net.minecraft.world.entity.Entity.class,
+                        new net.minecraft.world.phys.AABB(OutpostNpcs.SPECIALIST_POSITION).inflate(40),
+                        entity -> entity.entityTags().contains("nimbus_nova_npc"));
+                if (npcs.size() != 2)
+                    throw new AssertionError("Expected the specialist and the robot at the outpost, found " + npcs.size());
+
+                final var player = world.getConnection().getServerPlayer();
+                for (final var npc : npcs) {
+                    if (UseEntityCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND, npc, null)
+                            != net.minecraft.world.InteractionResult.SUCCESS)
+                        throw new AssertionError("Talking to " + npc.getName().getString() + " must be handled by the mod");
+                }
+
+                // Stand in front of the specialist, looking at her.
+                player.teleportTo(level, OutpostNpcs.SPECIALIST_POSITION.getX() + 0.5, OutpostNpcs.SPECIALIST_POSITION.getY(),
+                        OutpostNpcs.SPECIALIST_POSITION.getZ() - 2.5, java.util.Set.of(), 0, 10, true);
+            });
+            context.waitTicks(20);
+            world.getConnection().waitForChunksRender();
+            context.takeScreenshot("npc-specialist");
             context.setScreen(MissionConsoleScreen::new);
             context.clickScreenButton("Systems");
             context.clickScreenButton("Power engineer");

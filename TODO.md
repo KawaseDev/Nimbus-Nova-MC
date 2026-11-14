@@ -82,7 +82,7 @@ Only the sunlight curve comes from NASA data; the four-minute event, rates, and 
 
 Status: planned after the complete core lesson.
 
-- [ ] Add one authored NPC guide with short role instructions, state-aware dialogue, and replayable hints.
+- [x] Add one authored NPC guide with short role instructions, state-aware dialogue, and replayable hints. Dr. Lina Vega (mission specialist, habitat) and Bolt (maintenance robot, power yard) in `OutpostNpcs` / `NpcDialogue`; dialogue is in chat, not a dialogue screen.
 - [ ] Build one original task minigame and connect completion to a real equipment/resource consequence.
 - [ ] Validate role, distance, phase, supplies, and completion server-side; reject duplicate rewards.
 - [ ] Provide readable text, color-independent cues, forgiving input targets, and optional timing assistance.

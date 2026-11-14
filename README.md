@@ -39,6 +39,13 @@ The title screen has a **Join session** screen for the planned nickname and sess
 6. Complete at least **90 seconds of powered research** for full success. Survival with insufficient research earns partial success; switching research off forever cannot earn full success.
 7. When the mission ends, every console opens on the **Debrief** tab: outcome, lowest reserves, decisions, consequences, the real Opportunity story, and reflection questions. Reset before another attempt.
 
+Two fictional NPCs live at the outpost. Right-click them to hear the next line in chat; their lines change with the mission phase and repeat so players can replay them:
+
+- **Dr. Lina Vega**, mission specialist, in the habitat: welcome, your role's job, the real storm behind the mission, and a pointer to the debrief.
+- **Bolt**, maintenance robot (a copper golem), in the power yard: hints in three stages during the mission (which system is the problem, where to act, the exact trade-off).
+
+They are spawned by `/mars create` and `/mars join` if missing, cannot be hurt, and do not move.
+
 The map contains a habitat, landing pad, power yard, greenhouse, shelter, static rover workshop, and marked paths. Research and oxygen consoles are bound automatically. `/mars create` preserves an existing outpost; an interrupted construction claim blocks automatic rebuilding. The map has authored terrain and no NASA geographic-accuracy claim.
 
 The HUD shows shared reserves, net energy rate, research progress, your role, the remaining mission time, and warnings. The console has Overview, Systems, Briefing, and Debrief tabs. Only the weather officer and operators see sunlight readings. Equipment controls affect the server simulation; they are not separate client-side resource values.

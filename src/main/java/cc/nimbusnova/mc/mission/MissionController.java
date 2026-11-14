@@ -220,6 +220,14 @@ public final class MissionController {
         }
     }
 
+    public MissionState.Snapshot snapshot() {
+        return mission.snapshot();
+    }
+
+    public CrewRole role(final UUID player) {
+        return roles.getOrDefault(player, CrewRole.OBSERVER);
+    }
+
     public void bindStation(final GlobalPos position, final Station station) {
         stations.put(position, station);
     }

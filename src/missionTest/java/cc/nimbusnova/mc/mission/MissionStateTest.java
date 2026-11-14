@@ -1,5 +1,7 @@
 package cc.nimbusnova.mc.mission;
 
+import java.util.List;
+
 public final class MissionStateTest {
     private MissionStateTest() {
         /* w */
@@ -166,6 +168,20 @@ public final class MissionStateTest {
         assert mildManaged.snapshot().phase() == MissionState.Phase.SUCCESS : "A late cut that fails in 2018 survives the 2007 storm";
         assert MissionDebrief.realStory(mildManaged.snapshot()).contains("survived");
         assert DustStorm.byId("2018") == storm2018;
+        final MissionState talk = new MissionState(DustStorm.OPPORTUNITY_2007);
+        assert NpcDialogue.specialist(talk.snapshot(), CrewRole.OBSERVER).get(1).contains("pick a role");
+        assert NpcDialogue.specialist(talk.snapshot(), CrewRole.WEATHER).get(1).contains("weather officer");
+        talk.start();
+        for (int second = 0; second < MissionState.STORM_START_SECONDS + 5; second++)
+            talk.tickSecond();
+
+        assert String.join(" ", NpcDialogue.specialist(talk.snapshot(), CrewRole.POWER)).contains("18%") : "Storm lines quote the real storm";
+        final List<String> hints = NpcDialogue.robot(talk.snapshot());
+        assert hints.get(0).startsWith("Beep! Hint 1") && hints.get(2).contains("0.65") : "Robot hints go from problem to exact trade-off";
+        assert NpcDialogue.robot(new MissionState().snapshot()).get(1).contains("would not help") : "Robot must not promise cleaning fixes a storm";
+        talk.abort();
+        assert NpcDialogue.specialist(talk.snapshot(), CrewRole.POWER).get(0).contains("Debrief");
+
         System.out.println("Mission self-check passed: resource balance, phases, dust, outcomes, idempotency and roles.");
     }
 }
