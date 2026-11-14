@@ -142,3 +142,11 @@ Source and permission detail: [README terrain-import note](README.md#optional-lo
 - [ ] Verify public judging links signed out and click Submit for Judging before the applicable deadline.
 
 See [rules.md](rules.md) for governing official sources and [JUDGE_REVIEW.md](JUDGE_REVIEW.md) for the scoring weaknesses behind these priorities.
+
+## Mars movement batch
+
+- [x] Apply 0.38 gravity in the Mars dimension on both client and server without persistent attribute changes.
+- [x] Scale fall damage and use the native gravity path for the rover.
+- [x] Verify higher jumps, longer airtime, item gravity, no-gravity behavior, client/server agreement, and ordinary physics after leaving Mars in the runtime test.
+
+Build and client game test passed. Physical multiplayer movement testing remains open.
