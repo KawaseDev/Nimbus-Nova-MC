@@ -136,9 +136,9 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             context.waitFor(client -> NimbusNovaClient.snapshot != null && !NimbusNovaClient.snapshot.educationIncident().isEmpty());
             context.waitForScreen(MissionConsoleScreen.class);
             GuidedMissionChecks.capture(context, "solar-education-pause");
-            context.clickScreenButton("Next");
+            context.clickScreenButton("Next lesson");
             GuidedMissionChecks.capture(context, "solar-education-hazards");
-            context.clickScreenButton("Next");
+            context.clickScreenButton("Next lesson");
             GuidedMissionChecks.capture(context, "solar-education-source");
             world.getServer().runCommand("mission acknowledge");
             world.getServer().runCommand("mission resume");

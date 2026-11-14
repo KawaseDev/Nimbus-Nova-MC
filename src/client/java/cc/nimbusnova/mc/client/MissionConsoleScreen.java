@@ -93,9 +93,9 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
         nextDebrief = addRenderableWidget(new MissionButton(panelX + panelWidth - 92, footerY - 28, 78, 22,
                 "Next", () -> changeDebriefPage(1)));
         previousLesson = addRenderableWidget(new MissionButton(panelX + 14, footerY - 28, 78, 22,
-                "Previous", () -> { lessonPage--; updateControls(); }));
+                "Previous lesson", () -> { lessonPage--; updateControls(); }));
         nextLesson = addRenderableWidget(new MissionButton(panelX + panelWidth - 92, footerY - 28, 78, 22,
-                "Next", () -> { lessonPage++; updateControls(); }));
+                "Next lesson", () -> { lessonPage++; updateControls(); }));
         lessonSource = addRenderableWidget(new MissionButton(panelX + (panelWidth - 130) / 2, footerY - 28, 130, 22,
                 "NASA source", () -> {
                     if (NimbusNovaClient.snapshot != null && !NimbusNovaClient.snapshot.educationIncident().isEmpty()) {
