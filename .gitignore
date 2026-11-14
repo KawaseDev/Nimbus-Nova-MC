@@ -8,3 +8,4 @@ run/
 .env
 .env.*
 !.env.example
+teacher-panel/data/
