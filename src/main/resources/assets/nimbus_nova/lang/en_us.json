@@ -1,0 +1,17 @@
+{
+  "item.nimbus_nova.mission_tablet": "Mission Tablet",
+  "item.nimbus_nova.mission_tablet.description": "Right-click to open the crew mission console.",
+  "item.nimbus_nova.oxygen_canister": "Emergency Oxygen Canister",
+  "item.nimbus_nova.oxygen_canister.description": "Life-support engineer: restore up to 25 shared oxygen units.",
+  "item.nimbus_nova.engineering_tool": "Engineering Multitool",
+  "item.nimbus_nova.engineering_tool.description": "Iron-grade pickaxe for fieldwork and collecting rock.",
+  "item.nimbus_nova.mars_sample": "Mars Rock Sample",
+  "item.nimbus_nova.mars_sample.description": "Collected training specimen. Analysis gameplay comes later.",
+  "item.nimbus_nova.space_helmet": "Expedition Helmet",
+  "item.nimbus_nova.space_chestplate": "Expedition Suit",
+  "item.nimbus_nova.space_leggings": "Expedition Trousers",
+  "item.nimbus_nova.space_boots": "Expedition Boots",
+  "item.nimbus_nova.space_suit.description": "Protective armor. Pressure and radiation simulation comes later.",
+  "key.nimbus_nova.console": "Open mission console",
+  "key.categories.nimbus_nova.mission": "Nimbus Nova"
+}

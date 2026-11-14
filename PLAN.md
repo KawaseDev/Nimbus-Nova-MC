@@ -4,7 +4,7 @@ Version: November 14, 2026. Working plan for a five-person team.
 
 Platform: Minecraft Java Edition 26.3, Fabric, Java 25, and a teacher web application.
 
-Status: the repository currently contains a Fabric starter. This document describes proposed work. Teacher hosting, missions, NPCs, minigames, vehicles, and NASA data integration are not implemented yet. See [README.md](README.md) for setup and [rules.md](rules.md) for competition requirements.
+Status: the first server-owned mission loop, role controls, HUD, and console are in development. The mod currently uses authored prototype rates; NASA observations are not integrated. Custom Mars terrain and items are a separate implementation batch. The teacher backend/admin panel belongs to another teammate and must not block local mod development. See [README.md](README.md) for usage, [TODO.md](TODO.md) for actual batch status, [JUDGE_REVIEW.md](JUDGE_REVIEW.md) for the provisional idea review, and [rules.md](rules.md) for competition requirements.
 
 ## 1. Product and learning goal
 
@@ -33,19 +33,21 @@ The full vision includes a teacher mission library, several crews, NPCs with bra
 | Area | Hackathon target | Follow-up release |
 | --- | --- | --- |
 | Class size | One teacher and one crew of up to five | Several isolated crews in one class |
-| Hosting | Allocate/reset a session on one prepared server | Provision additional server instances with capacity limits |
+| Hosting | Run one prepared Fabric server; use operator commands until the teammate's backend connects | Teacher session allocation, then capacity-limited server provisioning |
 | Missions | One complete Mars dust-storm mission | Multiple playable missions and difficulty presets |
-| Roles | Five roles, each with a useful action | More tasks, role rotation, combined roles for small groups |
-| NPCs | One mission specialist and one maintenance robot | More characters and mission-specific dialogue |
-| Minigames | Three reusable task types across five roles | More tasks, cooperative puzzles, accessibility variants |
+| Roles | Two active roles, power and life support; other participants can observe | Five useful specialist roles, rotation, combined roles for small groups |
+| NPCs | One short state-aware guide after the core loop works | Mission specialist, maintenance robot, and mission-specific branching dialogue |
+| Minigames | One physical task with a visible equipment/resource effect | Three reusable task types, cooperative puzzles, accessibility variants |
 | Mars | One authored map with habitat and nearby expedition site | Larger regions and additional sites |
-| Suits | Equipment check, oxygen, outdoor safety | More equipment and repair interactions |
-| Vehicles | One simple controllable rover | Pilotable shuttle, docking, inter-location travel |
-| Spacecraft presentation | Scripted arrival and extraction | Interactive launch, flight, and landing |
+| Suits | Original equipment assets and a clear prototype boundary | Functional suit oxygen, airlock checks, outdoor safety, and repairs |
+| Vehicles | Authored landing/vehicle areas; rover only after the resource lesson is complete | Controllable rover, then bounded shuttle flight, docking, and inter-location travel |
+| Spacecraft presentation | Static or scripted arrival, labeled according to actual behavior | Interactive launch, flight, and landing |
 | NASA evidence | One curated, attributed historical scenario | More observations and optional refreshed scenarios |
 | Teacher report | Decision timeline and mission outcome | Cross-attempt comparison and additional lesson material |
 
-The hackathon version must still contain an enjoyable mission, an NPC conversation, a working task interaction, and a real resource consequence. A collection of disconnected screens does not meet that target.
+The minimum judged demonstration must show one source-backed environmental change, two students sharing information, a consequential equipment task, an outcome, and an understandable debrief. Original map art and items support that experience. Extra NPCs, additional puzzle engines, full suits, and vehicles follow once this complete path works. Preserve them in the roadmap, but do not make all of them prerequisites for a valid first lesson.
+
+The strict review identified scope and missing evidence as the largest scoring risks. Its provisional 13/25 applies to the idea and described evidence, not an official score or an evaluation of a finished build. The changes in this plan narrow the first demonstration and require a learning check and a traceable science transformation before claiming classroom impact or scientific validity.
 
 ## 3. Teacher and student journey
 
@@ -100,7 +102,9 @@ Text communication and in-person conversation are sufficient initially. Integrat
 
 Use this sequence: lobby, briefing, practice, active mission, outcome, debrief. Store the current phase on the server and define which actions are legal in each phase.
 
-An initial mission lasts approximately 10–15 minutes, excluding discussion. This is a design target to validate in playtesting. Simulated Martian time may run faster than classroom time; display the scale and explain it in the debrief.
+The current prototype lasts four minutes, with an authored dust event from 01:15 to 03:15. Full success requires keeping battery and oxygen above zero until 04:00 and operating research for at least 90 seconds. Survival without sufficient research earns partial success. This prevents “turn research off forever” from becoming the dominant full-success strategy. These timing and resource values are game balance, not NASA measurements.
+
+A later classroom mission may last 10–15 minutes, excluding discussion; validate duration through playtesting. Simulated Martian time may run faster than classroom time. Display the scale and explain it in the debrief.
 
 Track only resources that create decisions in the selected mission:
 
@@ -170,7 +174,7 @@ A minigame is a way to perform an engineering action. The important decision is 
 | Handle a science sample | Match sample identifiers to containers | Expedition | Preserves collected research; uses cargo capacity and time |
 | Inspect a shelter | Find missing supplies and place them in marked storage | Safety/maintenance | Improves preparedness through supplies and crew effort |
 
-For the hackathon, implement three task types: connection/routing, ordered checklist, and inspection/matching. Reuse them with different content so five roles can participate without building five unrelated UI systems.
+First implement one task type and connect it to a server-validated equipment consequence. A station toggle currently establishes that consequence; it is not yet a completed task minigame. Then expand to connection/routing, ordered checklist, and inspection/matching as reusable task types. Reuse content so five roles can participate without building five unrelated UI systems.
 
 Task rules:
 
@@ -376,9 +380,9 @@ Owner 3 consumes the agreed report format rather than recreating mission logic. 
 
 ### Milestone A: one connected action
 
-Run the server and two clients. Show a teacher roster. Assign roles, perform one equipment action, and display its resource consequence on both clients and the teacher page. Teacher pause must stop the simulation.
+Run the server and two clients without waiting for the external teacher backend. Use operator commands for start/pause/reset, assign the power and life-support roles, perform one equipment action, and show its shared resource consequence on both clients. Pause must freeze mission time, reserves, and research progress.
 
-Done when the whole path works together. Mock data may support early UI work but does not satisfy this milestone.
+Done when the mod path works together. Record the snapshot and lifecycle contract for the teammate implementing the backend; connect the teacher roster/page as a later integration check. Mock data may support early UI work but does not satisfy the multiplayer check.
 
 ### Milestone B: one NPC and one task
 
@@ -388,9 +392,9 @@ Done when students can complete the interaction and explain its effect without a
 
 ### Milestone C: the Mars crew
 
-Add the authored base, suit checks, role-specific tasks, airlock rules, and rover route. Test the role combination for fewer than five students. Confirm a reconnect and role reassignment do not strand the mission.
+Add the authored base, original item textures, role-specific station interactions, and a clear route to the expedition site. Confirm that a reconnect and permitted role reassignment do not strand the mission. Label decorative vehicle/suit assets according to their actual functionality.
 
-Done when the crew can prepare, leave the habitat, achieve an objective, and return through normal controls.
+Done for the first map batch when students can enter the map safely, navigate the important stations, and perform the resource interaction without a developer moving them around. Functional suit safety, airlocks, and rover traversal are the next gameplay expansion.
 
 ### Milestone D: the dust scenario
 
@@ -402,7 +406,7 @@ Done when a complete mission produces an understandable report and students can 
 
 Run a complete integrated rehearsal, fix blocking problems, prepare setup instructions, and produce the required public demo and source references. Verify the judging links without a signed-in session. Use [rules.md](rules.md) for the applicable submission limits and deadline.
 
-If time runs short, reduce map size, optional art, extra task variants, and cinematic length. Preserve the teacher start/join flow, one meaningful action per role, NPC guidance, a shared resource trade-off, source attribution, and debrief.
+If time runs short, reduce map size, optional art, extra task variants, and cinematic length. Preserve two active roles, one meaningful task, a shared resource trade-off, source attribution, and debrief. Use the operator-controlled mod flow until the external teacher platform is ready. Do not claim that a local command demonstration proves working teacher hosting.
 
 ### After the hackathon
 
@@ -423,18 +427,35 @@ Add focused tests when implementing the corresponding logic:
 
 Manually check readable instructions, input size, text scaling, color-independent cues, hint behavior, and a slower student's ability to finish. Test on the actual machines available to the team; agree on performance targets after measuring them.
 
+### Small learning check
+
+Before the mission and again after the debrief, ask the same two questions:
+
+1. “Why can't every system stay on at once?”
+2. “What information would make you change the crew's plan?”
+
+Ask an educator or a small number of learners to explain their answers in their own words. Record anonymous notes about whether they mention limited power, competing objectives, and changing conditions. Also note whether they needed help with installation or controls. Keep names, voices, and minors' likenesses out of public demo material.
+
+Use the result as a small usability/learning observation, with participant count and limitations. Do not claim broad educational improvement or age suitability from a single successful playthrough. A student who can connect the falling solar supply to a deliberate change in research or oxygen use provides stronger evidence than a completion score alone.
+
+### Science evidence gate
+
+Before marking NASA integration complete, identify an exact observation or documented condition, its dates and site, and the transformation into a visible game effect. Put this chain in the mission, source register, and demonstration: source observation → environmental change → crew decision → resource consequence → explanation. A historical article can support context; it does not establish a calibrated measurement series. Keep the authored prototype label until that evidence exists.
+
+
 Hackathon acceptance checklist:
 
 - [ ] Minecraft 26.3 / Java 25 build and multiplayer startup work.
-- [ ] Teacher creates a session and students join through its code.
-- [ ] Teacher sees players, assigns roles, starts, pauses, and ends the mission.
-- [ ] Five roles each have an action with a meaningful consequence.
-- [ ] At least one NPC conversation changes with mission progress.
-- [ ] Three task types operate through server-validated actions.
-- [ ] Students can use suits, explore the authored Mars area, and operate the rover.
+- [ ] Two players join the prepared server and receive the two active roles.
+- [ ] Operator commands start, pause, resume, reset, and abort the mission correctly.
+- [ ] Power and life-support roles each control a meaningful resource decision.
+- [ ] One physical task operates through server-validated actions; NPC guidance supports its consequences when included.
+- [ ] Students can safely enter and navigate the authored Mars area; map/item descriptions match delivered functionality.
+- [ ] Teacher session codes, roster, and admin controls work once the teammate's platform is integrated; this is separate from the mod-only milestone.
 - [ ] A documented NASA-based scenario changes mission decisions.
 - [ ] The mission has clear success, partial success, or abort outcomes.
-- [ ] Teacher and students receive a debrief tied to the recorded actions.
+- [ ] Students receive a debrief tied to actual actions; the teacher platform consumes the same report when available.
+- [ ] A small learner/educator test records what participants understood before and after, without overstating its reach.
 - [ ] Instructions, dialogue, website, and submission materials are in English.
 - [ ] Credits, licenses, AI disclosures, privacy checks, and public judging links are ready.
 
@@ -453,4 +474,4 @@ Hackathon acceptance checklist:
 | Arbitrary resource balancing teaches wrong science | Document transformation rules, units, and fictional capacities |
 | Vehicle/space scope delays a playable lesson | Ship rover plus scripted arrival first; implement bounded shuttle flight next |
 
-The immediate next implementation is Milestone A. The full vision remains the destination; this sequence gives the team a playable lesson while preserving room for NPCs, richer missions, and spacecraft.
+Implementation follows the batches in [TODO.md](TODO.md). Complete and verify the core mod loop first, integrate the original Mars map and items next, then finish the science/learning demonstration before adding more systems. The five-role, NPC, minigame, and spacecraft roadmap remains intact.

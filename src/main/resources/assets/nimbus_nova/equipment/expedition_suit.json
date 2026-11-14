@@ -1,0 +1,14 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "texture": "nimbus_nova:expedition_suit"
+      }
+    ],
+    "humanoid_leggings": [
+      {
+        "texture": "nimbus_nova:expedition_suit"
+      }
+    ]
+  }
+}
