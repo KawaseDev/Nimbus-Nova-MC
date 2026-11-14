@@ -35,7 +35,7 @@
   <div class="grid">
     <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p>Mission bridge unavailable.</p><div class="actions"><button disabled>Start mission</button><button disabled>Pause mission</button><button disabled>End mission</button></div></section>
     <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p></section>
-    <section class="card wide" aria-labelledby="crew-title"><h2 id="crew-title">Player roster</h2><div class="empty">Roster unavailable.</div></section>
+    <section class="card wide" aria-labelledby="crew-title"><h2 id="crew-title">Player roster</h2><div class="empty" id="roster" role="status" aria-live="polite">Loading roster…</div></section>
     <section class="card" aria-labelledby="mission-title"><div class="eyebrow">Mission library</div><h2 id="mission-title">The Darkening Sky</h2><p class="tag">In development</p></section>
   </div>
 </main>
@@ -59,6 +59,23 @@
       dot.classList.remove('online');
     }
   }
+  async function refreshRoster() {
+    const roster = document.getElementById('roster');
+    try {
+      const response = await fetch('/api/roster', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Roster unavailable');
+      const { players } = await response.json();
+      roster.replaceChildren();
+      if (!players.length) { roster.textContent = 'No players connected.'; return; }
+      for (const player of players) {
+        const row = document.createElement('div');
+        row.textContent = player.name;
+        roster.appendChild(row);
+      }
+    } catch { roster.textContent = 'Roster unavailable.'; }
+  }
+  refreshRoster();
+  setInterval(refreshRoster, 5000);
   refreshStatus();
   setInterval(refreshStatus, 10000);
 </script>

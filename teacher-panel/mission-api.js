@@ -31,13 +31,18 @@ async function readCommand(request) {
   return { id: command.id, sessionId: command.sessionId, action: command.action, parameters: command.parameters || {} };
 }
 
-function createMissionApi({ teacherToken, bridgeToken, bridgeUrl } = {}) {
+function bridgeAddress(bridgeUrl) {
   let bridge;
   try {
     bridge = new URL(bridgeUrl);
     if (bridge.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(bridge.hostname) || bridge.username || bridge.password || bridge.pathname !== '/' || bridge.search || bridge.hash) bridge = null;
   } catch { bridge = null; }
 
+  return bridge;
+}
+
+function createMissionApi({ teacherToken, bridgeToken, bridgeUrl } = {}) {
+  const bridge = bridgeAddress(bridgeUrl);
   return async function missionApi(request, response) {
     if (request.url !== '/api/mission' && request.url !== '/api/commands') return false;
     if (!teacherToken || teacherToken.length < 32) { send(response, 503, { error: 'Teacher authentication is not configured' }); return true; }
@@ -65,4 +70,4 @@ function createMissionApi({ teacherToken, bridgeToken, bridgeUrl } = {}) {
   };
 }
 
-module.exports = { createMissionApi };
+module.exports = { createMissionApi, bridgeAddress };

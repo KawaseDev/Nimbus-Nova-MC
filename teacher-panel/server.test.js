@@ -109,3 +109,35 @@ test('teacher accounts persist, protect the dashboard, and sign out', async () =
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('roster requires a teacher session and uses the authenticated bridge', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const http = require('node:http');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-roster-'));
+  const token = 'b'.repeat(32);
+  const bridge = http.createServer((request, response) => {
+    assert.equal(request.headers.authorization, `Bearer ${token}`);
+    assert.equal(request.url, '/roster');
+    response.writeHead(200, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ players: [{ id: 'private-id', name: 'Explorer' }] }));
+  });
+  await new Promise(resolve => bridge.listen(0, '127.0.0.1', resolve));
+  const server = createServer({ accountsFile: path.join(dir, 'users.json'), bridgeToken: token, bridgeUrl: `http://127.0.0.1:${bridge.address().port}` });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal((await fetch(`${base}/api/roster`)).status, 401);
+    const registration = await fetch(`${base}/api/account/register`, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'teacher', password: 'x' }) });
+    const cookie = registration.headers.get('set-cookie').split(';')[0];
+    const roster = await fetch(`${base}/api/roster`, { headers: { Cookie: cookie } });
+    assert.deepEqual(await roster.json(), { players: [{ name: 'Explorer' }] });
+    await new Promise(resolve => bridge.close(resolve));
+    assert.equal((await fetch(`${base}/api/roster`, { headers: { Cookie: cookie } })).status, 503);
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+    if (bridge.listening) await new Promise(resolve => bridge.close(resolve));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

@@ -2,7 +2,7 @@ const http = require('node:http');
 const net = require('node:net');
 const fs = require('node:fs');
 const path = require('node:path');
-const { createMissionApi } = require('./mission-api');
+const { createMissionApi, bridgeAddress } = require('./mission-api');
 const { createAccounts } = require('./accounts');
 
 const minecraftHost = process.env.MINECRAFT_HOST || '127.0.0.1';
@@ -30,8 +30,27 @@ function createServer(options = {}) {
       response.writeHead(405, { Allow: 'GET' }).end();
       return;
     }
-    if (request.url === '/api/status' && !accounts.current(request)) {
+    if ((request.url === '/api/status' || request.url === '/api/roster') && !accounts.current(request)) {
       response.writeHead(401).end();
+      return;
+    }
+    if (request.url === '/api/roster') {
+      const bridge = bridgeAddress(options.bridgeUrl);
+      if (!bridge || !options.bridgeToken || options.bridgeToken.length < 32) {
+        response.writeHead(503).end();
+        return;
+      }
+      try {
+        const result = await fetch(new URL('/roster', bridge), {
+          headers: { Authorization: `Bearer ${options.bridgeToken}` },
+          signal: AbortSignal.timeout(4000), redirect: 'error'
+        });
+        if (!result.ok) throw new Error('Bridge unavailable');
+        const data = await result.json();
+        if (!Array.isArray(data.players) || data.players.some(player => !player || typeof player.name !== 'string')) throw new Error('Invalid roster');
+        response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        response.end(JSON.stringify({ players: data.players.map(player => ({ name: player.name })) }));
+      } catch { response.writeHead(503).end(); }
       return;
     }
     if (request.url === '/api/status') {
