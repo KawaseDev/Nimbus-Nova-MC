@@ -29,10 +29,20 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             context.waitFor(client -> client.level != null && client.level.dimension().equals(MarsTrainingMap.DIMENSION));
             world.getConnection().waitForChunksRender();
             context.takeScreenshot("mars-outpost");
+            if (MissionTutorial.consoleOpened)
+                throw new AssertionError("The tutorial must start with the console step unchecked");
+
+            context.takeScreenshot("tutorial-start");
             context.setScreen(MissionConsoleScreen::new);
             context.clickScreenButton("Systems");
             context.clickScreenButton("Power engineer");
             context.waitFor(client -> NimbusNovaClient.snapshot.role() == CrewRole.POWER);
+            context.setScreen(() -> null);
+            context.takeScreenshot("tutorial-ready");
+            if (!MissionTutorial.consoleOpened)
+                throw new AssertionError("Opening the console must tick the tutorial's first step");
+
+            context.setScreen(MissionConsoleScreen::new);
             context.clickScreenButton("Start mission");
             context.waitFor(client -> NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.ACTIVE);
             context.setScreen(MissionConsoleScreen::new);

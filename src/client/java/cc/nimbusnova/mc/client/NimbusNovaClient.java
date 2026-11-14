@@ -43,7 +43,10 @@ public final class NimbusNovaClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(OpenConsolePayload.TYPE, (_, context) ->
                 context.client().execute(() -> context.client().setScreenAndShow(new MissionConsoleScreen(
                         snapshot != null && snapshot.state().phase().ended() ? MissionConsoleScreen.DEBRIEF_TAB : 0))));
-        ClientPlayConnectionEvents.DISCONNECT.register((_, _) -> snapshot = null);
+        ClientPlayConnectionEvents.DISCONNECT.register((_, _) -> {
+            snapshot = null;
+            MissionTutorial.consoleOpened = false;
+        });
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (consoleKey.consumeClick()) {
                 if (client.player != null && client.gui.screen() == null)
