@@ -4,62 +4,65 @@ Updated November 14, 2026. This file records delivery work, not the complete pro
 
 ## Batch 1: mission core and HUD
 
-Status: core implementation committed as `21cad61`; build and simulation checks passed. Visual and multiplayer integration checks remain pending.
+Status: core implementation committed as `21cad61`; build and simulation checks passed. Single-client runtime checks and render inspection passed. Two-client integration checks remain pending.
 
 - [x] Integrate the server-owned mission state: ready, active, paused, success, partial success, failed, and aborted.
 - [x] Verify power/oxygen calculations, depletion, dust boundaries, and frozen pause state with `missionSelfTest`.
 - [x] Require survival plus 90 seconds of research for full success; verify survival-only partial success in the simulation self-check.
 - [x] Implement role controls for power engineer, life-support engineer, and observer; test the role/equipment permission mapping.
 - [ ] Verify role control requests with separate players in-game.
-- [ ] Verify operator lifecycle commands and permitted role assignment.
+- [x] Verify operator start/pause/reset, role selection, and rejection of a non-operator reset in the client smoke test.
 - [x] Integrate synchronized HUD, role/objective panels, warnings, and the J mission console; Java compilation passes.
-- [ ] Verify console controls, readable layout, and default/rebound key behavior in-game.
+- [x] Verify console controls and readable layout through real client render captures; fix the compact HUD overlap.
+- [ ] Verify default/rebound physical key input in-game.
 - [x] Implement physical station binding without terrain replacement.
-- [ ] Verify a role-authorized right-click equipment change in-game.
+- [x] Verify the role-authorized station callback and rejection of another role's equipment change in the running game test.
+- [ ] Verify physical mouse input/raycasting at the stations with two players.
 - [ ] Check reconnect, automatic empty-server pause, reset, and clean server shutdown.
 - [x] Run `./gradlew build` including `missionSelfTest`.
 - [x] Commit the working core batch as `21cad61`.
 - [x] Confirm the remote push for this batch.
 
-Evidence: the lead agent reports a successful build and simulation self-check covering resource balance, phases, dust, outcomes, idempotency, and role mapping. Runtime logs confirm that the client loaded a world without a mod crash. The native computer-control bridge cannot access the Java window, so HUD visual inspection remains unperformed. This is not a completed two-client or station-interaction test.
+Evidence: the lead agent reports a successful build and simulation self-check covering resource balance, phases, dust, outcomes, idempotency, and role mapping. Runtime logs confirm that the client loaded a world without a mod crash. The native computer-control bridge cannot access the Java window. Fabric's own client test runner provided real render captures, which were inspected; the compact HUD was corrected. The test exercised console buttons and server station callbacks. Physical key/mouse input and a two-client test remain unperformed.
 
-Commit: `21cad61`. GitHub authentication is configured. The core reached origin/main through merge commit `cc3bb99`, preserving the teammate's teacher-panel work. The merge also preserves the teammate's teacher-panel work.
+Commit: `21cad61`. GitHub authentication is configured. The core reached origin/main through merge commit `cc3bb99`, preserving the teammate's teacher-panel work.
 
 ## Batch 2: original Mars map, items, and textures
 
-Status: parallel implementation in progress.
+Status: integrated; build, asset checks, and single-client runtime smoke test passed. Restart recovery and multiplayer checks remain open.
 
-- [ ] Add a compact authored Mars training site with habitat, landing area, power yard, greenhouse, shelter, and marked routes.
-- [ ] Use safe, explicit map creation/travel; prevent accidental overwrite of existing builds.
-- [ ] Provide a safe arrival location and clearly label the site as fictional/authored terrain.
-- [ ] Add original space items with valid item/model/texture resources.
-- [ ] Give each functional item an honest description and a server-validated use where applicable.
-- [ ] Check texture dimensions, resource paths, registry IDs, and language entries.
-- [ ] Integrate registration with the common mod entry point.
-- [ ] Test map entry, navigation, item acquisition/use, and survival of a restart where the map promises persistence.
-- [ ] Run the build and relevant checks, then commit and attempt a push.
+- [x] Add a compact authored Mars training site with habitat, landing area, power yard, greenhouse, shelter, and marked routes.
+- [x] Use safe, explicit map creation/travel; prevent accidental overwrite of existing builds.
+- [x] Provide a safe arrival location and clearly label the site as fictional/authored terrain.
+- [x] Add original space items with valid item/model/texture resources.
+- [x] Give each functional item an honest description and a server-validated use where applicable.
+- [x] Check texture dimensions, resource paths, registry IDs, and language entries.
+- [x] Integrate registration with the common mod entry point.
+- [x] Test dimension load, repeated-create preservation, map entry/exit, item use, and visible suit/item rendering.
+- [ ] Check map persistence and safe return after a full server restart; explore the complete site manually.
+- [x] Run the build and relevant checks, commit the batch, and confirm the push.
 
-Evidence: pending integration. Decorative assets must not be described as functional spacecraft, pressure simulation, or suits.
+Evidence: `build` passes including simulation and eight-item resource checks. `runClientGameTest` creates the outpost, preserves a repeated creation, travels in/out, starts via console, toggles research, checks canister consumption/full-reserve refusal, opens the tablet, captures equipment rendering, exercises station role validation, rejects non-operator reset, and verifies pause/reset. Rover/greenhouse/shelter mechanics and suit pressure/radiation remain planned.
 
-Commit: pending. Push: pending.
+Commit: `ce5b1fb` (map/equipment and client smoke test), integrated through `93a7e11`. Push to `origin/main` confirmed.
 
 ## Batch 3: integrated playable handoff
 
-Status: pending batches 1 and 2.
+Status: single-client integration and render inspection passed; two-client classroom/recovery checks remain open.
 
-- [ ] Run the current build on the Mac and inspect the HUD/console at a usable GUI scale.
+- [x] Run the current build on the Mac and inspect real HUD/console captures at the default test GUI scale.
 - [ ] Test one complete attempt from ready state through an outcome; compare the displayed reserves with server state.
-- [ ] Test a balanced full-success strategy and survival-only partial success.
+- [x] Verify a balanced full-success strategy and survival-only partial success in `missionSelfTest`.
 - [ ] Test two clients with different roles and confirm they see the same shared resource consequence.
 - [ ] Confirm an observer cannot use another role's controls and a non-operator cannot start/reset the mission.
 - [ ] Check error messages and recovery for disconnects or unavailable actions.
-- [ ] Document actual commands, remaining limits, and backend integration points in README.
-- [ ] Record any computer-control/window-access limitation instead of claiming an unperformed visual test.
-- [ ] Commit the verified integration and attempt a push; record the remote result.
+- [x] Document actual commands, remaining limits, and backend integration points in README.
+- [x] Record the native Java window-access limitation and use inspected Fabric render captures; leave physical input testing open.
+- [x] Commit the verified single-client integration and confirm its push; keep remaining manual/multiplayer checks open.
 
-Evidence: pending.
+Evidence: single-client Fabric smoke test and inspected captures under `build/run/clientGameTest/screenshots`. No two-client or school-device claim.
 
-Commit: pending. Push: pending.
+Integration: `93a7e11`, including the teammate's student session screen. Build and client smoke test passed on the merged code; push confirmed.
 
 ## Batch 4: science and learning demonstration
 
