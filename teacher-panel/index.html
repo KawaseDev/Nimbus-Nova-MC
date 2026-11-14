@@ -39,6 +39,7 @@
   <div class="grid">
     <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p id="mission-status" role="status">Mission unavailable.</p><div class="actions"><button id="mission-start" disabled aria-label="Start mission" title="Start mission">▶</button><button id="mission-pause" disabled aria-label="Pause mission" title="Pause mission">❚❚</button><button id="mission-end" disabled aria-label="End mission" title="End mission">■</button><button id="mission-reset" disabled>Reset</button></div><p id="mission-error" role="alert"></p></section>
     <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p><div class="actions"><button id="power" disabled>Start server</button><button id="restart" disabled>Restart</button></div><p id="server-error" role="alert"></p></section>
+    <section class="card" aria-labelledby="join-title"><h2 id="join-title">Student session</h2><p id="session-status" role="status">Checking…</p><div class="actions"><button id="session-toggle" disabled>Create session</button></div><p id="session-error" role="alert"></p></section>
     <section class="card" aria-labelledby="world-title"><h2 id="world-title">Mars outpost</h2><div class="actions"><button id="create-world" disabled>Create outpost</button></div><p id="world-status" role="status">Server unavailable.</p></section>
     <section class="card wide" aria-labelledby="crew-title"><h2 id="crew-title">Player roster</h2><div class="empty" id="roster" role="status" aria-live="polite">Loading roster…</div><p id="roster-error" role="alert"></p></section>
     <section class="card wide" id="view-panel" hidden aria-labelledby="view-title"><h2 id="view-title">Student view</h2><p id="view-status" role="status">Waiting for view…</p><img class="view-image" id="view-image" alt="Student game view" hidden><div class="actions"><button id="view-close" type="button">Close view</button></div></section>
@@ -95,6 +96,34 @@
       document.getElementById('restart').disabled = true;
     }
   }
+  let sessionBusy = false;
+  async function refreshSession() {
+    const label = document.getElementById('session-status');
+    const button = document.getElementById('session-toggle');
+    try {
+      const response = await fetch('/api/session', { cache: 'no-store' });
+      if (!response.ok) throw new Error();
+      const session = await response.json();
+      label.textContent = session.status === 'open' ? `Code: ${session.code} · Server: ${session.discoveryAddress}` : session.status === 'occupied' ? 'Server reserved by another teacher.' : session.status === 'expired' ? 'Code expired.' : 'No session.';
+      button.textContent = session.status === 'open' ? 'End session' : 'Create session';
+      button.dataset.action = session.status === 'open' ? 'DELETE' : 'POST';
+      button.disabled = sessionBusy || session.status === 'occupied';
+    } catch { label.textContent = 'Session unavailable.'; button.disabled = true; }
+  }
+  document.getElementById('session-toggle').addEventListener('click', async event => {
+    if (sessionBusy) return;
+    sessionBusy = true;
+    const button = event.currentTarget;
+    const error = document.getElementById('session-error');
+    button.disabled = true; error.textContent = '';
+    try {
+      const result = await fetch('/api/session', { method: button.dataset.action });
+      if (!result.ok) { const data = await result.json().catch(() => ({})); throw new Error(data.error || 'Session unavailable.'); }
+    } catch (failure) { error.textContent = failure.message; }
+    finally { sessionBusy = false; await refreshSession(); }
+  });
+  refreshSession();
+  setInterval(refreshSession, 5000);
   let missionBusy = false;
   let missionPhase = '';
   const missionButtons = ['mission-start', 'mission-pause', 'mission-end', 'mission-reset'].map(id => document.getElementById(id));

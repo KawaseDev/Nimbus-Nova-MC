@@ -21,6 +21,7 @@ import java.security.MessageDigest;
 import java.util.UUID;
 import java.util.LinkedHashMap;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public final class TeacherBridge {
     private static HttpServer bridge;
+    private static final Map<MinecraftServer, Map<UUID, String>> nicknames = new IdentityHashMap<>();
     private static final Map<UUID, View> views = new HashMap<>();
     private static final class View {
         UUID request;
@@ -42,6 +44,12 @@ public final class TeacherBridge {
     public static void register() {
         PayloadTypeRegistry.clientboundPlay().register(ViewRequestPayload.TYPE, ViewRequestPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(ViewFramePayload.TYPE, ViewFramePayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(JoinNamePayload.TYPE, JoinNamePayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(JoinNamePayload.TYPE, (payload, context) -> context.server().execute(() -> {
+            String name = payload.name().trim();
+            if (!name.isEmpty() && name.length() <= 32 && name.codePoints().noneMatch(Character::isISOControl))
+                nicknames.computeIfAbsent(context.server(), ignored -> new HashMap<>()).put(context.player().getUUID(), name);
+        }));
         ServerPlayNetworking.registerGlobalReceiver(ViewFramePayload.TYPE, (payload, context) -> context.server().execute(() -> {
             View view = views.get(context.player().getUUID());
             if (view == null || view.request == null || !view.request.equals(payload.id()) ||
@@ -54,6 +62,7 @@ public final class TeacherBridge {
         ServerLifecycleEvents.SERVER_STARTED.register(TeacherBridge::start);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             if (bridge != null) { bridge.stop(0); bridge = null; }
+            nicknames.remove(server);
             completed.clear();
             views.clear();
             worldStatus.set("idle");
@@ -80,7 +89,7 @@ public final class TeacherBridge {
                         server.getPlayerList().getPlayers().forEach(player -> {
                             JsonObject entry = new JsonObject();
                             entry.addProperty("id", player.getUUID().toString());
-                            entry.addProperty("name", player.getScoreboardName());
+                            entry.addProperty("name", nicknames.getOrDefault(server, Map.of()).getOrDefault(player.getUUID(), player.getScoreboardName()));
                             players.add(entry);
                         });
                         JsonObject result = new JsonObject();

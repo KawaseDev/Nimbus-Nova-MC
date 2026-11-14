@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
+import cc.nimbusnova.mc.bridge.JoinNamePayload;
 import cc.nimbusnova.mc.mission.OpenConsolePayload;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.vehicle.RoverRenderer;
@@ -66,7 +67,13 @@ public final class NimbusNovaClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(OpenConsolePayload.TYPE, (_, context) ->
                 context.client().execute(() -> context.client().setScreenAndShow(new MissionConsoleScreen(
                         snapshot != null && snapshot.state().phase().ended() ? MissionConsoleScreen.DEBRIEF_TAB : 0))));
+        ClientPlayConnectionEvents.JOIN.register((_, _, _) -> {
+            String nickname = JoinSessionScreen.takeNickname();
+            if (nickname != null && ClientPlayNetworking.canSend(JoinNamePayload.TYPE))
+                ClientPlayNetworking.send(new JoinNamePayload(nickname));
+        });
         ClientPlayConnectionEvents.DISCONNECT.register((_, _) -> {
+            JoinSessionScreen.takeNickname();
             snapshot = null;
             MissionTutorial.consoleOpened = false;
         });
