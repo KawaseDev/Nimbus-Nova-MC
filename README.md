@@ -1,4 +1,4 @@
-pulapula# Nimbus-Nova-MC
+# Nimbus-Nova-MC
 
 # Nimbus Nova MC — mission trainer
 
