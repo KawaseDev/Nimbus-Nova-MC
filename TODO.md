@@ -153,7 +153,7 @@ Build and client game test passed. Physical multiplayer movement testing remains
 
 ## First-mission usability and interaction batch
 
-Status: implemented. The actual client test passed preparation, both visual puzzles, sheltering, relay repair, full mission success, and report navigation. Integration branch: codex/guided-mission.
+Status: implemented. The actual client test passed preparation, both visual puzzles, sheltering, relay repair, full mission success, and report navigation. Integrated on main through `b42c8d3`, preserving teacher joining and live game view.
 
 - [x] Record the conceptual Minecraft/Unity decision and research limitations.
 - [x] Add a guided, server-owned preparation flow before starting the hazard timer.
@@ -165,6 +165,6 @@ Status: implemented. The actual client test passed preparation, both visual puzz
 - [x] Support safe upgrades of known legacy outpost anchors without resetting player builds.
 - [x] Test a full preparation-to-outcome mission and invalid/duplicate task actions.
 - [x] Inspect the rendered task UI, navigation, doors, and first-mission report.
-- [ ] Commit and push working batches, preserving teammate changes.
+- [x] Commit and push working batches, preserving teammate changes.
 
 Two-child observation remains necessary before claiming age-appropriate usability or educational effectiveness.

@@ -136,7 +136,11 @@ final class GuidedMissionChecks {
     }
 
     private static MissionTaskOpenPayload task(final ClientGameTestContext context) {
-        return context.computeOnClient(client -> ((TaskScreen) client.gui.screen()).serverState());
+        return context.computeOnClient(client -> {
+            if (!(client.gui.screen() instanceof TaskScreen screen))
+                throw new AssertionError("Expected an open equipment puzzle");
+            return screen.serverState();
+        });
     }
 
     private static void choose(final ClientGameTestContext context, final String action) {
