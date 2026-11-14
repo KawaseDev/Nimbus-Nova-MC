@@ -7,6 +7,7 @@ import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.vehicle.RoverRenderer;
 import cc.nimbusnova.mc.client.npc.MissionNpcClient;
 import cc.nimbusnova.mc.client.effect.DustStormEffects;
+import cc.nimbusnova.mc.client.guidance.HologramGuidance;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
@@ -36,6 +37,8 @@ public final class NimbusNovaClient implements ClientModInitializer {
     public void onInitializeClient() {
         StudentView.register();
         NovaRenderer.initialize();
+        GuidedMissionClient.register();
+        HologramGuidance.register();
         RoverRenderer.register();
         MissionNpcClient.register();
         DustStormEffects.register();
@@ -64,14 +67,15 @@ public final class NimbusNovaClient implements ClientModInitializer {
                 KeyMapping.Category.register(Identifier.parse("nimbus_nova:mission"))));
         ClientPlayNetworking.registerGlobalReceiver(MissionSnapshotPayload.TYPE,
                 (packet, context) -> context.client().execute(() -> snapshot = packet));
-        ClientPlayNetworking.registerGlobalReceiver(OpenConsolePayload.TYPE, (_, context) ->
+        ClientPlayNetworking.registerGlobalReceiver(OpenConsolePayload.TYPE, (packet, context) ->
                 context.client().execute(() -> context.client().setScreenAndShow(new MissionConsoleScreen(
-                        snapshot != null && snapshot.state().phase().ended() ? MissionConsoleScreen.DEBRIEF_TAB : 0))));
+                        snapshot != null && snapshot.state().phase().ended() ? MissionConsoleScreen.DEBRIEF_TAB : Math.clamp(packet.tab(), 0, 3)))));
         ClientPlayConnectionEvents.JOIN.register((_, _, _) -> {
             String nickname = JoinSessionScreen.takeNickname();
             if (nickname != null && ClientPlayNetworking.canSend(JoinNamePayload.TYPE))
                 ClientPlayNetworking.send(new JoinNamePayload(nickname));
         });
+
         ClientPlayConnectionEvents.DISCONNECT.register((_, _) -> {
             JoinSessionScreen.takeNickname();
             snapshot = null;

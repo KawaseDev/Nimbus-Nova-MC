@@ -68,6 +68,9 @@ public final class MissionStateTest {
         final MissionState greedy = new MissionState();
         greedy.start();
         for (int second = 0; second < MissionState.DURATION_SECONDS; second++) {
+            if (greedy.relayFault())
+                greedy.repairRelay();
+
             if (second == 110)
                 greedy.setEquipment(MissionState.Equipment.RESEARCH, false);
 
@@ -87,6 +90,9 @@ public final class MissionStateTest {
         final MissionState managed = new MissionState();
         managed.start();
         for (int second = 0; second < MissionState.DURATION_SECONDS; second++) {
+            if (managed.relayFault())
+                managed.repairRelay();
+
             if (second == 60)
                 managed.setEquipment(MissionState.Equipment.RESEARCH, false);
 
@@ -154,6 +160,9 @@ public final class MissionStateTest {
         final MissionState mildManaged = new MissionState(DustStorm.OPPORTUNITY_2007);
         mildManaged.start();
         for (int second = 0; second < MissionState.DURATION_SECONDS; second++) {
+            if (mildManaged.relayFault())
+                mildManaged.repairRelay();
+
             if (second == 110)
                 mildManaged.setEquipment(MissionState.Equipment.RESEARCH, false);
 
@@ -166,6 +175,40 @@ public final class MissionStateTest {
         assert mildManaged.snapshot().phase() == MissionState.Phase.SUCCESS : "A late cut that fails in 2018 survives the 2007 storm";
         assert MissionDebrief.realStory(mildManaged.snapshot()).contains("survived");
         assert DustStorm.byId("2018") == storm2018;
+        final MissionState relay = new MissionState();
+        relay.start();
+        for (int second = 0; second < 80; second++)
+            relay.tickSecond();
+
+        assert relay.relayFault() : "The authored relay fault must occur at 80 seconds";
+        final int researchBeforeFault = relay.snapshot().researchSeconds();
+        relay.tickSecond();
+        assert relay.snapshot().researchSeconds() == researchBeforeFault : "Damaged equipment must not produce science";
+        rejected = false;
+        try {
+            relay.setEquipment(MissionState.Equipment.RESEARCH, true);
+        } catch (final IllegalStateException expected) {
+            rejected = true;
+        }
+        assert rejected : "The crew must repair the relay before re-enabling research";
+        relay.setEquipment(MissionState.Equipment.RESEARCH, false);
+        relay.repairRelay();
+        assert !relay.relayFault() && !relay.snapshot().researchOnline() : "Repair restores availability without choosing the crew budget";
+        relay.setEquipment(MissionState.Equipment.RESEARCH, true);
+        relay.tickSecond();
+        assert relay.snapshot().researchSeconds() > researchBeforeFault;
+
+        final MissionState largerCrew = new MissionState();
+        largerCrew.start();
+        for (int second = 0; second < MissionState.SOLAR_START_SECONDS; second++)
+            largerCrew.tickSecond();
+
+        largerCrew.recordExposure(6);
+        assert largerCrew.snapshot().radiationDose() == MissionState.DOSE_PER_EXPOSED_SECOND
+                : "Adding classmates must not multiply the shared radiation penalty";
+        assert MissionState.SOLAR_START_SECONDS - MissionState.SOLAR_WARNING_SECONDS >= 30
+                : "Children need a clear travel window before the solar event";
+
         final MissionState solar = new MissionState();
         solar.start();
         for (int second = 0; second < MissionState.SOLAR_START_SECONDS - 1; second++) {

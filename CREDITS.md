@@ -58,3 +58,7 @@ The Nova renderer uses original RenderPearl/Blaze3D GUI render states and shader
 ## Gravity reference
 
 The [NASA Mars Fact Sheet](https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html) gives a Mars/Earth surface-gravity ratio of about 0.38. The mod applies that ratio to vanilla gravity and fall-distance damage calculations; other Minecraft movement assumptions remain.
+
+## Guided mission update
+
+The cable-routing puzzle, coupled-valve model, holographic guidance, projector assets, and additional outpost models are original Codex-assisted implementation/artwork. These gameplay systems and the relay fault are authored teaching abstractions; they do not add NASA measurements beyond the cited environmental sources.

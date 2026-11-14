@@ -37,6 +37,11 @@ public final class MissionNpcRenderer extends HumanoidMobRenderer<MissionAstrona
         return skin;
     }
 
+    @Override
+    protected boolean shouldShowName(final MissionAstronaut npc, final double distance) {
+        return false;
+    }
+
     private static final class AstronautModel extends HumanoidModel<HumanoidRenderState> {
         private AstronautModel(final ModelPart root) {
             super(root);

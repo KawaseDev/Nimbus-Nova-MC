@@ -10,10 +10,10 @@ public final class MissionState {
     public static final double CANISTER_OXYGEN = 8;
     // Solar particle storm, inspired by the real September 2017 event that more than doubled the surface radiation
     // Curiosity had measured. Timing and dose units are game assumptions.
-    public static final int SOLAR_WARNING_SECONDS = 25;
+    public static final int SOLAR_WARNING_SECONDS = 10;
     public static final int SOLAR_START_SECONDS = 40;
     public static final int SOLAR_END_SECONDS = 65;
-    // Twenty unprotected crew-seconds reach the dose limit.
+    // Twenty exposed seconds reach the shared limit, independently of class size.
     public static final double DOSE_PER_EXPOSED_SECOND = 5;
 
     public enum Phase {
@@ -40,6 +40,7 @@ public final class MissionState {
     private int firstResearchCutSecond = -1;
     private int canistersLeft = OXYGEN_CANISTERS;
     private double radiationDose;
+    private boolean relayFault;
     private String lastEvent = "Choose your role. Mission Control starts the simulation.";
 
     public MissionState() {
@@ -86,6 +87,9 @@ public final class MissionState {
         if (phase != Phase.ACTIVE)
             throw new IllegalStateException("Equipment can only change while the mission is running.");
 
+        if (equipment == Equipment.RESEARCH && online && relayFault)
+            throw new IllegalStateException("The research relay is damaged. Repair it at the power yard first.");
+
         if (equipment == Equipment.OXYGEN) {
             if (oxygenOnline == online) return;
             oxygenOnline = online;
@@ -114,7 +118,7 @@ public final class MissionState {
 
         lowestBattery = Math.min(lowestBattery, battery);
         lowestOxygen = Math.min(lowestOxygen, oxygen);
-        if (researchOnline && battery > 0)
+        if (researchOnline && battery > 0 && !relayFault)
             researchSeconds++;
 
         if (elapsedSeconds == SOLAR_WARNING_SECONDS)
@@ -132,6 +136,11 @@ public final class MissionState {
 
         if (elapsedSeconds == STORM_START_SECONDS)
             lastEvent = "Dust front arrived. The sky is darkening and solar output is falling. Rebalance power with your crew.";
+
+        if (elapsedSeconds == 80) {
+            relayFault = true;
+            lastEvent = "Equipment fault: the research relay is drawing power without producing science. Isolate and repair the marked console. This is an authored equipment event.";
+        }
 
         if (elapsedSeconds == DustStormProfile.PEAK_START_SECONDS)
             lastEvent = "Storm peak: the sun gives only " + storm.peakPercent() + "% of its usual energy, like Opportunity's "
@@ -153,11 +162,34 @@ public final class MissionState {
         }
     }
 
+    public void prepareEquipment(final Equipment equipment, final boolean online) {
+        if (phase != Phase.READY)
+            throw new IllegalStateException("Preparation equipment can only change before the mission starts.");
+
+        if (equipment == Equipment.OXYGEN)
+            oxygenOnline = online;
+        else
+            researchOnline = online;
+    }
+
+    public boolean relayFault() {
+        return relayFault;
+    }
+
+    public void repairRelay() {
+        if (phase != Phase.ACTIVE || !relayFault)
+            throw new IllegalStateException("There is no active relay fault to repair.");
+
+        relayFault = false;
+        decisions++;
+        lastEvent = "Research relay repaired. Choose when to restore research power without exhausting the battery.";
+    }
+
     /** Called once per second by the server with the number of crew members outside the shelter. */
     public void recordExposure(final int exposedCrew) {
         if (phase != Phase.ACTIVE || !solarStorm(elapsedSeconds) || exposedCrew <= 0) return;
 
-        radiationDose = Math.min(100, radiationDose + exposedCrew * DOSE_PER_EXPOSED_SECOND);
+        radiationDose = Math.min(100, radiationDose + DOSE_PER_EXPOSED_SECOND);
         if (radiationDose >= 100) {
             phase = Phase.FAILED;
             lastEvent = "Radiation dose too high. The crew stayed outside the shelter during the solar storm.";

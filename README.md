@@ -29,19 +29,22 @@ The distributable is `build/libs/nimbus-nova-mc-0.1.0.jar`; the `-sources.jar` i
 
 Students can use **Join session** on the title screen. Enter a nickname, the teacher's session code, and the session server address shown in the teacher panel.
 
-## Try the prototype mission
+## Play The Darkening Sky
 
-1. Join a world/server with Nimbus Nova installed. Use a test world with cheats enabled, or a server account with gamemaster/operator permission, for Mission Control commands.
-2. As an operator, run `/mars create` once to build Aster Outpost. Use `/mars join` to enter and `/mars leave` to return. Then press **J** to open the mission console. The key is rebindable in Minecraft's controls.
-3. Before starting, choose **Power engineer**, **Life support**, or **Weather officer** in the Systems tab. Each player takes a different role; an operator can control every system for solo testing.
-4. Start from the console or run `/mission start`.
-5. Keep battery and oxygen above zero for four minutes. From **01:15** the dust dims the sun, reaching its lowest point at 02:15, and it starts clearing at **03:15**. Each mission uses one of two real Opportunity storms: June 2018 (3% sunlight, the rover was lost) or July 2007 (18%, the rover survived). Only the weather officer sees the sunlight and a 30-second forecast, so the crew must talk. At **00:25** a solar storm alert gives 15 seconds to reach the crew shelter south of the habitat; anyone outside between 00:40 and 01:05 adds to a shared radiation dose, and 100% ends the mission. Prepare your equipment first, because there are no consoles in the shelter.
-6. Complete at least **90 seconds of powered research** for full success. Survival with insufficient research earns partial success; switching research off forever cannot earn full success.
-7. When the mission ends, every console opens on the **Debrief** tab: outcome, lowest reserves, decisions, consequences, the real Opportunity story, and reflection questions. Reset before another attempt.
+Host setup: use a fresh test world with cheats enabled, run `/mars create`, then `/mars join`. For an existing generated outpost, run `/mars upgrade` before joining. The upgrade refuses unknown changes at mission anchors and does not reset the world.
 
-The map contains a habitat, landing pad, power yard, greenhouse, shelter, rover workshop, and marked paths. Research and oxygen consoles are interactive custom blocks with directional 3D models and animated on/off displays. `/mars create` preserves an existing outpost; an interrupted construction claim blocks automatic rebuilding. New chunks use authored procedural hills and craters while existing terrain/builds remain intact. This default terrain has no geographic-accuracy claim.
+1. **Follow the amber hologram to Commander Vega.** WASD moves, the mouse looks, and right-click talks or uses equipment. Your HUD shows the next action and its direction/distance.
+2. **Choose a role** in the tablet's Crew tab. Power, life support, and weather can prepare in parallel. A local operator can perform every job for solo training.
+3. **Collect your kit from the marked locker.** It issues a tablet, tool, emergency canister, and equips empty suit slots without replacing your existing armor.
+4. **Prepare the outpost.** Power engineers rotate the 3×3 cable board to connect SOLAR to BASE. Life support adjusts intake, pump, and vent until pressure and flow stay in the green bands for two seconds, then starts the recycler. The field crew collects the marked sample and returns it to the analyzer or Commander Vega.
+5. **Launch when all five crew checks are complete.** Talk to Vega or use Start mission. Preparation has no hazard timer.
+6. **Respond to the solar warning.** Follow the shelter marker. The warning begins at 00:10; particles arrive at 00:40 and clear at 01:05. The HUD confirms when you are sheltered. Shared exposure does not multiply with class size.
+7. **Keep working through the dust.** Dust reduces sunlight from 01:15. At 01:20 an authored relay fault stops science; the engineer repairs a fresh circuit and chooses when to power research again. Weather can use the terminal to send forecasts; life support watches air and has two shared emergency refills.
+8. **Finish the mission.** Keep power and air above zero until 04:00 and complete 90 seconds of powered science for full success. Survival alone earns partial success. The report explains the outcome and supports another attempt.
 
-The HUD shows shared reserves, net energy rate, research progress, your role, the remaining mission time, and warnings. A bounded 3D dust effect follows the mission storm and respects reduced particle settings. The console has Overview, Systems, Briefing, and Debrief tabs. Only the weather officer and operators see sunlight readings. Equipment controls affect the server simulation; they are not separate client-side resource values.
+The world uses holographic labels, marker effects, colored routes, automatic doors, and interactive models instead of sign clutter. The tablet opens with **J**. Its Mission page shows the current task; Crew holds roles/controls, Science explains sources, and Report reviews the attempt. Active oxygen-station clicks open explicit controls instead of silently turning the recycler off.
+
+NASA observations determine the selected Opportunity storm profile. The relay fault, pressure puzzle, radiation counter, mission timing, and resource capacities are teaching/gameplay assumptions, not calibrated astronaut procedures.
 
 ### Commands
 
@@ -55,7 +58,8 @@ The HUD shows shared reserves, net energy rate, research progress, your role, th
 | `/mission forecast` | Weather officer or operator; broadcast the current sunlight and 30-second forecast |
 | `/mission storm 2018` / `2007` / `random` | Operator; pin the real Opportunity storm for the next missions, or pick one at random on each reset (default) |
 | `/mission assign <player> <role>` | Operator assignment before start or while paused |
-| `/mission start` | Operator; begin a ready mission |
+| `/mission start` | Operator; launch after crew preparation is complete |
+| `/mission debug_start` | Operator development bypass for test fixtures |
 | `/mission pause` / `/mission resume` | Operator; freeze/unfreeze simulation time and resources |
 | `/mission abort` | Operator; end a running/paused mission |
 | `/mission reset` | Operator; start a fresh ready state |

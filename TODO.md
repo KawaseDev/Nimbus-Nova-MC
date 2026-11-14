@@ -153,18 +153,18 @@ Build and client game test passed. Physical multiplayer movement testing remains
 
 ## First-mission usability and interaction batch
 
-Status: in progress. The platform decision is recorded in PLAN.md.
+Status: implemented. The actual client test passed preparation, both visual puzzles, sheltering, relay repair, full mission success, and report navigation. Integrated on main through `b42c8d3`, preserving teacher joining and live game view.
 
 - [x] Record the conceptual Minecraft/Unity decision and research limitations.
-- [ ] Add a guided, server-owned preparation flow before starting the hazard timer.
-- [ ] Give each role a clear task with a destination, interaction hint, and progress feedback.
-- [ ] Add interactive power/oxygen repair sequences and sample collection/delivery.
-- [ ] Give the timed mission an active relay repair and fair shelter response time.
-- [ ] Replace the dense default HUD/console with a child-readable objective-first presentation.
-- [ ] Add functional doors, airlock signage, routes, and additional functional custom models.
-- [ ] Support safe upgrades of known legacy outpost anchors without resetting player builds.
-- [ ] Test a full preparation-to-outcome mission and invalid/duplicate task actions.
-- [ ] Inspect the rendered task UI, navigation, doors, and first-mission report.
-- [ ] Commit and push working batches, preserving teammate changes.
+- [x] Add a guided, server-owned preparation flow before starting the hazard timer.
+- [x] Give each role a clear task with a destination, interaction hint, and progress feedback.
+- [x] Add a visual circuit-routing board and coupled oxygen-valve balancing and sample collection/delivery.
+- [x] Give the timed mission an active relay repair and fair shelter response time.
+- [x] Replace the dense default HUD/console with a child-readable objective-first presentation.
+- [x] Add automatic doors, holographic labels/projectors, routes, and functional custom models.
+- [x] Support safe upgrades of known legacy outpost anchors without resetting player builds.
+- [x] Test a full preparation-to-outcome mission and invalid/duplicate task actions.
+- [x] Inspect the rendered task UI, navigation, doors, and first-mission report.
+- [x] Commit and push working batches, preserving teammate changes.
 
 Two-child observation remains necessary before claiming age-appropriate usability or educational effectiveness.

@@ -4,6 +4,7 @@ import cc.nimbusnova.mc.mission.CrewRole;
 import cc.nimbusnova.mc.mission.DustStorm;
 import cc.nimbusnova.mc.mission.MissionDebrief;
 import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
+import cc.nimbusnova.mc.mission.MissionProgressPayload;
 import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.render.NovaScreen;
@@ -44,7 +45,7 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
         debriefState = null;
         debriefLinesPerPage = Math.max(2, (panelHeight - 156) / 14);
 
-        final String[] names = { "Overview", "Systems", "Briefing", "Debrief" };
+        final String[] names = { "Mission", "Crew", "Science", "Report" };
         final int tabWidth = (panelWidth - 42) / 4;
         for (int index = 0; index < names.length; index++) {
             final int selectedTab = index;
@@ -58,12 +59,27 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
 
         addRenderableWidget(new MissionButton(panelX + panelWidth - 30, panelY + 10, 18, 18, "X", this::onClose));
         final int controlWidth = (panelWidth - 36) / 3, footerY = panelY + panelHeight - 32;
-        start = addRenderableWidget(new MissionButton(panelX + 12, footerY, controlWidth, 22, "Start mission", () -> command("start")));
+        start = addRenderableWidget(new MissionButton(panelX + 12, footerY, controlWidth, 22, "Back to mission", () -> {
+            final MissionProgressPayload objective = GuidedMissionClient.progress();
+            if (!ObjectiveGuidance.onMars()) {
+                if (minecraft.getConnection() != null)
+                    minecraft.getConnection().sendCommand("mars join");
+                onClose();
+            } else if (NimbusNovaClient.snapshot != null && NimbusNovaClient.snapshot.operator()
+                    && NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.READY && objective != null && objective.ready())
+                command("start");
+            else
+                onClose();
+        }));
         pause = addRenderableWidget(new MissionButton(panelX + 18 + controlWidth, footerY, controlWidth, 22, "Pause", () -> {
-            if (NimbusNovaClient.snapshot != null)
+            if (NimbusNovaClient.snapshot == null) return;
+            if (!ObjectiveGuidance.onMars() && NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.READY) {
+                if (minecraft.getConnection() != null)
+                    minecraft.getConnection().sendCommand("mars create");
+            } else
                 command(NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.PAUSED ? "resume" : "pause");
         }));
-        reset = addRenderableWidget(new MissionButton(panelX + 24 + controlWidth * 2, footerY, controlWidth, 22, "Reset", () -> command("reset")));
+        reset = addRenderableWidget(new MissionButton(panelX + 24 + controlWidth * 2, footerY, controlWidth, 22, "Restart", () -> command("reset")));
         previousDebrief = addRenderableWidget(new MissionButton(panelX + 14, footerY - 28, 78, 22,
                 "Previous", () -> changeDebriefPage(-1)));
         nextDebrief = addRenderableWidget(new MissionButton(panelX + panelWidth - 92, footerY - 28, 78, 22,
@@ -73,15 +89,15 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
         powerRole = addRenderableWidget(new MissionButton(panelX + 12, panelY + 94, systemWidth, 22, "Power engineer", () -> command("role power")));
         lifeRole = addRenderableWidget(new MissionButton(panelX + 18 + systemWidth, panelY + 94, systemWidth, 22, "Life support", () -> command("role life_support")));
         weatherRole = addRenderableWidget(new MissionButton(panelX + 24 + systemWidth * 2, panelY + 94, systemWidth, 22, "Weather officer", () -> command("role weather")));
-        research = addRenderableWidget(new MissionButton(panelX + 12, panelY + 144, systemWidth, 24, "Research", () -> {
+        research = addRenderableWidget(new MissionButton(panelX + 12, panelY + 154, systemWidth, 24, "Research", () -> {
             if (NimbusNovaClient.snapshot != null)
                 command("equipment research " + !NimbusNovaClient.snapshot.state().researchOnline());
         }));
-        oxygen = addRenderableWidget(new MissionButton(panelX + 18 + systemWidth, panelY + 144, systemWidth, 24, "Oxygen", () -> {
+        oxygen = addRenderableWidget(new MissionButton(panelX + 18 + systemWidth, panelY + 154, systemWidth, 24, "Oxygen", () -> {
             if (NimbusNovaClient.snapshot != null)
                 command("equipment oxygen " + !NimbusNovaClient.snapshot.state().oxygenOnline());
         }));
-        forecast = addRenderableWidget(new MissionButton(panelX + 24 + systemWidth * 2, panelY + 144, systemWidth, 24, "Send forecast", () -> command("forecast")));
+        forecast = addRenderableWidget(new MissionButton(panelX + 24 + systemWidth * 2, panelY + 154, systemWidth, 24, "Send forecast", () -> command("forecast")));
         updateControls();
     }
 
@@ -95,9 +111,14 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
         final boolean connected = packet != null;
         final MissionState.Phase phase = connected ? packet.state().phase() : MissionState.Phase.READY;
         final boolean operator = connected && packet.operator();
-        start.active = operator && phase == MissionState.Phase.READY;
-        pause.active = operator && (phase == MissionState.Phase.ACTIVE || phase == MissionState.Phase.PAUSED);
-        pause.setMessage(Component.literal(phase == MissionState.Phase.PAUSED ? "Resume" : "Pause"));
+        final MissionProgressPayload objective = GuidedMissionClient.progress();
+        final boolean canLaunch = connected && phase == MissionState.Phase.READY && objective != null && objective.ready();
+        start.setMessage(Component.literal(!ObjectiveGuidance.onMars() ? "Enter outpost"
+                : canLaunch ? operator ? "Start mission" : "Teacher starts" : "Back to mission"));
+        start.active = connected && (!ObjectiveGuidance.onMars() || !canLaunch || operator);
+        final boolean prepareOutpost = !ObjectiveGuidance.onMars() && phase == MissionState.Phase.READY;
+        pause.active = operator && (prepareOutpost || phase == MissionState.Phase.ACTIVE || phase == MissionState.Phase.PAUSED);
+        pause.setMessage(Component.literal(prepareOutpost ? "Prepare outpost" : phase == MissionState.Phase.PAUSED ? "Resume" : "Pause"));
         reset.active = operator && phase != MissionState.Phase.ACTIVE;
         powerRole.visible = lifeRole.visible = weatherRole.visible = oxygen.visible = research.visible = forecast.visible = tab == 1 && connected;
         powerRole.active = lifeRole.active = weatherRole.active = connected && phase == MissionState.Phase.READY;
@@ -186,9 +207,8 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
         updateControls();
         NovaRenderer.rect(graphics, 0, 0, width, height, 0, new Color(10, 15, 22, 155));
         MissionUi.panel(graphics, panelX, panelY, panelWidth, panelHeight);
-        NovaRenderer.rect(graphics, panelX + 12, panelY + 10, 2, 23, 1, ACCENT);
-        MissionUi.text(graphics, "NIMBUS NOVA", panelX + 14, panelY + 12, TEXT);
-        MissionUi.text(graphics, "Prototype / authored game units", panelX + 14, panelY + 26, MUTED);
+        NovaRenderer.text(graphics, "The Darkening Sky", panelX + 20, panelY + 8, 15, TEXT);
+        MissionUi.text(graphics, "Your crew / one shared mission", panelX + 20, panelY + 29, MUTED);
 
         final MissionSnapshotPayload packet = NimbusNovaClient.snapshot;
         final int contentX = panelX + 14, contentY = panelY + 78, contentWidth = panelWidth - 28;
@@ -199,43 +219,45 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
             final MissionState.Snapshot state = packet.state();
             switch (tab) {
                 case 0 -> {
-                    MissionUi.text(graphics, "The darkening sky", contentX, contentY, TEXT);
-                    MissionUi.rightText(graphics, MissionUi.time(MissionState.DURATION_SECONDS - state.elapsedSeconds()) + " / " + state.phase(),
-                            panelX + panelWidth - 14, contentY, ACCENT);
-                    final int meterWidth = (contentWidth - 16) / 2;
-                    MissionUi.text(graphics, "Battery  " + Math.round(state.battery()) + "%", contentX, contentY + 23, ACCENT);
-                    MissionUi.bar(graphics, contentX, contentY + 37, meterWidth, state.battery(), state.battery() <= 25 ? DANGER : ACCENT);
-                    MissionUi.text(graphics, "Oxygen  " + Math.round(state.oxygen()) + "%", contentX + meterWidth + 16, contentY + 23, OXYGEN);
-                    MissionUi.bar(graphics, contentX + meterWidth + 16, contentY + 37, meterWidth, state.oxygen(), state.oxygen() <= 25 ? DANGER : OXYGEN);
-                    MissionUi.text(graphics, "Science " + Math.min(state.researchSeconds(), MissionState.RESEARCH_TARGET_SECONDS)
-                            + "/90s  |  " + MissionUi.rate(state.generation() - state.demand()) + " energy/s"
-                            + (MissionUi.seesWeather(packet) ? "  |  Sun " + MissionUi.sunPercent(state) + "%" : ""), contentX, contentY + 52, MUTED);
-                    MissionUi.bar(graphics, contentX, contentY + 66, contentWidth,
-                            state.researchSeconds() * 100.0 / MissionState.RESEARCH_TARGET_SECONDS, SUCCESS);
-                    MissionUi.wrap(graphics, state.lastEvent(), contentX, contentY + 81, contentWidth,
-                            Math.max(1, (panelHeight - 195) / 11), state.phase() == MissionState.Phase.FAILED ? DANGER : TEXT);
-
+                    final MissionProgressPayload objective = GuidedMissionClient.progress();
+                    final String title = !ObjectiveGuidance.onMars() ? "Enter Aster Outpost"
+                            : objective == null ? "Meet Commander Vega" : objective.title();
+                    NovaRenderer.text(graphics, title, contentX, contentY - 2,
+                            NovaRenderer.width(title, 15) > contentWidth ? 12 : 15, TEXT);
+                    final String instruction = !ObjectiveGuidance.onMars()
+                            ? packet.operator() ? "Prepare the outpost if needed, then choose Enter outpost. Your crew's first task waits on Mars."
+                            : "Choose Enter outpost below to join your crew on Mars."
+                            : objective == null ? "Walk into the habitat and right-click Commander Vega. He will give your crew its first task."
+                            : objective.instruction();
+                    NovaRenderer.wrap(graphics, instruction, contentX, contentY + 23, contentWidth, 10.5F, 2, TEXT);
+                    ObjectiveGuidance.arrow(graphics, objective, contentX + 5, contentY + 62, ACCENT);
+                    NovaRenderer.wrap(graphics, objective == null ? "Right-click the astronaut to begin" : ObjectiveGuidance.navigation(objective),
+                            contentX + 18, contentY + 55, contentWidth - 18, 9.5F, 1, ACCENT);
+                    final int completed = objective == null ? 0 : objective.completed();
+                    final int total = objective == null ? 5 : Math.max(1, objective.total());
+                    NovaRenderer.text(graphics, state.phase() == MissionState.Phase.READY
+                                    ? "Crew preparation: " + completed + " / " + total + " tasks complete"
+                                    : "Science progress: " + Math.min(state.researchSeconds(), 90) + " / 90 seconds",
+                            contentX, contentY + 75, 9, MUTED);
+                    MissionUi.bar(graphics, contentX, contentY + 89, contentWidth,
+                            state.phase() == MissionState.Phase.READY ? completed * 100.0 / total : state.researchSeconds() * 100.0 / 90, SUCCESS);
+                    final String feedback = objective == null || objective.feedback().isBlank()
+                            ? "The clock stays stopped while your crew prepares." : objective.feedback();
                     if (panelHeight >= 290) {
-                        MissionUi.text(graphics, packet.role().label + "  /  " + packet.crew() + " crew online", contentX, contentY + 126, ACCENT);
-                        MissionUi.text(graphics, state.decisions() + " equipment decisions  |  Radiation dose " + Math.round(state.radiationDose())
-                                + "% / prototype game units", contentX, contentY + 143, state.radiationDose() >= 50 ? DANGER : MUTED);
-                        MissionUi.text(graphics, "Survive 4 minutes and complete 90 seconds of research.", contentX, contentY + 164, TEXT);
+                        NovaRenderer.wrap(graphics, MissionTutorial.job(packet.role()), contentX, contentY + 109, contentWidth, 11, 3, ACCENT);
+                        NovaRenderer.text(graphics, "Keep power and air above zero. Finish the science objective together.", contentX, contentY + 158, 10, TEXT);
+                    } else {
+                        NovaRenderer.wrap(graphics, feedback, contentX, contentY + 100, contentWidth, 9, 1, MUTED);
                     }
                 }
                 case 1 -> {
-                    MissionUi.text(graphics, "Your role: " + packet.role().label, contentX, contentY, ACCENT);
-                    MissionUi.rightText(graphics, "Oxygen canisters " + state.canistersLeft() + "/" + MissionState.OXYGEN_CANISTERS,
-                            panelX + panelWidth - 14, contentY, OXYGEN);
-                    MissionUi.text(graphics, "Habitat equipment", contentX, contentY + 49, TEXT);
-                    MissionUi.wrap(graphics, "Research uses 0.65 energy/s. Oxygen uses 0.45 energy/s. The habitat always uses 0.15. "
-                                    + "Solar panels give up to 0.95 and the backup generator always gives 0.15.", contentX,
-                            contentY + 100, contentWidth, Math.max(1, (panelHeight - 210) / 11), MUTED);
-
+                    MissionUi.text(graphics, "Choose your crew responsibility", contentX, contentY, TEXT);
+                    NovaRenderer.wrap(graphics, MissionTutorial.job(packet.role()), contentX, contentY + 45, contentWidth, 10, 2, ACCENT);
                     if (panelHeight >= 290) {
-                        MissionUi.wrap(graphics, "Power engineers control research. Life-support engineers control oxygen. Only the weather officer "
-                                        + "can see the sunlight and its 30-second forecast, so tell the crew what is coming. "
-                                        + "Mission Control can do everything for solo testing. Choose roles before starting.",
-                                contentX, contentY + 134, contentWidth, 4, TEXT);
+                        NovaRenderer.wrap(graphics, "Repairs happen at the marked equipment in the world. During the timed mission, "
+                                        + "these switches let each specialist manage their system. Talk before changing the shared power budget.",
+                                contentX, contentY + 116, contentWidth, 10, 4, MUTED);
+                        MissionUi.text(graphics, "Emergency air supplies: " + state.canistersLeft() + " remaining", contentX, contentY + 175, OXYGEN);
                     }
                 }
                 case DEBRIEF_TAB -> {
