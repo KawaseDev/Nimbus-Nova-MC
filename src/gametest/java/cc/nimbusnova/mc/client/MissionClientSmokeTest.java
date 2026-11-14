@@ -137,6 +137,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             context.waitTicks(10);
             GuidedMissionChecks.capture(context, "geometry-shelter");
             context.runOnClient(client -> client.gui.hud.toggle());
+            AtmosphereChecks.entrance(context, world);
             GuidedMissionChecks.checkOutpost(context, world);
             world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 11 66 -3 90 -6");
             context.waitTicks(10);
@@ -157,6 +158,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
                 throw new AssertionError("Opening the console must tick the tutorial's first step");
 
             GuidedMissionChecks.prepare(context, world);
+            AtmosphereChecks.suit(context, world);
             ScienceStationChecks.practice(context, world);
             context.setScreen(MissionConsoleScreen::new);
             context.clickScreenButton("Start mission");
@@ -318,6 +320,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
                 if (rover.getDeltaMovement().horizontalDistanceSqr() > 0.0001)
                     throw new AssertionError("An unoccupied rover continued driving");
             });
+            RoverVisibilityChecks.captureDriverView(context, world);
             world.getServer().runCommand("gamemode spectator @p");
             world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 24 68 19 -55 20");
             world.getConnection().waitForClientboundPackets();

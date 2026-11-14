@@ -171,6 +171,21 @@ tasks.register('lessonModelTest', JavaExec) {
 
 check.dependsOn lessonModelTest
 
+tasks.register('suitAirModelTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.suit.SuitAirModelTest'
+    enableAssertions = true
+}
+
+tasks.register('scanCycleTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.airlock.ScanCycleTest'
+    enableAssertions = true
+}
+
+check.dependsOn suitAirModelTest, scanCycleTest
 tasks.register('moonMissionTest', JavaExec) {
     dependsOn missionTestClasses
     classpath = sourceSets.missionTest.runtimeClasspath

@@ -163,6 +163,7 @@ public final class MarsTrainingMap {
         buildTerrainDetails(level);
         buildMissionEquipment(level);
         buildWayfinding(level);
+        EntranceAirlock.build(level);
         beacon(level, -8, -18, Blocks.CONCRETE.orange());
         beacon(level, -3, -13, Blocks.CONCRETE.cyan());
         verifyArrival(level);
@@ -190,7 +191,7 @@ public final class MarsTrainingMap {
         bindStations(server);
         MissionNpcs.spawnAt(destination, -3.5, FLOOR_Y + 1, -3.5, false);
         MissionNpcs.spawnAt(destination, 4.5, FLOOR_Y + 1, 2.5, true);
-        player.teleportTo(destination, 0.5, FLOOR_Y + 1, -27.5, Set.of(), 0, 0, true);
+        player.teleportTo(destination, 0.5, FLOOR_Y + 1, EntranceAirlock.isInstalled(destination) ? -44.5 : -27.5, Set.of(), 0, 0, true);
         player.resetFallDistance();
         player.sendSystemMessage(Component.literal("Welcome to Aster Outpost. Fictional training site / authored terrain. Press J for mission controls. /mars leave returns you."));
         if (!destination.getBlockState(SAMPLE_ANALYZER).is(OutpostContent.SAMPLE_ANALYZER))
@@ -245,10 +246,7 @@ public final class MarsTrainingMap {
         for (final DoorSite door : doors)
             installDoorway(level, door);
 
-        for (final BlockPos position : BlockPos.betweenClosed(-8, FLOOR_Y + 1, 4, -3, FLOOR_Y + 1, 6)) {
-            if (level.getBlockState(position).is(Blocks.SMOOTH_QUARTZ))
-                level.setBlock(position, ScifiBlocks.HULL_PANEL.defaultBlockState(), Block.UPDATE_CLIENTS);
-        }
+        retrofitCounter(level);
 
         for (final EquipmentSite site : equipment) {
             if (level.getBlockState(site.position.below()).isAir())
@@ -256,6 +254,15 @@ public final class MarsTrainingMap {
 
             if (!level.getBlockState(site.position).is(site.replacement))
                 level.setBlock(site.position, site.replacement.defaultBlockState(), Block.UPDATE_CLIENTS);
+        }
+
+        if (!EntranceAirlock.isInstalled(level)) {
+            final BlockPos conflict = EntranceAirlock.findConflict(level);
+            if (conflict == null)
+                EntranceAirlock.build(level);
+            else
+                source.sendFailure(Component.literal("Entrance chamber preserved existing blocks at " + conflict
+                        + ". Other equipment was upgraded; use a fresh world for the full entrance layout."));
         }
 
         bindStations(source.getServer());
@@ -705,6 +712,15 @@ public final class MarsTrainingMap {
         for (final DoorSite door : outpostDoors()) {
             if (doorInstalled(level, door))
                 installDoorway(level, door);
+        }
+
+        retrofitCounter(level);
+    }
+
+    private static void retrofitCounter(final ServerLevel level) {
+        for (final BlockPos position : BlockPos.betweenClosed(-8, FLOOR_Y + 1, 4, -3, FLOOR_Y + 1, 6)) {
+            if (level.getBlockState(position).is(Blocks.SMOOTH_QUARTZ))
+                level.setBlock(position, ScifiBlocks.HULL_PANEL.defaultBlockState(), Block.UPDATE_CLIENTS);
         }
     }
 

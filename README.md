@@ -89,7 +89,7 @@ Items appear in the **Tools & Utilities** creative tab, or operators can use `/g
 | `oxygen_canister` | Life-support engineer/operator restores up to 8 shared oxygen units during an active mission, from a pool of two canisters per mission; consumes one on a successful survival-mode use |
 | `engineering_tool` | Iron-grade pickaxe with original multitool artwork |
 | `mars_sample` | Collect at the marked exterior deposit and deliver to the analyzer during preparation |
-| `space_helmet`, `space_chestplate`, `space_leggings`, `space_boots` | Wearable expedition armor with original item and worn textures; suit oxygen, pressure, and radiation protection remain planned |
+| `space_helmet`, `space_chestplate`, `space_leggings`, `space_boots` | Wear all four pieces outside to seal personal life support. Air drains outside and refills in authored habitat zones. Suits do not replace the storm shelter. |
 
 The greenhouse has decorative hydroponic trays; crop growth remains planned. The reinforced crew shelter is the protected zone during the authored solar-particle event. Its protection uses a fixed game zone, not calibrated radiation transport. The new rover is driveable: right-click to board, use movement keys to steer/drive, jump to brake, and sneak to exit. It stops when unoccupied. There is no fuel, energy, cargo, or expedition-objective simulation for the rover yet.
 
@@ -99,7 +99,7 @@ The Fabric runtime test checks tablet opening, canister consumption/refusal at f
 
 ### Domed outpost and science labs
 
-Fresh `/mars create` worlds include a transparent demonstration dome, continuous structural ribs, custom metallic double doors, animated floor/service lights, hull panels, cable trunks, battery racks, tanks, cabinets, and hydroponic models. Four exits preserve access to exterior panels, the sample site, and rover routes. Solar arrays sit outside the dome. The 14 `scifi_*` blocks are available in Tools & Utilities; tank/rack/crop props are visual models, while the three `lesson_*` stations below have gameplay.
+Fresh `/mars create` worlds include a transparent demonstration dome, continuous structural ribs, custom proximity portal frames and laser barriers, animated floor/service lights, hull panels, cable trunks, battery racks, tanks, cabinets, and hydroponic models. Four exits preserve access to exterior panels, the sample site, and rover routes. Solar arrays sit outside the dome. The 14 `scifi_*` blocks are available in Tools & Utilities; tank/rack/crop props are visual models, while the three `lesson_*` stations below have gameplay.
 
 | Station | Location (x, y, z) | What students do and learn |
 | --- | --- | --- |
@@ -107,9 +107,19 @@ Fresh `/mars create` worlds include a transparent demonstration dome, continuous
 | Backup power reserve | 3, 66, 5 | Decide when to spend one of two shared reserve cells, each adding up to 10 energy units. Full batteries reject transfers. Practice spends no cells. Stored power cannot restore sunlight lost to dust. |
 | Shielding experiment | 2, 66, 25 | Compare three material layers and watch the illustrative detector index and carried mass change. Glass is different from substantial shielding; values are authored teaching indices, not dosimetry or engineering specifications. |
 
-The dome is fictional architecture with open passage portals. It does not simulate an airtight pressure vessel or provide radiation safety. The reinforced shelter remains the mission's protected game zone. Real engineering background is linked in [CREDITS.md](CREDITS.md).
+The dome uses authored habitat-air zones; it is fictional architecture rather than a seal/pressure simulation, and it provides no radiation safety. The reinforced shelter remains the mission's protected game zone. Real engineering background is linked in [CREDITS.md](CREDITS.md).
 
 Existing saves are preserved: `/mars upgrade` changes only recognized equipment/door anchors after checking them. `/mars dome` adds a shell only when its entire footprint is empty or already consists of that shell's blocks; it refuses occupied footprints. Use a fresh test world for the complete layout rather than deleting teammates' builds.
+
+### Entrance scan and personal life support
+
+New arrivals start outside the north dome entrance. Walk into the chamber and stand inside: both barriers close for a four-second dust-purge/suit scan, with air jets, sound, and a progress display. Once clear, the inner barrier admits the crew. The reverse cycle supports leaving; missing gear produces warnings without trapping a player in the chamber. This is an authored dust-removal sequence, not a medical virus detector or a claim about real laser airlocks.
+
+**Base air** is the shared mission reserve. **Suit air** is personal: a complete four-piece suit loses 0.5 game units per second outside; an incomplete suit loses 5. Inside the dome/rooms or a cleared chamber, it recovers 10 per second. At zero air during an active mission, exposure causes 1 health damage per second. Preparation shows depletion/warnings without health damage. Teacher/incident pauses freeze suit air as well as shared resources. These rates and zones are game assumptions, not human physiology. Personal reserves reset per visit rather than persisting across disconnects.
+
+Existing recognized base doors are migrated on server start or `/mars join`: their old plates are removed and proximity control starts automatically. The known original quartz counter is replaced with custom metal panels. Unknown blocks are preserved. `/mars upgrade` adds the new entrance chamber only if its footprint is clear or contains recognized original materials; it reports conflicts rather than overwriting builds. Restart the client/server to load changed Java behavior; asset reload alone cannot install it.
+
+The rover has a translucent windscreen with a solid frame and a clear first-person driving view. Its movement controls are unchanged.
 
 ### Interface and rendering
 

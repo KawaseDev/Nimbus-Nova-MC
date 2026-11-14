@@ -80,13 +80,13 @@ Only the sunlight curve comes from NASA data; the four-minute event, rates, and 
 
 ## Batch 5: NPCs and task minigames
 
-Status: two astronaut NPCs and their state-aware dialogue are implemented and runtime-tested. Task minigames remain planned.
+Status: two astronaut NPCs, state-aware dialogue, guided preparation and consequential task minigames are implemented and runtime-tested. Additional specialist roles remain roadmap work.
 
 - [x] Add Commander Vega and Engineer Sol with original skins, idle/head-look animation, paginated dialogue, and mission-state-aware guidance; verify the conversation in the client game test.
-- [ ] Build one original task minigame and connect completion to a real equipment/resource consequence.
-- [ ] Validate role, distance, phase, supplies, and completion server-side; reject duplicate rewards.
+- [x] Build one original task minigame and connect completion to a real equipment/resource consequence.
+- [x] Validate role, distance, phase, supplies, and completion server-side; reject duplicate rewards.
 - [ ] Provide readable text, color-independent cues, forgiving input targets, and optional timing assistance.
-- [ ] Add task-linked quest progression and connection/routing, checklist, and inspection/matching tasks as justified. The implemented engineer is an astronaut, not a maintenance robot.
+- [x] Add task-linked quest progression and connection/routing, checklist, and inspection/matching tasks as justified. The implemented engineer is an astronaut, not a maintenance robot.
 - [ ] Add the remaining food/water, safety/maintenance, and commander/pilot roles with meaningful work.
 
 ## Batch 6: teacher platform integration and expanded space gameplay
@@ -183,3 +183,20 @@ Two-child observation remains necessary before claiming age-appropriate usabilit
 Next proposed mission: Return Window, using a separate spacecraft map and departure objective; see PLAN.md. Do not mark it playable before its own mission loop exists.
 
 Verification: Java 25 `build runClientGameTest` passed with the pressure/backup/shielding runtime checks and complete guided mission success. Inspected fresh native captures of the dome, airlocks, oxygen console, hollow open locker, air tanks, cabinet, greenhouse approach, and lab screens. Existing saves are not rebuilt automatically; reload assets/restart the client for model changes and use a fresh test world for the complete authored layout. Multiplayer/classroom testing remains open.
+
+## First-level completion pass
+
+- [x] Replace hinged panels/thin wire fields with substantial 3D proximity portal hardware.
+- [x] Remove old authored pressure plates in existing saves without touching unrelated blocks.
+- [x] Improve room materials and replace the white habitat counter.
+- [x] Add a timed entrance dust-purge/suit scan with an interlocked entry sequence.
+- [x] Add personal suit-air depletion outside and recovery inside; show missing-helmet warnings.
+- [x] Fix the rover's obstructed first-person view.
+- [x] Run the complete mission with the teammate's incident-learning pauses and inspect new native captures.
+- [x] Push the integrated level and document the next mission brief.
+
+This pass completes the first playable mission's requested systems. Additional specialist roles, crop growth, free spacecraft flight, multiple isolated crews and real classroom validation stay separately tracked; they are not silently claimed complete.
+
+Completed verification: Java 25 `build runClientGameTest` passed atmosphere/scan, science stations, original preparation puzzles, incident-learning pauses, shelter/relay response, full mission success and report. Native captures confirm a blue closed field, clear open passage, no legacy plates, revised room surfaces, readable scan progress, personal-air warnings and the mounted first-person rover view. The merge with the teammate's initial Moon sequencing also passes `build` including its self-test. No multiplayer/classroom learning claim is made.
+
+Next proposed build: **Moon Rescue: Return Window**, a separate spacecraft map using the teammate's `MoonMission.RESCUE` sequence. The scaffold exists; it is not a playable second mission yet.
