@@ -1,5 +1,7 @@
 package cc.nimbusnova.mc.npc;
 
+import cc.nimbusnova.mc.mission.CrewRole;
+import cc.nimbusnova.mc.mission.DustStorm;
 import cc.nimbusnova.mc.mission.MissionState;
 
 public final class NpcDialogueTest {
@@ -39,6 +41,16 @@ public final class NpcDialogueTest {
             failed.tickSecond();
 
         assert NpcDialogue.briefing(failed.snapshot()).contains("shared reserve reached zero");
+        final MissionState storm2007 = new MissionState(DustStorm.OPPORTUNITY_2007);
+        assert NpcDialogue.briefing(storm2007.snapshot(), CrewRole.WEATHER).contains("Only you can see the sun");
+        storm2007.start();
+        for (int second = 0; second < MissionState.STORM_START_SECONDS + 5; second++)
+            storm2007.tickSecond();
+
+        assert NpcDialogue.briefing(storm2007.snapshot()).contains("18%") : "Storm lines quote the real storm";
+        assert NpcDialogue.powerHint(storm2007.snapshot()).contains("would not help") : "Hints must not promise cleaning fixes a storm";
+        assert NpcDialogue.oxygenHint(storm2007.snapshot()).contains("2 remaining oxygen canisters");
+        assert NpcDialogue.briefing(failed.snapshot()).contains("Debrief tab") && NpcDialogue.briefing(failed.snapshot()).length() <= 1024;
         System.out.println("NPC dialogue check passed: mission phases, dust event and current prototype reserves.");
     }
 }

@@ -231,6 +231,10 @@ public final class MissionController {
         stations.remove(position);
     }
 
+    public CrewRole role(final UUID player) {
+        return roles.getOrDefault(player, CrewRole.OBSERVER);
+    }
+
     public MissionState.Snapshot snapshot() {
         return mission.snapshot();
     }
