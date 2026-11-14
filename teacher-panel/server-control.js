@@ -8,6 +8,7 @@ function createServerControl({ checkServer, spawnServer = spawn, root = path.res
   let error = '';
   let busy = false;
   let restarting = false;
+  let updating = false;
 
   async function start() {
     if (child) throw new Error('Server is already managed by the panel');
@@ -49,9 +50,29 @@ function createServerControl({ checkServer, spawnServer = spawn, root = path.res
     state = 'stopping';
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => { stopping.off('close', done); reject(new Error('Server did not stop; check its console')); }, 30000);
-      function done() { clearTimeout(timeout); resolve(); }
+      function done(code) {
+        clearTimeout(timeout);
+        if (code !== 0) reject(new Error('Server did not stop cleanly. Check the server console before updating.'));
+        else resolve();
+      }
       stopping.once('close', done);
       stopping.stdin.write('stop\n', err => { if (err) { clearTimeout(timeout); stopping.off('close', done); reject(new Error('Could not send stop command')); } });
+    });
+  }
+
+  async function build() {
+    state = 'updating';
+    await new Promise((resolve, reject) => {
+      let buildProcess;
+      try {
+        buildProcess = spawnServer(path.join(root, processPlatformWrapper()), ['build', '--console=plain'], {
+          cwd: root, env: { ...global.process.env }, stdio: ['ignore', 'pipe', 'pipe']
+        });
+      } catch (failure) { reject(failure); return; }
+      buildProcess.stdout.on('data', data => global.process.stdout.write(data));
+      buildProcess.stderr.on('data', data => global.process.stderr.write(data));
+      buildProcess.once('error', reject);
+      buildProcess.once('close', code => code === 0 ? resolve() : reject(new Error('Build failed. Check the server console.')));
     });
   }
 
@@ -67,6 +88,19 @@ function createServerControl({ checkServer, spawnServer = spawn, root = path.res
         catch (error) { if (!child) onExit(); throw error; }
         finally { restarting = false; }
       }
+      else if (action === 'update') {
+        if (!child && await checkServer()) throw new Error('A server is running outside this panel. Stop it before updating.');
+        updating = true;
+        restarting = true;
+        try {
+          if (child) await stop();
+          await build();
+          await start();
+        } catch (failure) {
+          if (!child) { state = 'stopped'; error = failure.message; onExit(); }
+          throw failure;
+        } finally { restarting = false; updating = false; }
+      }
       else throw new Error('Invalid operation');
     } finally { busy = false; }
   }
@@ -74,7 +108,7 @@ function createServerControl({ checkServer, spawnServer = spawn, root = path.res
   async function status() {
     const reachable = await checkServer();
     const starting = restarting || (busy && state === 'starting');
-    return { reachable, managed: !!child || starting, state: starting ? 'starting' : child ? state : reachable ? 'external' : 'stopped', error };
+    return { reachable, managed: !!child || starting, state: updating ? 'updating' : starting ? 'starting' : child ? state : reachable ? 'external' : 'stopped', error };
   }
   return { command, status };
 }

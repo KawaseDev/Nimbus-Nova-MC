@@ -200,7 +200,7 @@ public final class MarsTrainingMap {
         return 1;
     }
 
-    private static int upgrade(final CommandSourceStack source) throws IOException {
+    public static int upgrade(final CommandSourceStack source) throws IOException {
         final ServerLevel level = source.getServer().getLevel(DIMENSION);
         if (level == null || readConstructionStage(source.getServer()) != 2) {
             source.sendFailure(Component.literal("Create an outpost with /mars create before upgrading it."));
@@ -243,6 +243,15 @@ public final class MarsTrainingMap {
             return 0;
         }
 
+        if (!EntranceAirlock.isInstalled(level)) {
+            final BlockPos conflict = EntranceAirlock.findConflict(level);
+            if (conflict != null) {
+                source.sendFailure(Component.literal("Upgrade stopped: the entrance site contains existing blocks at " + conflict
+                        + ". Existing blocks were preserved."));
+                return 0;
+            }
+        }
+
         for (final DoorSite door : doors)
             installDoorway(level, door);
 
@@ -256,14 +265,7 @@ public final class MarsTrainingMap {
                 level.setBlock(site.position, site.replacement.defaultBlockState(), Block.UPDATE_CLIENTS);
         }
 
-        if (!EntranceAirlock.isInstalled(level)) {
-            final BlockPos conflict = EntranceAirlock.findConflict(level);
-            if (conflict == null)
-                EntranceAirlock.build(level);
-            else
-                source.sendFailure(Component.literal("Entrance chamber preserved existing blocks at " + conflict
-                        + ". Other equipment was upgraded; use a fresh world for the full entrance layout."));
-        }
+        if (!EntranceAirlock.isInstalled(level)) EntranceAirlock.build(level);
 
         bindStations(source.getServer());
         final int removedSigns = removePrototypeSigns(level);

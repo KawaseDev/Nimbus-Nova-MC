@@ -174,6 +174,8 @@ With Node.js 18 or newer installed, run `node teacher-panel/server.js` and open 
 
 The panel can start, stop, and restart a Minecraft server that it started. Start the panel with JDK 25 available in `JAVA_HOME` or `PATH`, and accept the Minecraft EULA in `run/eula.txt` before starting the server. Stop and restart send Minecraft's `stop` command so the world is saved. A server started outside the panel must be stopped separately before the panel can manage it. If the panel exits while its server is running, stop that server separately before starting it again from the panel.
 
+**Update server** stops the panel-managed server, builds the current repository version, and starts it again using the existing world. Pull the desired version first; the button does not fetch code. Students must restart their clients with the same mod version. If the build fails, the server remains stopped and the saved world is kept. **Update outpost** applies supported Mars equipment and doorway upgrades only where the expected locations are safe; it stops if player blocks conflict. It does not rebuild existing spacecraft or regenerate terrain.
+
 To test student joining on this computer, start the server in the panel. The session code appears automatically while the server is running and closes when it stops. Enter the displayed code and `127.0.0.1:3002` in the mod. The nickname appears in the teacher roster and is linked to the player's Minecraft identity while the server is running.
 
 For a local network, set the server computer's LAN address in `run/server.properties` as `server-ip`, keep `online-mode=true`, and start the panel with these variables set to that same address:
