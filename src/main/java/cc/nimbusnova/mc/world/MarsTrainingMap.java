@@ -73,6 +73,11 @@ public final class MarsTrainingMap {
         MissionController.setShelterCheck(player -> player.level().dimension() != DIMENSION ? null : !inShelter(player.blockPosition()));
         Registry.register(BuiltInRegistries.CHUNK_GENERATOR, Identifier.parse("nimbus_nova:mars_surface"), MarsTerrainGenerator.CODEC);
         ServerLifecycleEvents.SERVER_STOPPED.register(RETURN_POINTS::remove);
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            final ServerLevel level = server.getLevel(DIMENSION);
+            if (level != null)
+                migrateLaserDoors(level);
+        });
         CommandRegistrationCallback.EVENT.register((dispatcher, _, _) -> dispatcher.register(Commands.literal("mars")
                 .executes(context -> {
                     context.getSource().sendSuccess(() -> Component.literal("Mars training: /mars create, /mars upgrade, /mars dome (operator), /mars join, /mars leave. "
@@ -175,6 +180,7 @@ public final class MarsTrainingMap {
             return 0;
         }
 
+        migrateLaserDoors(destination);
         if (player.level().dimension() != DIMENSION) {
             RETURN_POINTS.computeIfAbsent(server, _ -> new HashMap<>()).put(player.getUUID(),
                     new ReturnPoint(player.level().dimension(), player.position(), player.getYRot(), player.getXRot()));
@@ -206,12 +212,7 @@ public final class MarsTrainingMap {
             return 0;
         }
 
-        final DoorSite[] doors = {
-                habitatDoors()[0], habitatDoors()[1], habitatDoors()[2], habitatDoors()[3],
-                new DoorSite(new BlockPos(0, FLOOR_Y + 1, -12), Direction.NORTH, Blocks.CONCRETE.white()),
-                new DoorSite(new BlockPos(0, FLOOR_Y + 1, 20), Direction.NORTH, Blocks.POLISHED_DEEPSLATE),
-                new DoorSite(new BlockPos(20, FLOOR_Y + 1, 0), Direction.WEST, Blocks.CONCRETE.white())
-        };
+        final DoorSite[] doors = outpostDoors();
         for (final DoorSite door : doors) {
             final BlockPos unsafe = unsafeDoorway(level, door);
             if (unsafe == null) continue;
@@ -241,9 +242,12 @@ public final class MarsTrainingMap {
             return 0;
         }
 
-        for (final DoorSite door : doors) {
-            if (!doorInstalled(level, door) || level.getBlockState(door.center).is(Blocks.IRON_DOOR))
-                installDoorway(level, door);
+        for (final DoorSite door : doors)
+            installDoorway(level, door);
+
+        for (final BlockPos position : BlockPos.betweenClosed(-8, FLOOR_Y + 1, 4, -3, FLOOR_Y + 1, 6)) {
+            if (level.getBlockState(position).is(Blocks.SMOOTH_QUARTZ))
+                level.setBlock(position, ScifiBlocks.HULL_PANEL.defaultBlockState(), Block.UPDATE_CLIENTS);
         }
 
         for (final EquipmentSite site : equipment) {
@@ -510,7 +514,7 @@ public final class MarsTrainingMap {
         fill(level, 3, FLOOR_Y + 2, -8, 7, FLOOR_Y + 3, -8, Blocks.STAINED_GLASS.lightBlue());
         fill(level, -8, FLOOR_Y + 5, -6, 8, FLOOR_Y + 5, 6, ScifiBlocks.HULL_PANEL);
         fill(level, -2, FLOOR_Y + 5, -5, 2, FLOOR_Y + 5, 5, ScifiBlocks.STRIP_LIGHT);
-        fill(level, -8, FLOOR_Y + 1, 4, -3, FLOOR_Y + 1, 6, Blocks.SMOOTH_QUARTZ);
+        fill(level, -8, FLOOR_Y + 1, 4, -3, FLOOR_Y + 1, 6, ScifiBlocks.HULL_PANEL);
         level.setBlock(OXYGEN_STATION, ModBlocks.OXYGEN_CONSOLE.defaultBlockState(), Block.UPDATE_CLIENTS);
         fill(level, -8, FLOOR_Y + 2, 5, -7, FLOOR_Y + 3, 6, Blocks.STAINED_GLASS.cyan());
         fill(level, 4, FLOOR_Y + 1, 4, 7, FLOOR_Y + 1, 6, Blocks.POLISHED_DEEPSLATE);
@@ -688,6 +692,22 @@ public final class MarsTrainingMap {
         level.setBlock(new BlockPos(x, FLOOR_Y + 1, z), OutpostContent.HOLOGRAM_PROJECTOR.defaultBlockState(), Block.UPDATE_CLIENTS);
     }
 
+    private static DoorSite[] outpostDoors() {
+        return new DoorSite[] {
+                habitatDoors()[0], habitatDoors()[1], habitatDoors()[2], habitatDoors()[3],
+                new DoorSite(new BlockPos(0, FLOOR_Y + 1, -12), Direction.NORTH, Blocks.CONCRETE.white()),
+                new DoorSite(new BlockPos(0, FLOOR_Y + 1, 20), Direction.NORTH, Blocks.POLISHED_DEEPSLATE),
+                new DoorSite(new BlockPos(20, FLOOR_Y + 1, 0), Direction.WEST, Blocks.CONCRETE.white())
+        };
+    }
+
+    private static void migrateLaserDoors(final ServerLevel level) {
+        for (final DoorSite door : outpostDoors()) {
+            if (doorInstalled(level, door))
+                installDoorway(level, door);
+        }
+    }
+
     private static DoorSite[] habitatDoors() {
         return new DoorSite[] {
                 new DoorSite(new BlockPos(0, FLOOR_Y + 1, -8), Direction.NORTH, Blocks.CONCRETE.white()),
@@ -699,10 +719,12 @@ public final class MarsTrainingMap {
 
     private static void installDoorway(final ServerLevel level, final DoorSite site) {
         final Direction side = site.facing.getClockWise();
-        for (int width = -1; width <= 1; width++) {
-            for (int height = 0; height <= 2; height++) {
-                final BlockPos position = site.center.relative(side, width).above(height);
-                level.setBlock(position, ScifiBlocks.SUPPORT_BEAM.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+        if (!doorInstalled(level, site)) {
+            for (int width = -1; width <= 1; width++) {
+                for (int height = 0; height <= 2; height++) {
+                    final BlockPos position = site.center.relative(side, width).above(height);
+                    level.setBlock(position, ScifiBlocks.SUPPORT_BEAM.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+                }
             }
         }
 
@@ -713,8 +735,12 @@ public final class MarsTrainingMap {
                     .setValue(DoorBlock.OPEN, false).setValue(BlockStateProperties.POWERED, false);
             level.setBlock(foot, door.setValue(DoorBlock.HALF, DoubleBlockHalf.LOWER), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
             level.setBlock(foot.above(), door.setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
-            for (final Direction approach : new Direction[] { site.facing, site.facing.getOpposite() })
-                level.setBlock(foot.relative(approach), Blocks.STONE_PRESSURE_PLATE.defaultBlockState(), Block.UPDATE_ALL);
+            level.scheduleTick(foot, ScifiBlocks.AIRLOCK_DOOR, 5);
+            for (final Direction approach : new Direction[] { site.facing, site.facing.getOpposite() }) {
+                final BlockPos plate = foot.relative(approach);
+                if (level.getBlockState(plate).is(Blocks.STONE_PRESSURE_PLATE))
+                    level.setBlock(plate, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+            }
         }
     }
 

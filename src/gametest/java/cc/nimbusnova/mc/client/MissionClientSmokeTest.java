@@ -107,6 +107,11 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             GuidedMissionChecks.capture(context, "geometry-shelter");
             context.runOnClient(client -> client.gui.hud.toggle());
             GuidedMissionChecks.checkOutpost(context, world);
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 11 66 -3 90 -6");
+            context.waitTicks(10);
+            context.runOnClient(client -> client.gui.hud.toggle());
+            GuidedMissionChecks.capture(context, "dark-habitat-materials");
+            context.runOnClient(client -> client.gui.hud.toggle());
             if (MissionTutorial.consoleOpened)
                 throw new AssertionError("The tutorial must start with the console step unchecked");
 

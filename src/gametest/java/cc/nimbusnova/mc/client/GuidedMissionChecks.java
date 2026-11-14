@@ -89,7 +89,22 @@ final class GuidedMissionChecks {
         });
         world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 0.5 66 -12.5 0 0");
         context.waitFor(client -> client.level != null && client.level.getBlockState(new BlockPos(0, 66, -12)).getValue(DoorBlock.OPEN));
-        capture(context, "automatic-airlock-door");
+        capture(context, "laser-door-open");
+        world.getServer().runOnServer(server -> {
+            final var level = world.getConnection().getServerLevel();
+            for (int x = -1; x <= 0; x++) {
+                if (!level.getBlockState(new BlockPos(x, 66, -12)).getCollisionShape(level, new BlockPos(x, 66, -12)).isEmpty())
+                    throw new AssertionError("An inactive laser field blocked the doorway");
+                for (final int z : new int[] { -13, -11 }) {
+                    if (level.getBlockState(new BlockPos(x, 66, z)).is(Blocks.STONE_PRESSURE_PLATE))
+                        throw new AssertionError("Laser door still depends on a pressure plate");
+                }
+            }
+        });
+        world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 0.5 66 -17 0 0");
+        context.waitFor(client -> client.level != null && !client.level.getBlockState(new BlockPos(0, 66, -12)).getValue(DoorBlock.OPEN));
+        context.waitTicks(5);
+        capture(context, "laser-door-closed");
     }
 
     static void repair(final ClientGameTestContext context, final TestSingleplayerContext world, final boolean power, final boolean tryWrongAction) {
