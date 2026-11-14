@@ -96,6 +96,7 @@ public final class MissionController {
             }
 
             root.then(role);
+            root.then(Commands.literal("forecast").executes(context -> get(context.getSource().getServer()).forecast(context.getSource())));
             final var assign = Commands.argument("player", EntityArgument.player());
             for (final CrewRole crewRole : CrewRole.values()) {
                 assign.then(Commands.literal(crewRole.command).executes(context -> {
@@ -153,6 +154,27 @@ public final class MissionController {
             source.sendFailure(Component.literal(exception.getMessage()));
             return 0;
         }
+    }
+
+    private int forecast(final CommandSourceStack source) {
+        if (!source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)
+                && !(source.getEntity() instanceof ServerPlayer player
+                && roles.getOrDefault(player.getUUID(), CrewRole.OBSERVER).seesWeather())) {
+            source.sendFailure(Component.literal("Only the weather officer can read the sky sensors. Ask them for a forecast."));
+            return 0;
+        }
+
+        final MissionState.Snapshot state = mission.snapshot();
+        if (state.phase() != MissionState.Phase.ACTIVE) {
+            source.sendFailure(Component.literal("Forecasts are available while the mission is running."));
+            return 0;
+        }
+
+        final Component message = Component.literal("[Weather] " + DustStormProfile.forecast(state.elapsedSeconds()));
+        for (final ServerPlayer crew : source.getServer().getPlayerList().getPlayers())
+            crew.sendSystemMessage(message);
+
+        return 1;
     }
 
     public boolean replenishOxygen(final ServerPlayer player) {

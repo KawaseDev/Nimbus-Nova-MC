@@ -36,6 +36,20 @@ public final class DustStormProfile {
                 MissionState.DURATION_SECONDS - MissionState.STORM_END_SECONDS);
     }
 
+    public static final int FORECAST_SECONDS = 30;
+
+    /** The weather officer's look-ahead: sunlight expected {@link #FORECAST_SECONDS} from now. */
+    public static double forecastFactor(final int elapsedSeconds) {
+        return solarFactor(Math.min(MissionState.DURATION_SECONDS, elapsedSeconds + FORECAST_SECONDS));
+    }
+
+    public static String forecast(final int elapsedSeconds) {
+        final long now = Math.round(solarFactor(elapsedSeconds) * 100);
+        final long later = Math.round(forecastFactor(elapsedSeconds) * 100);
+        final String trend = later < now ? "falling" : later > now ? "rising" : "steady";
+        return "Sun " + now + "% now, " + later + "% in " + FORECAST_SECONDS + " s (" + trend + ").";
+    }
+
     public static double generation(final int elapsedSeconds) {
         return BACKUP_OUTPUT + SOLAR_OUTPUT * solarFactor(elapsedSeconds);
     }

@@ -116,6 +116,10 @@ public final class MissionStateTest {
         assert !CrewRole.POWER.canControl(MissionState.Equipment.OXYGEN);
         assert CrewRole.LIFE_SUPPORT.canControl(MissionState.Equipment.OXYGEN);
         assert !CrewRole.OBSERVER.canControl(MissionState.Equipment.RESEARCH);
+        assert CrewRole.WEATHER.seesWeather() && !CrewRole.POWER.seesWeather() : "Only the weather officer reads the sky";
+        assert !CrewRole.WEATHER.canControl(MissionState.Equipment.RESEARCH) && !CrewRole.WEATHER.canControl(MissionState.Equipment.OXYGEN);
+        assert DustStormProfile.forecast(MissionState.STORM_START_SECONDS).contains("falling") : "Forecast warns before the peak";
+        assert DustStormProfile.forecast(0).contains("steady");
         System.out.println("Mission self-check passed: resource balance, phases, dust, outcomes, idempotency and roles.");
     }
 }

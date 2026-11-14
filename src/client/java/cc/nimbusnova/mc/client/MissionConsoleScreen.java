@@ -10,7 +10,7 @@ import net.minecraft.network.chat.Component;
 public final class MissionConsoleScreen extends Screen implements MissionPalette {
     private int tab;
     private int panelX, panelY, panelWidth, panelHeight;
-    private MissionButton start, pause, reset, oxygen, research, powerRole, lifeRole;
+    private MissionButton start, pause, reset, oxygen, research, forecast, powerRole, lifeRole, weatherRole;
 
     public MissionConsoleScreen() {
         super(Component.literal("Nimbus Nova mission console"));
@@ -44,9 +44,10 @@ public final class MissionConsoleScreen extends Screen implements MissionPalette
         }));
         reset = addRenderableWidget(new MissionButton(panelX + 24 + controlWidth * 2, footerY, controlWidth, 22, "Reset", () -> command("reset")));
 
-        final int systemWidth = (panelWidth - 30) / 2;
+        final int systemWidth = (panelWidth - 36) / 3;
         powerRole = addRenderableWidget(new MissionButton(panelX + 12, panelY + 94, systemWidth, 22, "Power engineer", () -> command("role power")));
         lifeRole = addRenderableWidget(new MissionButton(panelX + 18 + systemWidth, panelY + 94, systemWidth, 22, "Life support", () -> command("role life_support")));
+        weatherRole = addRenderableWidget(new MissionButton(panelX + 24 + systemWidth * 2, panelY + 94, systemWidth, 22, "Weather officer", () -> command("role weather")));
         research = addRenderableWidget(new MissionButton(panelX + 12, panelY + 144, systemWidth, 24, "Research", () -> {
             if (NimbusNovaClient.snapshot != null)
                 command("equipment research " + !NimbusNovaClient.snapshot.state().researchOnline());
@@ -55,6 +56,7 @@ public final class MissionConsoleScreen extends Screen implements MissionPalette
             if (NimbusNovaClient.snapshot != null)
                 command("equipment oxygen " + !NimbusNovaClient.snapshot.state().oxygenOnline());
         }));
+        forecast = addRenderableWidget(new MissionButton(panelX + 24 + systemWidth * 2, panelY + 144, systemWidth, 24, "Send forecast", () -> command("forecast")));
         updateControls();
     }
 
@@ -72,10 +74,12 @@ public final class MissionConsoleScreen extends Screen implements MissionPalette
         pause.active = operator && (phase == MissionState.Phase.ACTIVE || phase == MissionState.Phase.PAUSED);
         pause.setMessage(Component.literal(phase == MissionState.Phase.PAUSED ? "Resume" : "Pause"));
         reset.active = operator && phase != MissionState.Phase.ACTIVE;
-        powerRole.visible = lifeRole.visible = oxygen.visible = research.visible = tab == 1 && connected;
-        powerRole.active = lifeRole.active = connected && phase == MissionState.Phase.READY;
+        powerRole.visible = lifeRole.visible = weatherRole.visible = oxygen.visible = research.visible = forecast.visible = tab == 1 && connected;
+        powerRole.active = lifeRole.active = weatherRole.active = connected && phase == MissionState.Phase.READY;
         powerRole.selected = connected && packet.role() == CrewRole.POWER;
         lifeRole.selected = connected && packet.role() == CrewRole.LIFE_SUPPORT;
+        weatherRole.selected = connected && packet.role() == CrewRole.WEATHER;
+        forecast.active = connected && phase == MissionState.Phase.ACTIVE && MissionUi.seesWeather(packet);
         research.active = connected && phase == MissionState.Phase.ACTIVE && (operator || packet.role() == CrewRole.POWER);
         oxygen.active = connected && phase == MissionState.Phase.ACTIVE && (operator || packet.role() == CrewRole.LIFE_SUPPORT);
 
@@ -111,8 +115,8 @@ public final class MissionConsoleScreen extends Screen implements MissionPalette
                     MissionUi.text(graphics, "Oxygen  " + Math.round(state.oxygen()) + "%", contentX + meterWidth + 16, contentY + 23, OXYGEN);
                     MissionUi.bar(graphics, contentX + meterWidth + 16, contentY + 37, meterWidth, state.oxygen(), state.oxygen() <= 25 ? DANGER : OXYGEN);
                     MissionUi.text(graphics, "Science " + Math.min(state.researchSeconds(), MissionState.RESEARCH_TARGET_SECONDS)
-                            + "/90s  |  " + MissionUi.rate(state.generation() - state.demand()) + " energy/s  |  Sun "
-                            + MissionUi.sunPercent(state) + "%", contentX, contentY + 52, MUTED);
+                            + "/90s  |  " + MissionUi.rate(state.generation() - state.demand()) + " energy/s"
+                            + (MissionUi.seesWeather(packet) ? "  |  Sun " + MissionUi.sunPercent(state) + "%" : ""), contentX, contentY + 52, MUTED);
                     MissionUi.bar(graphics, contentX, contentY + 66, contentWidth,
                             state.researchSeconds() * 100.0 / MissionState.RESEARCH_TARGET_SECONDS, SUCCESS);
                     MissionUi.wrap(graphics, state.lastEvent(), contentX, contentY + 81, contentWidth,
@@ -132,8 +136,9 @@ public final class MissionConsoleScreen extends Screen implements MissionPalette
                             contentY + 100, contentWidth, Math.max(1, (panelHeight - 210) / 11), MUTED);
 
                     if (panelHeight >= 290) {
-                        MissionUi.wrap(graphics, "Power engineers control research demand. Life-support engineers control oxygen production. "
-                                        + "Mission Control can operate both for solo testing. Choose roles before starting.",
+                        MissionUi.wrap(graphics, "Power engineers control research. Life-support engineers control oxygen. Only the weather officer "
+                                        + "can see the sunlight and its 30-second forecast, so tell the crew what is coming. "
+                                        + "Mission Control can do everything for solo testing. Choose roles before starting.",
                                 contentX, contentY + 134, contentWidth, 4, TEXT);
                     }
                 }

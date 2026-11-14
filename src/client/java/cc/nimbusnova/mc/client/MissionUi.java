@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.mission.DustStormProfile;
+import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
 import cc.nimbusnova.mc.mission.MissionState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -51,6 +52,14 @@ final class MissionUi implements MissionPalette {
 
     static long sunPercent(final MissionState.Snapshot state) {
         return Math.round(DustStormProfile.solarFactor(state.elapsedSeconds()) * 100);
+    }
+
+    static long forecastPercent(final MissionState.Snapshot state) {
+        return Math.round(DustStormProfile.forecastFactor(state.elapsedSeconds()) * 100);
+    }
+
+    static boolean seesWeather(final MissionSnapshotPayload packet) {
+        return packet.operator() || packet.role().seesWeather();
     }
 
     static String rate(final double rate) {
