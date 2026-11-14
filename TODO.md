@@ -186,13 +186,17 @@ Verification: Java 25 `build runClientGameTest` passed with the pressure/backup/
 
 ## First-level completion pass
 
-- [ ] Replace hinged panels/thin wire fields with substantial 3D proximity portal hardware.
-- [ ] Remove old authored pressure plates in existing saves without touching unrelated blocks.
-- [ ] Improve room materials and replace the white habitat counter.
-- [ ] Add a timed entrance dust-purge/suit scan with an interlocked entry sequence.
-- [ ] Add personal suit-air depletion outside and recovery inside; show missing-helmet warnings.
-- [ ] Fix the rover's obstructed first-person view.
-- [ ] Run the complete mission with the teammate's incident-learning pauses and inspect new native captures.
-- [ ] Push the integrated level and document the next mission brief.
+- [x] Replace hinged panels/thin wire fields with substantial 3D proximity portal hardware.
+- [x] Remove old authored pressure plates in existing saves without touching unrelated blocks.
+- [x] Improve room materials and replace the white habitat counter.
+- [x] Add a timed entrance dust-purge/suit scan with an interlocked entry sequence.
+- [x] Add personal suit-air depletion outside and recovery inside; show missing-helmet warnings.
+- [x] Fix the rover's obstructed first-person view.
+- [x] Run the complete mission with the teammate's incident-learning pauses and inspect new native captures.
+- [x] Push the integrated level and document the next mission brief.
 
 This pass completes the first playable mission's requested systems. Additional specialist roles, crop growth, free spacecraft flight, multiple isolated crews and real classroom validation stay separately tracked; they are not silently claimed complete.
+
+Completed verification: Java 25 `build runClientGameTest` passed atmosphere/scan, science stations, original preparation puzzles, incident-learning pauses, shelter/relay response, full mission success and report. Native captures confirm a blue closed field, clear open passage, no legacy plates, revised room surfaces, readable scan progress, personal-air warnings and the mounted first-person rover view. The merge with the teammate's initial Moon sequencing also passes `build` including its self-test. No multiplayer/classroom learning claim is made.
+
+Next proposed build: **Moon Rescue: Return Window**, a separate spacecraft map using the teammate's `MoonMission.RESCUE` sequence. The scaffold exists; it is not a playable second mission yet.
