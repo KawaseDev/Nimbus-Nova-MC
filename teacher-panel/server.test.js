@@ -296,3 +296,40 @@ test('world creation requires a teacher and forwards only a fixed request', asyn
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('student view requires a teacher and only returns valid bounded images', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const http = require('node:http');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-view-'));
+  const token = 'b'.repeat(32);
+  const id = '01234567-89ab-4cde-8f01-23456789abcd';
+  let invalid = false;
+  const bridge = http.createServer((request, response) => {
+    assert.equal(request.headers.authorization, `Bearer ${token}`);
+    assert.equal(request.url, `/view?id=${id}`);
+    response.writeHead(200, { 'Content-Type': 'image/jpeg' });
+    response.end(invalid ? 'not an image' : Buffer.from([0xff, 0xd8, 0, 0xff, 0xd9]));
+  });
+  await new Promise(resolve => bridge.listen(0, '127.0.0.1', resolve));
+  const server = createServer({ accountsFile: path.join(dir, 'users.json'), bridgeToken: token, bridgeUrl: `http://127.0.0.1:${bridge.address().port}` });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal((await fetch(`${base}/api/view?id=${id}`)).status, 401);
+    const registration = await fetch(`${base}/api/account/register`, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'teacher', password: 'x' }) });
+    const cookie = registration.headers.get('set-cookie').split(';')[0];
+    assert.equal((await fetch(`${base}/api/view?id=bad`, { headers: { Cookie: cookie } })).status, 400);
+    const response = await fetch(`${base}/api/view?id=${id}`, { headers: { Cookie: cookie } });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'image/jpeg');
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    invalid = true;
+    assert.equal((await fetch(`${base}/api/view?id=${id}`, { headers: { Cookie: cookie } })).status, 503);
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+    await new Promise(resolve => bridge.close(resolve));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

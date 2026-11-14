@@ -33,6 +33,7 @@ public final class NimbusNovaClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        StudentView.register();
         NovaRenderer.initialize();
         RoverRenderer.register();
         MissionNpcClient.register();

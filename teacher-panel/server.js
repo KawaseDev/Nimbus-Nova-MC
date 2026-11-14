@@ -91,6 +91,26 @@ function createServer(options = {}) {
       } catch { response.writeHead(503).end(); }
       return;
     }
+    if (request.url.startsWith('/api/view?')) {
+      if (!accounts.current(request)) { response.writeHead(401).end(); return; }
+      if (request.method !== 'GET') { response.writeHead(405).end(); return; }
+      const match = /^\/api\/view\?id=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.exec(request.url);
+      if (!match) { response.writeHead(400).end(); return; }
+      const bridge = bridgeAddress(options.bridgeUrl);
+      if (!bridge || !options.bridgeToken || options.bridgeToken.length < 32) { response.writeHead(503).end(); return; }
+      try {
+        const result = await fetch(new URL(`/view?id=${match[1]}`, bridge), {
+          headers: { Authorization: `Bearer ${options.bridgeToken}` }, signal: AbortSignal.timeout(4000), redirect: 'error'
+        });
+        if (result.status === 204 || result.status === 404) { response.writeHead(result.status, { 'Cache-Control': 'no-store' }).end(); return; }
+        if (!result.ok || result.headers.get('content-type') !== 'image/jpeg') throw new Error();
+        const image = Buffer.from(await result.arrayBuffer());
+        if (image.length > 200000 || image.length < 4 || image[0] !== 0xff || image[1] !== 0xd8 || image[image.length - 2] !== 0xff || image[image.length - 1] !== 0xd9) throw new Error();
+        response.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
+        response.end(image);
+      } catch { response.writeHead(503).end(); }
+      return;
+    }
     if (request.url === '/api/server') {
       if (!accounts.current(request)) { response.writeHead(401).end(); return; }
       if (request.method !== 'POST' || request.headers.origin !== `http://${request.headers.host}` ||

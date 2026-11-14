@@ -8,6 +8,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.sun.net.httpserver.HttpServer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.network.chat.Component;
 
@@ -17,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.UUID;
 import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -24,15 +28,34 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public final class TeacherBridge {
     private static HttpServer bridge;
+    private static final Map<UUID, View> views = new HashMap<>();
+    private static final class View {
+        UUID request;
+        long requestedAt;
+        long receivedAt;
+        byte[] frame;
+    }
     private static final AtomicReference<String> worldStatus = new AtomicReference<>("idle");
     // shortcut: duplicate command IDs are remembered only until server restart; persist them with sessions.
     private static final Map<UUID, String> completed = new LinkedHashMap<>();
 
     public static void register() {
+        PayloadTypeRegistry.clientboundPlay().register(ViewRequestPayload.TYPE, ViewRequestPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ViewFramePayload.TYPE, ViewFramePayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(ViewFramePayload.TYPE, (payload, context) -> context.server().execute(() -> {
+            View view = views.get(context.player().getUUID());
+            if (view == null || view.request == null || !view.request.equals(payload.id()) ||
+                    System.currentTimeMillis() - view.requestedAt > 5000 || payload.image().length > ViewFramePayload.MAX_BYTES) return;
+            view.request = null;
+            view.frame = payload.image();
+            view.receivedAt = System.currentTimeMillis();
+        }));
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> views.remove(handler.player.getUUID()));
         ServerLifecycleEvents.SERVER_STARTED.register(TeacherBridge::start);
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             if (bridge != null) { bridge.stop(0); bridge = null; }
             completed.clear();
+            views.clear();
             worldStatus.set("idle");
         });
     }
@@ -223,6 +246,49 @@ public final class TeacherBridge {
                     exchange.getResponseBody().write(body);
                 } catch (Exception error) {
                     NimbusNovaMod.LOGGER.warn("Teacher world request failed", error);
+                    try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
+                } finally { exchange.close(); }
+            });
+            bridge.createContext("/view", exchange -> {
+                try {
+                    String authorization = exchange.getRequestHeaders().getFirst("Authorization");
+                    if (!MessageDigest.isEqual(("Bearer " + token).getBytes(StandardCharsets.UTF_8),
+                            authorization == null ? new byte[0] : authorization.getBytes(StandardCharsets.UTF_8))) {
+                        exchange.sendResponseHeaders(401, -1); return;
+                    }
+                    String query = exchange.getRequestURI().getRawQuery();
+                    if (!exchange.getRequestMethod().equals("GET") || !exchange.getRequestURI().getPath().equals("/view") ||
+                            query == null || !query.matches("id=[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")) {
+                        exchange.sendResponseHeaders(400, -1); return;
+                    }
+                    UUID playerId = UUID.fromString(query.substring(3));
+                    CompletableFuture<byte[]> response = new CompletableFuture<>();
+                    server.execute(() -> {
+                        var player = server.getPlayerList().getPlayer(playerId);
+                        if (player == null || !ServerPlayNetworking.canSend(player, ViewRequestPayload.TYPE)) {
+                            views.remove(playerId);
+                            response.complete(null);
+                            return;
+                        }
+                        View view = views.computeIfAbsent(playerId, ignored -> new View());
+                        long now = System.currentTimeMillis();
+                        if (now - view.requestedAt >= 1000 && (view.request == null || now - view.requestedAt >= 5000)) {
+                            view.request = UUID.randomUUID();
+                            view.requestedAt = now;
+                            ServerPlayNetworking.send(player, new ViewRequestPayload(view.request));
+                        }
+                        response.complete(view.frame != null && now - view.receivedAt < 5000 ? view.frame : new byte[0]);
+                    });
+                    byte[] frame = response.get(3, TimeUnit.SECONDS);
+                    if (frame == null) { exchange.sendResponseHeaders(404, -1); return; }
+                    if (frame.length == 0) { exchange.sendResponseHeaders(204, -1); return; }
+                    exchange.getResponseHeaders().set("Content-Type", "image/jpeg");
+                    exchange.getResponseHeaders().set("Cache-Control", "no-store");
+                    exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
+                    exchange.sendResponseHeaders(200, frame.length);
+                    exchange.getResponseBody().write(frame);
+                } catch (Exception error) {
+                    NimbusNovaMod.LOGGER.warn("Teacher view request failed", error);
                     try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
                 } finally { exchange.close(); }
             });

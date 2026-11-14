@@ -147,6 +147,8 @@ Create a teacher account on the sign-in screen. Usernames use 3–32 letters, di
 
 The connection indicator checks only whether the configured TCP port is reachable. To use the roster, mission controls, and crew messages, start both the Fabric server and the panel with the same `BRIDGE_TOKEN` (at least 32 characters), and start the panel with `BRIDGE_URL=http://127.0.0.1:3001`. The bridge listens only on localhost. Each signed-in teacher controls the same server and can see and kick any connected player; session isolation is not implemented. Registration is open to anyone with access to this local service; it is not ready for public hosting or classroom use.
 
+**View** on a player displays their Minecraft game as refreshed images, without audio. The student sees an in-game notice while their view is requested. Frames are kept in server memory until the player disconnects and are not saved to disk. Close the view to stop requesting frames. The student must have the updated mod installed.
+
 ### Mission backend foundation
 
 The local Node service also exposes a first bridge API. Configure `TEACHER_TOKEN` and `BRIDGE_TOKEN` as separate random secrets of at least 32 characters, and set `BRIDGE_URL` to the local HTTP address of the Minecraft bridge, for example `http://127.0.0.1:3001`. Keep the tokens out of source control. The service binds to loopback and only accepts a loopback bridge address; this is for local development, not remote classroom deployment.
