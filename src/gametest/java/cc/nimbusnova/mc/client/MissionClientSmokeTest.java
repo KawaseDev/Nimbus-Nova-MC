@@ -4,11 +4,18 @@ import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.mission.CrewRole;
 import cc.nimbusnova.mc.content.ModContent;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
+import cc.nimbusnova.mc.world.MarsTerrain;
+import cc.nimbusnova.mc.npc.MissionAstronaut;
+import cc.nimbusnova.mc.npc.MissionNpcs;
+import cc.nimbusnova.mc.vehicle.MarsRover;
+import cc.nimbusnova.mc.client.npc.NpcDialogueScreen;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -16,6 +23,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.server.players.NameAndId;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.entity.player.Input;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 
 public final class MissionClientSmokeTest implements FabricClientGameTest {
     @Override
@@ -40,6 +50,10 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             context.clickScreenButton("Systems");
             context.clickScreenButton("Research: ON");
             context.waitFor(client -> !NimbusNovaClient.snapshot.state().researchOnline());
+            world.getServer().runOnServer(server -> {
+                if (world.getConnection().getServerLevel().getBlockState(MarsTrainingMap.RESEARCH_STATION).getValue(BlockStateProperties.POWERED))
+                    throw new AssertionError("Research console animation must follow the server equipment state");
+            });
             context.takeScreenshot("mission-systems");
             context.clickScreenButton("Briefing");
             context.takeScreenshot("mission-briefing");
@@ -94,6 +108,35 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             if (context.computeOnClient(client -> NimbusNovaClient.snapshot.state().phase()) != MissionState.Phase.ACTIVE)
                 throw new AssertionError("A non-operator reset the mission");
 
+            context.runOnClient(client -> client.gui.hud.toggle());
+            world.getServer().runOnServer(server -> world.getConnection().getServerPlayer().setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY));
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p -3.5 66 -6.5 0 0");
+            world.getConnection().waitForClientboundEntityUpdates(MissionNpcs.GUIDE, MissionNpcs.ENGINEER);
+            context.waitTicks(5);
+            context.takeScreenshot("astronaut-guide");
+            world.getServer().runOnServer(server -> {
+                final var player = world.getConnection().getServerPlayer();
+                final var guides = player.level().getEntitiesOfClass(MissionAstronaut.class, new AABB(-8, 65, -8, 8, 70, 8));
+                final var guide = guides.stream().filter(npc -> npc.getType() == MissionNpcs.GUIDE).findFirst().orElseThrow();
+                guide.interact(player, InteractionHand.MAIN_HAND, Vec3.ZERO);
+            });
+            context.waitForScreen(NpcDialogueScreen.class);
+            context.clickScreenButton("Power advice");
+            context.takeScreenshot("astronaut-dialogue");
+            context.setScreen(() -> null);
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p -24 66 -3 0 20");
+            world.getConnection().waitForClientboundPackets();
+            context.waitTicks(5);
+            context.takeScreenshot("research-console-model");
+            world.getServer().runCommand("mission equipment research false");
+            world.getServer().runOnServer(server -> {
+                for (int tick = 0; tick < 1600; tick++)
+                    ServerTickEvents.END_SERVER_TICK.invoker().onEndTick(server);
+            });
+            context.waitFor(client -> NimbusNovaClient.snapshot.state().elapsedSeconds() >= 80);
+            context.waitTicks(100);
+            context.takeScreenshot("mars-dust-storm");
+
             world.getServer().runCommand("mission pause");
             context.waitFor(client -> NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.PAUSED);
             final int pausedTime = context.computeOnClient(client -> NimbusNovaClient.snapshot.state().elapsedSeconds());
@@ -103,8 +146,64 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
 
             world.getServer().runCommand("mission reset");
             context.waitFor(client -> NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.READY);
+            world.getServer().runOnServer(server -> {
+                final var player = world.getConnection().getServerPlayer();
+                final var rovers = player.level().getEntitiesOfClass(MarsRover.class, new AABB(18, 64, 17, 38, 70, 34));
+                final MarsRover rover = rovers.stream().findFirst().orElseThrow();
+                final Vec3 before = rover.position();
+                if (!player.startRiding(rover))
+                    throw new AssertionError("The crew could not board the rover");
+
+                player.setLastClientInput(new Input(true, false, false, false, false, false, false));
+                for (int tick = 0; tick < 20; tick++)
+                    rover.tick();
+
+                if (rover.position().distanceToSqr(before) < 0.5)
+                    throw new AssertionError("The rover did not move from its driver's forward input");
+
+                player.stopRiding();
+                player.setLastClientInput(Input.EMPTY);
+                rover.tick();
+                if (rover.getDeltaMovement().horizontalDistanceSqr() > 0.0001)
+                    throw new AssertionError("An unoccupied rover continued driving");
+            });
+            world.getServer().runCommand("gamemode spectator @p");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 24 68 19 -55 20");
+            world.getConnection().waitForClientboundPackets();
+            context.waitTicks(5);
+            context.takeScreenshot("aster-rover");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 180 "
+                    + (MarsTerrain.surfaceHeight(180, 180) + 15) + " 180 -135 15");
+            world.getConnection().waitForChunksRender();
+            context.takeScreenshot("mars-terrain");
+            world.getServer().runCommand("mission start");
+            world.getServer().runCommand("mission abort");
+            context.waitForScreen(MissionConsoleScreen.class);
+            context.takeScreenshot("mission-debrief");
+            context.clickScreenButton("Next");
+            context.takeScreenshot("mission-debrief-page-two");
+            context.setScreen(() -> null);
+            context.runOnClient(client -> client.gui.hud.toggle());
             world.getServer().runCommand("execute as @p run mars leave");
             context.waitFor(client -> client.level != null && !client.level.dimension().equals(MarsTrainingMap.DIMENSION));
         }
+
+        context.runOnClient(client -> {
+            final JoinSessionScreen screen = new JoinSessionScreen(new TitleScreen());
+            client.setScreenAndShow(screen);
+            final MissionEditBox field = (MissionEditBox) screen.children().stream()
+                    .filter(child -> child instanceof MissionEditBox).findFirst().orElseThrow();
+            field.setValue("Astronaut Ada");
+            field.moveCursorToEnd(false);
+            field.setHighlightPos(0);
+            field.insertText("Crew 01");
+            if (!field.getValue().equals("Crew 01"))
+                throw new AssertionError("Custom MSDF field lost native selection/replacement behavior");
+
+            field.setFocused(true);
+        });
+        context.takeScreenshot("join-session-msdf");
+        context.clickScreenButton("Back");
+        context.waitForScreen(TitleScreen.class);
     }
 }

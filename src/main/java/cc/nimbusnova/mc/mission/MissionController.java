@@ -1,5 +1,6 @@
 package cc.nimbusnova.mc.mission;
 
+import cc.nimbusnova.mc.content.ModBlocks;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -224,6 +225,14 @@ public final class MissionController {
         stations.put(position, station);
     }
 
+    public void unbindStation(final GlobalPos position) {
+        stations.remove(position);
+    }
+
+    public MissionState.Snapshot snapshot() {
+        return mission.snapshot();
+    }
+
     private int setEquipment(final CommandSourceStack source, final MissionState.Equipment system, final boolean online) {
         if (!source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)
                 && !(source.getEntity() instanceof ServerPlayer player
@@ -361,6 +370,15 @@ public final class MissionController {
         // The debrief opens once for everyone when the mission ends.
         final boolean justEnded = state.phase().ended() && !lastBroadcastPhase.ended();
         lastBroadcastPhase = state.phase();
+        for (final var station : stations.entrySet()) {
+            final var level = server.getLevel(station.getKey().dimension());
+            if (level == null || !level.hasChunkAt(station.getKey().pos()) || station.getValue() == Station.CANISTER) continue;
+
+            ModBlocks.updateState(level, station.getKey().pos(), state.battery() > 0
+                    && (station.getValue() == Station.OXYGEN ? state.oxygenOnline() : state.researchOnline()));
+        }
+
+
         for (final ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!ServerPlayNetworking.canSend(player, MissionSnapshotPayload.TYPE)) continue;
 

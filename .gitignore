@@ -9,3 +9,6 @@ run/
 .env.*
 !.env.example
 teacher-panel/data/
+
+# User-supplied map archives and derived terrain remain local.
+.local/

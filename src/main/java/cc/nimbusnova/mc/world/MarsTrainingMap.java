@@ -1,6 +1,10 @@
 package cc.nimbusnova.mc.world;
 
+import cc.nimbusnova.mc.content.ModBlocks;
 import cc.nimbusnova.mc.mission.MissionController;
+import cc.nimbusnova.mc.npc.MissionNpcs;
+import cc.nimbusnova.mc.vehicle.RoverContent;
+import net.minecraft.world.entity.EntitySpawnReason;
 import cc.nimbusnova.mc.mission.Station;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -9,6 +13,8 @@ import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -53,6 +59,7 @@ public final class MarsTrainingMap {
     }
 
     public static void register() {
+        Registry.register(BuiltInRegistries.CHUNK_GENERATOR, Identifier.parse("nimbus_nova:mars_surface"), MarsTerrainGenerator.CODEC);
         ServerLifecycleEvents.SERVER_STOPPED.register(RETURN_POINTS::remove);
         CommandRegistrationCallback.EVENT.register((dispatcher, _, _) -> dispatcher.register(Commands.literal("mars")
                 .executes(context -> {
@@ -139,6 +146,8 @@ public final class MarsTrainingMap {
 
         verifyArrival(destination);
         bindStations(server);
+        MissionNpcs.spawnAt(destination, -3.5, FLOOR_Y + 1, -3.5, false);
+        MissionNpcs.spawnAt(destination, 4.5, FLOOR_Y + 1, 2.5, true);
         player.teleportTo(destination, 0.5, FLOOR_Y + 1, -27.5, Set.of(), 0, 0, true);
         player.resetFallDistance();
         player.sendSystemMessage(Component.literal("Welcome to Aster Outpost. Fictional training site / authored terrain. Press J for mission controls. /mars leave returns you."));
@@ -255,7 +264,7 @@ public final class MarsTrainingMap {
         fill(level, -8, FLOOR_Y + 5, -6, 8, FLOOR_Y + 5, 6, Blocks.CONCRETE.orange());
         fill(level, -2, FLOOR_Y + 5, -5, 2, FLOOR_Y + 5, 5, Blocks.SEA_LANTERN);
         fill(level, -8, FLOOR_Y + 1, 4, -3, FLOOR_Y + 1, 6, Blocks.SMOOTH_QUARTZ);
-        level.setBlock(OXYGEN_STATION, Blocks.LODESTONE.defaultBlockState(), Block.UPDATE_CLIENTS);
+        level.setBlock(OXYGEN_STATION, ModBlocks.OXYGEN_CONSOLE.defaultBlockState(), Block.UPDATE_CLIENTS);
         fill(level, -8, FLOOR_Y + 2, 5, -7, FLOOR_Y + 3, 6, Blocks.STAINED_GLASS.cyan());
         fill(level, 4, FLOOR_Y + 1, 4, 7, FLOOR_Y + 1, 6, Blocks.POLISHED_DEEPSLATE);
         place(level, 5, FLOOR_Y + 2, 5, Blocks.SEA_LANTERN);
@@ -275,10 +284,10 @@ public final class MarsTrainingMap {
             }
         }
 
-        fill(level, -27, FLOOR_Y + 1, -1, -21, FLOOR_Y + 1, 1, Blocks.POLISHED_DEEPSLATE);
-        level.setBlock(RESEARCH_STATION, Blocks.DAYLIGHT_DETECTOR.defaultBlockState(), Block.UPDATE_CLIENTS);
-        place(level, -26, FLOOR_Y + 2, 0, Blocks.SEA_LANTERN);
-        sign(level, -20, FLOOR_Y + 1, 0, "POWER / RESEARCH", "Right-click sensor", "Power engineer", "Research uses power");
+        fill(level, -27, FLOOR_Y, -1, -21, FLOOR_Y, 1, Blocks.POLISHED_DEEPSLATE);
+        level.setBlock(RESEARCH_STATION, ModBlocks.RESEARCH_CONSOLE.defaultBlockState(), Block.UPDATE_CLIENTS);
+        place(level, -26, FLOOR_Y + 1, 0, Blocks.SEA_LANTERN);
+        sign(level, -20, FLOOR_Y + 1, 0, "POWER / RESEARCH", "Right-click console", "Power engineer", "Research uses power");
         sign(level, -35, FLOOR_Y + 1, 0, "SOLAR ARRAY", "Dust lowers supply", "Panels are scenery", "J: live simulation");
     }
 
@@ -324,15 +333,14 @@ public final class MarsTrainingMap {
         }
 
         fill(level, 19, FLOOR_Y + 5, 18, 37, FLOOR_Y + 5, 32, Blocks.SMOOTH_STONE);
-        fill(level, 24, FLOOR_Y + 2, 23, 31, FLOOR_Y + 2, 27, Blocks.CONCRETE.white());
-        fill(level, 26, FLOOR_Y + 3, 23, 29, FLOOR_Y + 4, 27, Blocks.STAINED_GLASS.lightBlue());
-        for (final int x : new int[] { 25, 30 }) {
-            for (final int z : new int[] { 22, 28 })
-                place(level, x, FLOOR_Y + 1, z, Blocks.CONCRETE.black());
+        final var rover = RoverContent.ROVER.create(level, EntitySpawnReason.COMMAND);
+        if (rover != null) {
+            rover.snapTo(28.5, FLOOR_Y + 1, 25.5, 180, 0);
+            if (level.noCollision(rover))
+                level.addFreshEntity(rover);
         }
 
-        fill(level, 24, FLOOR_Y + 2, 22, 31, FLOOR_Y + 2, 22, Blocks.CONCRETE.orange());
-        sign(level, 20, FLOOR_Y + 1, 17, "ROVER WORKSHOP", "Static rover mockup", "Driving is planned", "Explore on foot");
+        sign(level, 20, FLOOR_Y + 1, 17, "ROVER WORKSHOP", "Right-click to board", "Movement keys drive", "Sneak to exit");
     }
 
     private static void buildTerrainDetails(final ServerLevel level) {
@@ -394,8 +402,10 @@ public final class MarsTrainingMap {
         final BlockPos floor = new BlockPos(0, FLOOR_Y, -28);
         if (!level.getBlockState(floor).is(Blocks.CONCRETE.white())
                 || !level.getBlockState(floor.above()).isAir() || !level.getBlockState(floor.above(2)).isAir()
-                || !level.getBlockState(RESEARCH_STATION).is(Blocks.DAYLIGHT_DETECTOR)
-                || !level.getBlockState(OXYGEN_STATION).is(Blocks.LODESTONE))
+                || !(level.getBlockState(RESEARCH_STATION).is(ModBlocks.RESEARCH_CONSOLE)
+                || level.getBlockState(RESEARCH_STATION).is(Blocks.DAYLIGHT_DETECTOR))
+                || !(level.getBlockState(OXYGEN_STATION).is(ModBlocks.OXYGEN_CONSOLE)
+                || level.getBlockState(OXYGEN_STATION).is(Blocks.LODESTONE)))
             throw new IllegalStateException("Outpost arrival or equipment check failed. Existing terrain was preserved; ask an operator to inspect the training site.");
     }
 

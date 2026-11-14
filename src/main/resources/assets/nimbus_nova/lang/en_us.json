@@ -13,5 +13,10 @@
   "item.nimbus_nova.space_boots": "Expedition Boots",
   "item.nimbus_nova.space_suit.description": "Protective armor. Pressure and radiation simulation comes later.",
   "key.nimbus_nova.console": "Open mission console",
-  "key.categories.nimbus_nova.mission": "Nimbus Nova"
+  "key.categories.nimbus_nova.mission": "Nimbus Nova",
+  "block.nimbus_nova.research_console": "Research console",
+  "block.nimbus_nova.oxygen_console": "Oxygen processor",
+  "entity.nimbus_nova.mars_rover": "Aster Rover",
+  "entity.nimbus_nova.mission_guide": "Commander Vega",
+  "entity.nimbus_nova.mission_engineer": "Engineer Sol"
 }

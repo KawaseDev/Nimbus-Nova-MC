@@ -1,0 +1,6 @@
+{
+  "parent": "nimbus_nova:block/research_console_on",
+  "textures": {
+    "screen": "nimbus_nova:block/research_screen_off"
+  }
+}

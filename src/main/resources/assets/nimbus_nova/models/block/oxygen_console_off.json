@@ -1,0 +1,6 @@
+{
+  "parent": "nimbus_nova:block/oxygen_console_on",
+  "textures": {
+    "screen": "nimbus_nova:block/oxygen_screen_off"
+  }
+}

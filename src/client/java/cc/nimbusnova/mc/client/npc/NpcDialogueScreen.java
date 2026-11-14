@@ -1,0 +1,105 @@
+package cc.nimbusnova.mc.client.npc;
+
+import cc.nimbusnova.mc.client.MissionButton;
+import cc.nimbusnova.mc.client.render.NovaRenderer;
+import cc.nimbusnova.mc.client.render.NovaScreen;
+import cc.nimbusnova.mc.npc.NpcDialoguePayload;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.NullMarked;
+
+import java.awt.Color;
+import java.util.ArrayList;
+import java.util.List;
+
+@NullMarked
+public final class NpcDialogueScreen extends NovaScreen {
+    private final NpcDialoguePayload dialogue;
+    private int topic;
+    private int page;
+    private int left, top, panelWidth, panelHeight;
+    private List<String> lines = List.of();
+    private int linesPerPage;
+
+    public NpcDialogueScreen(final NpcDialoguePayload dialogue) {
+        super(Component.literal("Talk with " + dialogue.name()));
+        this.dialogue = dialogue;
+    }
+
+    @Override
+    protected void init() {
+        panelWidth = Math.min(480, width - 24);
+        panelHeight = Math.min(280, height - 24);
+        left = (width - panelWidth) / 2;
+        top = (height - panelHeight) / 2;
+        final String[] choices = { "Mission briefing", "Power advice", "Oxygen advice" };
+        final int buttonWidth = (panelWidth - 40) / 3;
+        for (int index = 0; index < choices.length; index++) {
+            final int selectedTopic = index;
+            final MissionButton button = addRenderableWidget(new MissionButton(left + 14 + index * (buttonWidth + 6),
+                    top + 48, buttonWidth, 24, choices[index], () -> {
+                        topic = selectedTopic;
+                        page = 0;
+                        rebuildWidgets();
+                    }));
+            button.selected = topic == index;
+        }
+
+        final String message = switch (topic) {
+            case 1 -> dialogue.powerHint();
+            case 2 -> dialogue.oxygenHint();
+            default -> dialogue.briefing();
+        };
+        lines = new ArrayList<>();
+        String line = "";
+        for (final String word : message.split(" ")) {
+            final String candidate = line.isEmpty() ? word : line + " " + word;
+            if (!line.isEmpty() && NovaRenderer.width(candidate, 11) > panelWidth - 32) {
+                lines.add(line);
+                line = word;
+            } else {
+                line = candidate;
+            }
+        }
+
+        if (!line.isEmpty())
+            lines.add(line);
+
+        linesPerPage = Math.max(2, (panelHeight - 144) / 14);
+        final MissionButton previous = addRenderableWidget(new MissionButton(left + 14, top + panelHeight - 36,
+                70, 22, "Previous", () -> {
+                    page--;
+                    rebuildWidgets();
+                }));
+        previous.active = page > 0;
+        final MissionButton next = addRenderableWidget(new MissionButton(left + 90, top + panelHeight - 36,
+                55, 22, "Next", () -> {
+                    page++;
+                    rebuildWidgets();
+                }));
+        next.active = (page + 1) * linesPerPage < lines.size();
+        addRenderableWidget(new MissionButton(left + panelWidth - 104, top + panelHeight - 36, 90, 22, "Back to crew", this::onClose));
+    }
+
+    @Override
+    public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
+        final Color background = new Color(14, 22, 29, 242), border = new Color(78, 101, 113),
+                text = new Color(238, 239, 233), accent = new Color(239, 177, 94), muted = new Color(165, 181, 188);
+        NovaRenderer.rect(graphics, left, top, panelWidth, panelHeight, 10, background);
+        NovaRenderer.stroke(graphics, left, top, panelWidth, panelHeight, 10, 1, border);
+        NovaRenderer.text(graphics, dialogue.name(), left + 16, top + 14, 15, accent);
+        NovaRenderer.text(graphics, "Aster Outpost / crew conversation", left + 16, top + 33, 9, muted);
+        for (int line = 0; line < linesPerPage && page * linesPerPage + line < lines.size(); line++)
+            NovaRenderer.text(graphics, lines.get(page * linesPerPage + line), left + 16, top + 88 + line * 14, 11, text);
+
+        NovaRenderer.text(graphics, "Page " + (page + 1) + " / " + Math.max(1, Math.ceilDiv(lines.size(), linesPerPage)),
+                left + 16, top + panelHeight - 52, 9, muted);
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
+    }
+
+    @Override
+    public boolean isPauseScreen() {
+        return false;
+    }
+}

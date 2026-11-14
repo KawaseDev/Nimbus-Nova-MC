@@ -3,6 +3,9 @@ package cc.nimbusnova.mc.client;
 import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
 import cc.nimbusnova.mc.mission.OpenConsolePayload;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
+import cc.nimbusnova.mc.client.vehicle.RoverRenderer;
+import cc.nimbusnova.mc.client.npc.MissionNpcClient;
+import cc.nimbusnova.mc.client.effect.DustStormEffects;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
@@ -30,6 +33,9 @@ public final class NimbusNovaClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         NovaRenderer.initialize();
+        RoverRenderer.register();
+        MissionNpcClient.register();
+        DustStormEffects.register();
         ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
             if (screen instanceof TitleScreen) {
                 Screens.getWidgets(screen).add(new MissionButton(width - 110, 10, 100, 22, "Join session",

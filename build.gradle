@@ -64,6 +64,29 @@ tasks.register('contentAssetTest', JavaExec) {
 
 check.dependsOn contentAssetTest
 
+tasks.register('terrainSelfTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.world.MarsTerrainTest'
+    enableAssertions = true
+}
+
+tasks.register('dustStormProfileTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.effect.DustStormProfileTest'
+    enableAssertions = true
+}
+
+tasks.register('npcDialogueTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.npc.NpcDialogueTest'
+    enableAssertions = true
+}
+
+check.dependsOn terrainSelfTest, dustStormProfileTest, npcDialogueTest
+
 fabricApi {
     configureTests {
         createSourceSet = true

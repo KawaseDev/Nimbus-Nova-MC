@@ -8,13 +8,20 @@ import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.render.NovaScreen;
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
+import org.jspecify.annotations.NonNull;
 
 public final class MissionConsoleScreen extends NovaScreen implements MissionPalette {
     private int tab;
     private int panelX, panelY, panelWidth, panelHeight;
     private MissionButton start, pause, reset, oxygen, research, forecast, powerRole, lifeRole, weatherRole;
+    private MissionButton previousDebrief, nextDebrief;
+    private int debriefPage, debriefLinesPerPage;
+    private MissionState.Snapshot debriefState;
+    private final List<DebriefLine> debriefLines = new ArrayList<>();
 
     static final int DEBRIEF_TAB = 3;
 
@@ -33,6 +40,8 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
         panelHeight = Math.min(330, height - 16);
         panelX = (width - panelWidth) / 2;
         panelY = (height - panelHeight) / 2;
+        debriefState = null;
+        debriefLinesPerPage = Math.max(2, (panelHeight - 156) / 14);
 
         final String[] names = { "Overview", "Systems", "Briefing", "Debrief" };
         final int tabWidth = (panelWidth - 42) / 4;
@@ -54,6 +63,10 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
                 command(NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.PAUSED ? "resume" : "pause");
         }));
         reset = addRenderableWidget(new MissionButton(panelX + 24 + controlWidth * 2, footerY, controlWidth, 22, "Reset", () -> command("reset")));
+        previousDebrief = addRenderableWidget(new MissionButton(panelX + 14, footerY - 28, 78, 22,
+                "Previous", () -> changeDebriefPage(-1)));
+        nextDebrief = addRenderableWidget(new MissionButton(panelX + panelWidth - 92, footerY - 28, 78, 22,
+                "Next", () -> changeDebriefPage(1)));
 
         final int systemWidth = (panelWidth - 36) / 3;
         powerRole = addRenderableWidget(new MissionButton(panelX + 12, panelY + 94, systemWidth, 22, "Power engineer", () -> command("role power")));
@@ -93,14 +106,82 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
         forecast.active = connected && phase == MissionState.Phase.ACTIVE && MissionUi.seesWeather(packet);
         research.active = connected && phase == MissionState.Phase.ACTIVE && (operator || packet.role() == CrewRole.POWER);
         oxygen.active = connected && phase == MissionState.Phase.ACTIVE && (operator || packet.role() == CrewRole.LIFE_SUPPORT);
+        previousDebrief.visible = nextDebrief.visible = connected && tab == DEBRIEF_TAB && phase.ended();
 
         if (!connected) return;
+        if (previousDebrief.visible) {
+            prepareDebrief(packet.state());
+            previousDebrief.active = debriefPage > 0;
+            nextDebrief.active = (debriefPage + 1) * debriefLinesPerPage < debriefLines.size();
+        }
+
         research.setMessage(Component.literal("Research: " + (packet.state().researchOnline() ? "ON" : "OFF")));
         oxygen.setMessage(Component.literal("Oxygen: " + (packet.state().oxygenOnline() ? "ON" : "OFF")));
     }
 
+    private void changeDebriefPage(final int direction) {
+        debriefPage += direction;
+        updateControls();
+        triggerImmediateNarration(true);
+    }
+
+    private void prepareDebrief(final MissionState.Snapshot state) {
+        if (!state.equals(debriefState)) {
+            debriefState = state;
+            debriefPage = 0;
+            debriefLines.clear();
+            for (final String fact : MissionDebrief.facts(state))
+                wrapDebrief(fact, TEXT);
+
+            wrapDebrief("What changed", ACCENT);
+            for (final String consequence : MissionDebrief.consequences(state))
+                wrapDebrief(consequence, TEXT);
+
+            wrapDebrief("The real mission", ACCENT);
+            wrapDebrief(MissionDebrief.realStory(state), MUTED);
+            wrapDebrief("Crew reflection", ACCENT);
+            wrapDebrief(MissionDebrief.REFLECTION, TEXT);
+        }
+
+        debriefPage = Math.clamp(debriefPage, 0, Math.max(0, Math.ceilDiv(debriefLines.size(), debriefLinesPerPage) - 1));
+    }
+
+    private void wrapDebrief(final String paragraph, final Color color) {
+        String line = "";
+        for (final String word : paragraph.split("\\s+")) {
+            final String candidate = line.isEmpty() ? word : line + " " + word;
+            if (!line.isEmpty() && NovaRenderer.width(candidate, 10.5F) > panelWidth - 28) {
+                debriefLines.add(new DebriefLine(line, color));
+                line = word;
+            } else {
+                line = candidate;
+            }
+        }
+
+        if (!line.isEmpty())
+            debriefLines.add(new DebriefLine(line, color));
+    }
+
     @Override
-    public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
+    public @NonNull Component getNarrationMessage() {
+        if (tab != DEBRIEF_TAB || debriefLines.isEmpty() || previousDebrief == null || !previousDebrief.visible)
+            return super.getNarrationMessage();
+
+        final StringBuilder narration = new StringBuilder("Mission debrief. Page ").append(debriefPage + 1)
+                .append(" of ").append(Math.ceilDiv(debriefLines.size(), debriefLinesPerPage)).append(". ");
+        for (int line = debriefPage * debriefLinesPerPage;
+             line < Math.min(debriefLines.size(), (debriefPage + 1) * debriefLinesPerPage); line++)
+            narration.append(debriefLines.get(line).text()).append(' ');
+
+        return Component.literal(narration.toString());
+    }
+
+    private record DebriefLine(String text, Color color) {
+        /* w */
+    }
+
+    @Override
+    public void extractRenderState(final @NonNull GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
         updateControls();
         NovaRenderer.rect(graphics, 0, 0, width, height, 0, new Color(10, 15, 22, 155));
         MissionUi.panel(graphics, panelX, panelY, panelWidth, panelHeight);
@@ -163,20 +244,15 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
                         final Color outcome = state.phase() == MissionState.Phase.SUCCESS ? SUCCESS
                                 : state.phase() == MissionState.Phase.PARTIAL ? ACCENT : DANGER;
                         MissionUi.text(graphics, state.objective(), contentX, contentY, outcome);
-                        int line = contentY + 18;
-                        for (final String fact : MissionDebrief.facts(state)) {
-                            MissionUi.text(graphics, fact, contentX, line, TEXT);
-                            line += 13;
+                        for (int index = 0; index < debriefLinesPerPage
+                                && debriefPage * debriefLinesPerPage + index < debriefLines.size(); index++) {
+                            final DebriefLine line = debriefLines.get(debriefPage * debriefLinesPerPage + index);
+                            NovaRenderer.text(graphics, line.text(), contentX, contentY + 18 + index * 14, 10.5F, line.color());
                         }
 
-                        for (final String consequence : MissionDebrief.consequences(state)) {
-                            MissionUi.wrap(graphics, consequence, contentX, line, contentWidth, 2, ACCENT);
-                            line += 24;
-                        }
-
-                        MissionUi.wrap(graphics, MissionDebrief.realStory(state), contentX, line + 2, contentWidth, 3, MUTED);
-                        if (panelHeight >= 290)
-                            MissionUi.wrap(graphics, MissionDebrief.REFLECTION, contentX, line + 40, contentWidth, 2, TEXT);
+                        final String pageLabel = "Page " + (debriefPage + 1) + " of " + Math.ceilDiv(debriefLines.size(), debriefLinesPerPage);
+                        NovaRenderer.text(graphics, pageLabel, panelX + (panelWidth - NovaRenderer.width(pageLabel, 9.5F)) / 2,
+                                panelY + panelHeight - 53, 9.5F, MUTED);
                     }
                 }
                 default -> {
