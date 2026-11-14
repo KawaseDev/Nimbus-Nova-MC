@@ -39,6 +39,22 @@ java {
     withSourcesJar()
 }
 
+sourceSets {
+    missionTest {
+        compileClasspath = sourceSets.main.output
+        runtimeClasspath = output + compileClasspath
+    }
+}
+
+tasks.register('missionSelfTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.mission.MissionStateTest'
+    enableAssertions = true
+}
+
+check.dependsOn missionSelfTest
+
 jar {
     def projectName = project.name
     inputs.property 'projectName', projectName
