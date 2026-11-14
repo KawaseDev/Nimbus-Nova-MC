@@ -10,6 +10,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -18,6 +19,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 public final class NimbusNovaClient implements ClientModInitializer {
@@ -36,8 +38,9 @@ public final class NimbusNovaClient implements ClientModInitializer {
         DustStormEffects.register();
         ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
             if (screen instanceof TitleScreen) {
-                Screens.getWidgets(screen).add(new MissionButton(width - 110, 10, 100, 22, "Join session",
-                        () -> client.setScreenAndShow(new JoinSessionScreen(screen))));
+                Screens.getWidgets(screen).add(Button.builder(Component.literal("Join session"),
+                        button -> client.setScreenAndShow(new JoinSessionScreen(screen)))
+                        .bounds(width - 110, 10, 100, 20).build());
             }
         });
         consoleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nimbus_nova.console", InputConstants.KEY_J,
