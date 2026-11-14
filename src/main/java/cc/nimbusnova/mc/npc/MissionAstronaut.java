@@ -35,9 +35,11 @@ public final class MissionAstronaut extends PathfinderMob {
         if (distanceToSqr(player) > 36 || !ServerPlayNetworking.canSend(serverPlayer, NpcDialoguePayload.TYPE))
             return InteractionResult.PASS;
 
-        final MissionState.Snapshot state = MissionController.get(serverPlayer.level().getServer()).snapshot();
+        final MissionController controller = MissionController.get(serverPlayer.level().getServer());
+        final MissionState.Snapshot state = controller.snapshot();
         ServerPlayNetworking.send(serverPlayer, new NpcDialoguePayload(getName().getString(),
-                NpcDialogue.briefing(state), NpcDialogue.powerHint(state), NpcDialogue.oxygenHint(state)));
+                NpcDialogue.briefing(state, controller.role(serverPlayer.getUUID())),
+                NpcDialogue.powerHint(state), NpcDialogue.oxygenHint(state)));
         return InteractionResult.SUCCESS_SERVER;
     }
 }
