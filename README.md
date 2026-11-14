@@ -1,4 +1,4 @@
-# Nimbus Nova MC
+# Nimbus-Nova-MC
 
 A cooperative Minecraft Mars mission trainer for NASA Space Apps 2026's **Build a Junior Astronaut Mission Trainer** challenge.
 
