@@ -3,249 +3,427 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Nimbus Nova: a Minecraft Mars outpost game for ages 7 to 12, built on real NASA rover dust-storm data for NASA Space Apps 2026.">
+<meta name="description" content="Nimbus Nova: a Minecraft Mars mission workbook for ages 7 to 12, with lessons, tools and real NASA rover data, for NASA Space Apps 2026.">
 <title>Nimbus Nova</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap">
 <style>
-  /* Layout: a mission console on Mars. Dark HUD panels over dusty terrain, one data chart as the centrepiece,
-     colours taken from the mod's own MissionPalette (amber accent, oxygen cyan). */
+  /* Layout: a mission workbook. Graph-paper pages, numbered lessons with small diagrams, hands-on tools,
+     then a teacher's section. Lexend for reading ease; the mod's amber and oxygen cyan as the two signal colours. */
   :root {
-    --bg: #0f141a;
-    --surface: #1b232b;
-    --line: #36444e;
-    --fg: #f0ede2;
-    --muted: #a4b1b7;
-    --accent: #efb15e;
-    --oxygen: #80cfcf;
-    --danger: #f57167;
-    --success: #a4ce97;
-    --dust: #c4825a;
-    --dust-soft: rgba(196, 130, 90, 0.16);
-    --solar: rgba(245, 113, 103, 0.14);
-    --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-    --on-accent: #1b1206;
-    --display: "Geist", "Inter", system-ui, sans-serif;
-    --body: "Geist", "Inter", system-ui, sans-serif;
-    --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-    color-scheme: dark;
+    --paper: #f5f7f6;
+    --grid: rgba(31, 79, 92, 0.07);
+    --card: #ffffff;
+    --ink: #17252c;
+    --muted: #55656d;
+    --line: #d5dfe1;
+    --mars: #c4572a;
+    --mars-soft: #fbe9df;
+    --amber: #b36a0f;
+    --amber-soft: #fdf1dc;
+    --oxygen: #1d7d80;
+    --oxygen-soft: #def3f2;
+    --danger: #bf3a30;
+    --good: #3c7b33;
+    --good-soft: #e3f1dd;
+    --on-strong: #ffffff;
+    --sky: #e9c7a8;
+    --shadow: 0 1px 0 rgba(23, 37, 44, 0.04), 0 10px 24px rgba(23, 37, 44, 0.06);
+    --read: "Lexend", "Atkinson Hyperlegible", system-ui, sans-serif;
+    --mono: "Geist Mono", ui-monospace, Menlo, monospace;
   }
-  @media (prefers-color-scheme: light) {
-    :root:not([data-theme="dark"]) {
-      --bg: #f6efe7; --surface: #fffaf4; --line: #dccbbb; --fg: #1d2329; --muted: #5d6870;
-      --accent: #b46a12; --oxygen: #1f7f80; --danger: #c2392f; --success: #3f7f33;
-      --dust: #a5592c; --dust-soft: rgba(165, 89, 44, 0.12); --solar: rgba(194, 57, 47, 0.10);
-      --shadow: 0 18px 40px rgba(90, 50, 20, 0.12); --on-accent: #ffffff;
-      color-scheme: light;
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #11181d; --grid: rgba(160, 205, 210, 0.05); --card: #1a242b; --ink: #eef1ec; --muted: #a3b2b8;
+      --line: #2e3d46; --mars: #ef8a5c; --mars-soft: #3a2219; --amber: #efb15e; --amber-soft: #3a2c14;
+      --oxygen: #80cfcf; --oxygen-soft: #173336; --danger: #f57167; --good: #a4ce97; --good-soft: #20311c;
+      --on-strong: #13181c; --sky: #6b3b25; --shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+      color-scheme: dark;
     }
   }
-  :root[data-theme="light"] {
-    --bg: #f6efe7; --surface: #fffaf4; --line: #dccbbb; --fg: #1d2329; --muted: #5d6870;
-    --accent: #b46a12; --oxygen: #1f7f80; --danger: #c2392f; --success: #3f7f33;
-    --dust: #a5592c; --dust-soft: rgba(165, 89, 44, 0.12); --solar: rgba(194, 57, 47, 0.10);
-    --shadow: 0 18px 40px rgba(90, 50, 20, 0.12); --on-accent: #ffffff;
-    color-scheme: light;
+  :root[data-theme="dark"] {
+    --paper: #11181d; --grid: rgba(160, 205, 210, 0.05); --card: #1a242b; --ink: #eef1ec; --muted: #a3b2b8;
+    --line: #2e3d46; --mars: #ef8a5c; --mars-soft: #3a2219; --amber: #efb15e; --amber-soft: #3a2c14;
+    --oxygen: #80cfcf; --oxygen-soft: #173336; --danger: #f57167; --good: #a4ce97; --good-soft: #20311c;
+    --on-strong: #13181c; --sky: #6b3b25; --shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+    color-scheme: dark;
   }
 
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    background: var(--bg);
-    color: var(--fg);
-    font: 400 1rem/1.6 var(--body);
-    -webkit-font-smoothing: antialiased;
+    background-color: var(--paper);
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 24px 24px;
+    color: var(--ink);
+    font: 400 1.05rem/1.7 var(--read);
   }
   .wrap {
-    max-width: 1120px;
+    max-width: 1080px;
     margin: 0 auto;
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
   }
-  section { padding-block: clamp(48px, 8vw, 96px); }
-  h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
-  h2 { font-size: clamp(1.6rem, 3.4vw, 2.4rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
-  h3 { font-size: 1.15rem; font-weight: 600; }
+  section { padding-block: clamp(40px, 7vw, 80px); }
+  h1, h2, h3 { margin: 0; text-wrap: balance; letter-spacing: -0.015em; }
+  h1 { font-size: clamp(2.4rem, 6.5vw, 4.4rem); font-weight: 800; line-height: 1.02; }
+  h2 { font-size: clamp(1.55rem, 3.2vw, 2.2rem); font-weight: 700; line-height: 1.2; }
+  h3 { font-size: 1.2rem; font-weight: 600; line-height: 1.3; }
   p { margin: 0; }
-  a { color: var(--accent); }
-  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
-  .eyebrow {
-    font: 500 0.75rem/1 var(--mono);
-    letter-spacing: 0.14em;
+  a { color: var(--oxygen); text-underline-offset: 3px; }
+  :focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; border-radius: 6px; }
+  .stack { display: grid; gap: 14px; }
+  .label {
+    font: 600 0.74rem/1 var(--mono);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--accent);
+    color: var(--mars);
   }
-  .lede { color: var(--muted); max-width: 62ch; font-size: 1.08rem; }
-  .stack { display: grid; gap: 16px; }
+  .lede { color: var(--muted); max-width: 62ch; font-size: 1.1rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+  .section-head { display: grid; gap: 12px; margin-bottom: 28px; max-width: 760px; }
 
   /* Hero */
-  .hero { padding-block: clamp(40px, 7vw, 80px) clamp(32px, 6vw, 64px); }
-  .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: clamp(28px, 5vw, 56px); align-items: center; }
-  .hero h1 {
-    font-size: clamp(2.8rem, 8vw, 5.6rem);
-    font-weight: 800;
-    letter-spacing: -0.045em;
-    line-height: 0.95;
-  }
-  .hero h1 span { color: var(--accent); }
-  .hero .lede { font-size: clamp(1.05rem, 1.6vw, 1.22rem); color: var(--fg); opacity: 0.86; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip {
-    font: 500 0.78rem/1 var(--mono);
-    padding: 8px 10px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    color: var(--muted);
-  }
-  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+  .hero { padding-block: clamp(36px, 6vw, 72px) clamp(28px, 5vw, 56px); }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: clamp(24px, 5vw, 56px); align-items: center; }
+  .hero h1 span { color: var(--mars); }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .fact { font: 500 0.8rem/1 var(--mono); padding: 8px 11px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); color: var(--muted); }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
   .btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 12px 18px; border-radius: 10px;
-    font: 600 0.95rem/1 var(--body); text-decoration: none;
-    border: 1px solid var(--line); color: var(--fg); background: var(--surface);
+    display: inline-flex; align-items: center; padding: 12px 18px; border-radius: 12px;
+    font: 600 0.98rem/1 var(--read); text-decoration: none; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink);
   }
-  .btn.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; }
+  .btn.strong { background: var(--mars); color: var(--on-strong); border-color: transparent; }
+  figure { margin: 0; }
+  .shot { overflow: hidden; }
+  .shot img { display: block; width: 100%; height: auto; aspect-ratio: 854 / 480; object-fit: cover; }
+  .shot figcaption { padding: 10px 14px; font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--line); }
 
-  /* A screenshot framed like the in-game HUD panel */
-  .frame {
-    position: relative;
-    border-radius: 14px;
-    overflow: hidden;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    box-shadow: var(--shadow);
-  }
-  .frame img { display: block; width: 100%; height: auto; aspect-ratio: 854 / 480; object-fit: cover; }
-  .frame figcaption {
-    display: flex; justify-content: space-between; gap: 12px;
-    padding: 10px 14px;
-    font: 500 0.75rem/1.3 var(--mono);
-    color: var(--muted);
-    border-top: 1px solid var(--line);
-  }
-  .hud-tag {
-    position: absolute; top: 12px; left: 12px;
-    padding: 6px 10px; border-radius: 8px;
-    background: rgba(15, 20, 26, 0.86); color: #efb15e;
-    font: 600 0.72rem/1 var(--mono); letter-spacing: 0.08em;
-  }
+  /* Learning goals */
+  .goals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .goal { padding: 18px; display: grid; gap: 8px; align-content: start; }
+  .goal .icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font: 700 0.85rem/1 var(--mono); }
+  .goal p { color: var(--muted); font-size: 0.95rem; }
+
+  /* Lessons: a real sequence, so they are numbered */
+  .lessons { display: grid; gap: 22px; }
+  .lesson { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: clamp(18px, 4vw, 40px); padding: clamp(18px, 3.5vw, 32px); align-items: center; }
+  .lesson-num { font: 600 0.78rem/1 var(--mono); color: var(--muted); letter-spacing: 0.1em; }
+  .lesson p { color: var(--ink); }
+  .lesson .note { color: var(--muted); font-size: 0.95rem; }
+  .lesson svg { width: 100%; height: auto; display: block; }
+  .callout { padding: 12px 14px; border-radius: 12px; font-size: 0.95rem; }
+  .callout.mars { background: var(--mars-soft); }
+  .callout.oxygen { background: var(--oxygen-soft); }
+  .callout.amber { background: var(--amber-soft); }
+  .callout b { font-weight: 600; }
+
+  /* Power budget tool */
+  .tool { padding: clamp(18px, 3.5vw, 32px); display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); gap: clamp(20px, 4vw, 40px); }
+  .controls { display: grid; gap: 18px; align-content: start; }
+  .control { display: grid; gap: 8px; }
+  .control label, .control .name { font-weight: 600; }
+  .control small { color: var(--muted); font-size: 0.86rem; }
+  input[type="range"] { width: 100%; accent-color: var(--amber); }
+  .switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; }
+  .switch input { width: 22px; height: 22px; accent-color: var(--oxygen); }
+  .meter { display: grid; gap: 14px; align-content: start; }
+  .bar-row { display: grid; grid-template-columns: 90px minmax(0, 1fr) 64px; gap: 10px; align-items: center; font-size: 0.92rem; }
+  .bar-track { height: 14px; border-radius: 7px; background: var(--paper); border: 1px solid var(--line); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 7px; transition: width 0.3s ease; }
+  .bar-row .num { font: 500 0.9rem/1 var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+  .verdict { padding: 16px; border-radius: 14px; display: grid; gap: 6px; }
+  .verdict b { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .verdict.ok { background: var(--good-soft); }
+  .verdict.ok b { color: var(--good); }
+  .verdict.bad { background: var(--mars-soft); }
+  .verdict.bad b { color: var(--danger); }
 
   /* Storm chart */
-  .chart-card {
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: var(--surface);
-    padding: clamp(16px, 3vw, 28px);
-    display: grid;
-    gap: 18px;
-  }
-  .chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: end; }
-  .toggle { display: inline-flex; padding: 4px; gap: 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
-  .toggle button {
-    border: 0; background: transparent; color: var(--muted);
-    font: 600 0.88rem/1 var(--body); padding: 10px 14px; border-radius: 9px; cursor: pointer;
-  }
-  .toggle button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+  .chart-card { padding: clamp(16px, 3vw, 28px); display: grid; gap: 18px; }
+  .chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px; align-items: end; }
+  .toggle { display: inline-flex; padding: 4px; gap: 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+  .toggle button { border: 0; background: transparent; color: var(--muted); font: 600 0.9rem/1 var(--read); padding: 10px 14px; border-radius: 9px; cursor: pointer; }
+  .toggle button[aria-pressed="true"] { background: var(--amber); color: var(--on-strong); }
   .chart-scroll { overflow-x: auto; }
   svg.chart { display: block; width: 100%; min-width: 520px; height: auto; font-family: var(--mono); }
   .readouts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-  .readout { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 4px; }
-  .readout b { font: 700 clamp(1.4rem, 3vw, 2rem)/1.1 var(--display); font-variant-numeric: tabular-nums; }
-  .readout span { color: var(--muted); font-size: 0.88rem; }
+  .readout { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 2px; }
+  .readout b { font-size: clamp(1.35rem, 3vw, 1.8rem); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .readout span { color: var(--muted); font-size: 0.9rem; }
   .readout.lost b { color: var(--danger); }
-  .readout.lived b { color: var(--success); }
+  .readout.lived b { color: var(--good); }
 
-  /* Timeline: a real sequence of mission seconds */
-  .timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
-  .timeline li {
-    display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 20px;
-    padding-block: 18px; border-top: 1px solid var(--line);
-  }
-  .timeline time { font: 500 1.05rem/1.4 var(--mono); color: var(--accent); font-variant-numeric: tabular-nums; }
-  .timeline li.alert time { color: var(--danger); }
-  .timeline li.dust time { color: var(--dust); }
-  .timeline p { color: var(--muted); margin-top: 4px; }
+  /* Glossary */
+  .glossary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0; }
+  .term { padding: 16px 18px; }
+  .term dt { font-weight: 700; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .term dt small { font: 500 0.75rem/1 var(--mono); color: var(--muted); }
+  .term dd { margin: 6px 0 0; color: var(--muted); font-size: 0.95rem; }
 
-  /* Roles */
-  .roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-  .role { padding: 22px; border: 1px solid var(--line); border-radius: 14px; display: grid; gap: 14px; align-content: start; }
-  .role dl { margin: 0; display: grid; gap: 10px; }
-  .role dt { font: 500 0.72rem/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-  .role dd { margin: 4px 0 0; }
-  .swatch { width: 28px; height: 4px; border-radius: 2px; }
+  /* Quiz */
+  .quiz { display: grid; gap: 16px; }
+  .question { padding: 18px 20px; display: grid; gap: 12px; }
+  .question fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .question legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+  .choice { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+  .choice input { margin-top: 5px; accent-color: var(--oxygen); }
+  .choice.right { border-color: var(--good); background: var(--good-soft); }
+  .choice.wrong { border-color: var(--danger); background: var(--mars-soft); }
+  .feedback { font-size: 0.95rem; color: var(--muted); min-height: 1.5em; }
 
-  /* Gallery */
-  .gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  /* Teachers */
+  .teach { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+  .teach .card { padding: clamp(18px, 3vw, 28px); display: grid; gap: 12px; align-content: start; }
+  .plan { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; }
+  .plan li { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 14px; padding-block: 12px; border-top: 1px solid var(--line); }
+  .plan time { font: 600 0.9rem/1.6 var(--mono); color: var(--oxygen); font-variant-numeric: tabular-nums; }
+  .ask { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
+  code { font: 500 0.9em/1 var(--mono); background: var(--paper); border: 1px solid var(--line); padding: 2px 6px; border-radius: 6px; }
 
   /* Evidence table */
-  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
-  table { width: 100%; border-collapse: collapse; min-width: 640px; }
-  th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { font: 500 0.72rem/1.2 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 620px; }
+  th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 0.95rem; }
+  th { font: 600 0.72rem/1.2 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
   tr:last-child td { border-bottom: 0; }
-  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .tag { font: 600 0.7rem/1 var(--mono); padding: 5px 8px; border-radius: 6px; white-space: nowrap; }
-  .tag.real { background: rgba(164, 206, 151, 0.16); color: var(--success); }
-  .tag.game { background: rgba(239, 177, 94, 0.16); color: var(--accent); }
+  td.num { font-family: var(--mono); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tag { font: 600 0.72rem/1 var(--mono); padding: 5px 8px; border-radius: 6px; white-space: nowrap; }
+  .tag.real { background: var(--good-soft); color: var(--good); }
+  .tag.game { background: var(--amber-soft); color: var(--amber); }
 
-  .split { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(24px, 5vw, 56px); align-items: start; }
+  footer { border-top: 1px solid var(--line); padding-block: 28px 48px; color: var(--muted); font-size: 0.9rem; background: var(--paper); }
+  footer .wrap { display: grid; gap: 8px; }
 
-  footer { border-top: 1px solid var(--line); padding-block: 32px 48px; color: var(--muted); font-size: 0.88rem; }
-  footer .wrap { display: grid; gap: 10px; }
-
-  @media (max-width: 860px) {
-    .hero-grid, .split { grid-template-columns: minmax(0, 1fr); }
-    .roles, .gallery { grid-template-columns: minmax(0, 1fr); }
+  @media (max-width: 900px) {
+    .hero-grid, .lesson, .tool, .teach { grid-template-columns: minmax(0, 1fr); }
+    .goals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .glossary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
-  @media (max-width: 520px) {
-    .readouts { grid-template-columns: minmax(0, 1fr); }
-    .timeline li { grid-template-columns: 60px minmax(0, 1fr); gap: 14px; }
+  @media (max-width: 540px) {
+    .goals, .glossary, .readouts { grid-template-columns: minmax(0, 1fr); }
+    .bar-row { grid-template-columns: 74px minmax(0, 1fr) 56px; }
   }
-  @media (prefers-reduced-motion: no-preference) {
-    .curve { transition: d 0.6s ease; }
+  @media (prefers-reduced-motion: reduce) {
+    .bar-fill { transition: none; }
   }
 </style>
 </head>
 <body>
 <header class="hero">
   <div class="wrap hero-grid">
-    <div class="stack" style="gap: 22px">
-      <span class="eyebrow">NASA Space Apps 2026 · Junior Astronaut Mission Trainer</span>
-      <h1>Nimbus <span>Nova</span></h1>
-      <p class="lede">A Minecraft Mars outpost where a crew of kids aged 7 to 12 keeps the base alive through dust storms that NASA's Opportunity rover really lived through. Every switch costs something, and nobody on the crew can see everything alone.</p>
-      <div class="chips" aria-label="Facts about the mission">
-        <span class="chip">4-minute mission</span>
-        <span class="chip">3 crew roles</span>
-        <span class="chip">2 real dust storms</span>
-        <span class="chip">1 solar storm alert</span>
+    <div class="stack" style="gap: 20px">
+      <span class="label">A Mars mission workbook · ages 7 to 12</span>
+      <h1>Keep the lights on at <span>Nimbus Nova</span></h1>
+      <p class="lede">Nimbus Nova is a Minecraft mission where a crew of students runs a base on Mars. A real dust storm dims the sun, a solar storm sends everyone to the shelter, and every switch costs something. This page explains the science behind it, with tools you can try right here.</p>
+      <div class="facts" aria-label="Mission facts">
+        <span class="fact">4-minute mission</span>
+        <span class="fact">3 crew roles</span>
+        <span class="fact">real NASA rover data</span>
       </div>
       <div class="actions">
-        <a class="btn primary" href="#storm">See the real storm data</a>
-        <a class="btn" href="https://github.com/KawaseDev/Nimbus-Nova-MC" target="_blank" rel="noopener">Source on GitHub</a>
+        <a class="btn strong" href="#lesson-1">Start the lessons</a>
+        <a class="btn" href="#teachers">For teachers</a>
       </div>
     </div>
-    <figure class="frame" style="margin: 0">
-      <span class="hud-tag">ASTER OUTPOST</span>
-      <img src="img/rover.png" alt="The Aster rover parked under the outpost's canopy, with red Martian ridges behind it" width="854" height="480">
-      <figcaption><span>In-game capture, Minecraft 26.3 with Nimbus Nova</span><span>Rover bay</span></figcaption>
+    <figure class="card shot">
+      <img src="img/habitat-hud.png" alt="The outpost habitat in the game, with the mission panel showing battery, oxygen, science and sunlight" width="854" height="480">
+      <figcaption>The habitat at Aster Outpost. The panel at the top shows what the whole crew shares: battery, oxygen, and science.</figcaption>
     </figure>
   </div>
 </header>
 
 <main>
-  <section id="storm" style="padding-top: 24px">
-    <div class="wrap stack" style="gap: 28px">
-      <div class="stack">
-        <span class="eyebrow">The darkening sky</span>
-        <h2>The sunlight in the game follows a real rover's power log.</h2>
-        <p class="lede">Each mission picks one of two storms that Opportunity sat through. The drop in solar energy it reported to Earth sets how much power the outpost's panels make at the worst point of the storm.</p>
+  <section style="padding-top: 16px">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="label">What you will learn</span>
+        <h2>Four ideas real mission planners use every day</h2>
       </div>
+      <div class="goals">
+        <div class="card goal">
+          <div class="icon" style="background: var(--amber-soft); color: var(--amber)">Wh</div>
+          <h3>Energy is a budget</h3>
+          <p>Power comes in and goes out. When more goes out, the battery drains.</p>
+        </div>
+        <div class="card goal">
+          <div class="icon" style="background: var(--mars-soft); color: var(--mars)">τ</div>
+          <h3>Dust blocks sunlight</h3>
+          <p>A dust storm makes solar panels weaker, and cleaning them does not help.</p>
+        </div>
+        <div class="card goal">
+          <div class="icon" style="background: var(--oxygen-soft); color: var(--oxygen)">☂</div>
+          <h3>Shelter from the Sun</h3>
+          <p>Solar storms send fast particles. Thick walls protect the crew.</p>
+        </div>
+        <div class="card goal">
+          <div class="icon" style="background: var(--good-soft); color: var(--good)">3</div>
+          <h3>Crews must talk</h3>
+          <p>Nobody sees everything. Good choices need everyone's information.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-      <div class="chart-card">
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <span class="label">Lessons</span>
+        <h2>The science, one idea at a time</h2>
+      </div>
+      <div class="lessons">
+
+        <article class="card lesson" id="lesson-1">
+          <div class="stack">
+            <span class="lesson-num">LESSON 1 OF 4</span>
+            <h3>Why does a dust storm weaken solar panels?</h3>
+            <p>Solar panels turn sunlight into electricity. On Mars, wind can lift fine dust high into the sky. The dust floats between the Sun and the panels, so less light reaches them, and they make less power.</p>
+            <p>Scientists measure how dusty the sky is with a number called <b>tau</b>. Before the storm, tau at Opportunity's site was usually below 1. On June 10, 2018 it reached 10.5, higher than any sky NASA had measured on Mars.</p>
+            <div class="callout mars"><b>Try it in the game:</b> Bolt the robot and Commander Vega explain that cleaning the panels would not help. The dust is up in the air, not on the panels.</div>
+          </div>
+          <svg viewBox="0 0 320 220" role="img" aria-label="Diagram: sunlight passes through clear sky to a panel, but most is blocked by a dust layer during a storm">
+            <rect x="0" y="0" width="320" height="220" rx="14" fill="var(--paper)"/>
+            <circle cx="56" cy="44" r="22" fill="var(--amber)"/>
+            <text x="56" y="84" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="Geist Mono, monospace">SUN</text>
+            <g stroke="var(--amber)" stroke-width="3" stroke-linecap="round">
+              <line x1="86" y1="56" x2="150" y2="96"/>
+              <line x1="86" y1="70" x2="150" y2="110"/>
+              <line x1="80" y1="82" x2="150" y2="124"/>
+              <line x1="190" y1="120" x2="232" y2="146" opacity="0.35"/>
+            </g>
+            <g fill="var(--mars)" opacity="0.55">
+              <circle cx="160" cy="92" r="5"/><circle cx="174" cy="104" r="4"/><circle cx="158" cy="116" r="6"/>
+              <circle cx="182" cy="122" r="5"/><circle cx="168" cy="132" r="4"/><circle cx="186" cy="94" r="4"/>
+              <circle cx="150" cy="134" r="4"/><circle cx="176" cy="84" r="3"/>
+            </g>
+            <text x="168" y="70" text-anchor="middle" font-size="11" fill="var(--mars)" font-family="Geist Mono, monospace">DUST IN THE AIR</text>
+            <rect x="214" y="150" width="78" height="10" rx="2" fill="var(--oxygen)" transform="rotate(-12 253 155)"/>
+            <line x1="253" y1="160" x2="253" y2="190" stroke="var(--muted)" stroke-width="3"/>
+            <rect x="0" y="190" width="320" height="30" fill="var(--mars)" opacity="0.25"/>
+            <text x="253" y="212" text-anchor="middle" font-size="11" fill="var(--ink)" font-family="Geist Mono, monospace">PANEL</text>
+          </svg>
+        </article>
+
+        <article class="card lesson">
+          <div class="stack">
+            <span class="lesson-num">LESSON 2 OF 4</span>
+            <h3>Energy in, energy out</h3>
+            <p>A base on Mars works like a piggy bank for electricity. The solar panels and a small backup generator put energy in. Every machine takes some out. If more goes out than comes in, the battery slowly empties.</p>
+            <p>In the game, research is the hungriest machine. Turning it off saves a lot of power, but the science stops. The power engineer has to decide when that trade is worth it.</p>
+            <div class="callout amber"><b>Try it below:</b> move the sunlight slider down to storm levels and switch machines on and off. Watch whether the battery fills up or drains.</div>
+          </div>
+          <svg viewBox="0 0 320 220" role="img" aria-label="Diagram: solar panels and a generator fill a battery, while oxygen, research and the habitat drain it">
+            <rect x="0" y="0" width="320" height="220" rx="14" fill="var(--paper)"/>
+            <text x="66" y="34" text-anchor="middle" font-size="11" fill="var(--good)" font-family="Geist Mono, monospace">ENERGY IN</text>
+            <rect x="22" y="48" width="88" height="34" rx="8" fill="var(--amber-soft)" stroke="var(--amber)"/>
+            <text x="66" y="70" text-anchor="middle" font-size="12" fill="var(--ink)" font-family="Lexend, sans-serif">Solar panels</text>
+            <rect x="22" y="94" width="88" height="34" rx="8" fill="var(--card)" stroke="var(--line)"/>
+            <text x="66" y="116" text-anchor="middle" font-size="12" fill="var(--ink)" font-family="Lexend, sans-serif">Generator</text>
+            <path d="M112 65 L136 100 M112 111 L136 108" stroke="var(--good)" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <rect x="138" y="70" width="44" height="80" rx="8" fill="var(--card)" stroke="var(--ink)" stroke-width="2"/>
+            <rect x="152" y="62" width="16" height="8" rx="2" fill="var(--ink)"/>
+            <rect x="144" y="104" width="32" height="40" rx="4" fill="var(--good)"/>
+            <text x="160" y="170" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="Geist Mono, monospace">BATTERY</text>
+            <text x="254" y="34" text-anchor="middle" font-size="11" fill="var(--danger)" font-family="Geist Mono, monospace">ENERGY OUT</text>
+            <path d="M184 100 L208 64 M184 108 L208 110 M184 116 L208 156" stroke="var(--danger)" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <rect x="210" y="48" width="92" height="30" rx="8" fill="var(--oxygen-soft)" stroke="var(--oxygen)"/>
+            <text x="256" y="68" text-anchor="middle" font-size="12" fill="var(--ink)" font-family="Lexend, sans-serif">Oxygen 0.45</text>
+            <rect x="210" y="94" width="92" height="30" rx="8" fill="var(--mars-soft)" stroke="var(--mars)"/>
+            <text x="256" y="114" text-anchor="middle" font-size="12" fill="var(--ink)" font-family="Lexend, sans-serif">Research 0.65</text>
+            <rect x="210" y="140" width="92" height="30" rx="8" fill="var(--card)" stroke="var(--line)"/>
+            <text x="256" y="160" text-anchor="middle" font-size="12" fill="var(--ink)" font-family="Lexend, sans-serif">Habitat 0.15</text>
+          </svg>
+        </article>
+
+        <article class="card lesson">
+          <div class="stack">
+            <span class="lesson-num">LESSON 3 OF 4</span>
+            <h3>When the Sun throws a storm</h3>
+            <p>Sometimes the Sun blasts out a cloud of very fast particles. Mars has a thin atmosphere and no global magnetic field to block them, so more of them reach the ground than on Earth.</p>
+            <p>On September 11, 2017, NASA's Curiosity rover measured surface radiation more than double anything it had seen before. A scientist on the team said someone outside "would definitely want to take shelter."</p>
+            <div class="callout oxygen"><b>In the game:</b> at 00:25 an alert gives the crew 15 seconds to reach the shelter. The shelter has no consoles, so set your machines before you go in.</div>
+          </div>
+          <svg viewBox="0 0 320 220" role="img" aria-label="Diagram: particles from the Sun stop at the thick shelter walls while a person inside stays safe">
+            <rect x="0" y="0" width="320" height="220" rx="14" fill="var(--paper)"/>
+            <circle cx="40" cy="40" r="20" fill="var(--amber)"/>
+            <g stroke="var(--danger)" stroke-width="2.5" stroke-linecap="round">
+              <line x1="70" y1="52" x2="168" y2="104"/>
+              <line x1="66" y1="68" x2="166" y2="122"/>
+              <line x1="60" y1="82" x2="164" y2="140"/>
+              <line x1="72" y1="38" x2="120" y2="62"/>
+            </g>
+            <path d="M170 186 L170 110 Q236 66 302 110 L302 186 Z" fill="var(--card)" stroke="var(--ink)" stroke-width="6"/>
+            <circle cx="236" cy="142" r="9" fill="var(--oxygen)"/>
+            <rect x="228" y="152" width="16" height="22" rx="6" fill="var(--oxygen)"/>
+            <text x="236" y="102" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="Geist Mono, monospace">SHELTER</text>
+            <rect x="0" y="186" width="320" height="34" fill="var(--mars)" opacity="0.25"/>
+            <text x="96" y="206" text-anchor="middle" font-size="11" fill="var(--danger)" font-family="Geist Mono, monospace">FAST PARTICLES</text>
+          </svg>
+        </article>
+
+        <article class="card lesson">
+          <div class="stack">
+            <span class="lesson-num">LESSON 4 OF 4</span>
+            <h3>Why the crew has to talk</h3>
+            <p>On a real mission, no single person watches everything. In Nimbus Nova, each role sees a different part of the problem, so the crew only makes good choices when they share what they know.</p>
+            <ul class="ask" style="padding-left: 1.1em">
+              <li><b>Power engineer</b> sees the battery and controls research.</li>
+              <li><b>Life-support engineer</b> sees oxygen and controls the oxygen machine and two emergency canisters.</li>
+              <li><b>Weather officer</b> is the only one who sees the sunlight and a 30-second forecast.</li>
+            </ul>
+          </div>
+          <figure class="card shot">
+            <img src="img/astronaut-dialogue.png" alt="Commander Vega in the game giving power advice to a crew member" width="854" height="480" loading="lazy">
+            <figcaption>Commander Vega gives each player advice for their own role.</figcaption>
+          </figure>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="try">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="label">Try it yourself</span>
+        <h2>Balance the outpost's power</h2>
+        <p class="lede">These are the same numbers the game uses, in game energy units per second. Find a setup that keeps the battery from draining during the worst part of the storm.</p>
+      </div>
+      <div class="card tool">
+        <div class="controls">
+          <div class="control">
+            <label for="sun">Sunlight reaching the panels: <span id="sun-out">100%</span></label>
+            <input type="range" id="sun" min="0" max="100" step="1" value="100">
+            <small>100% is a clear sky. Opportunity got only 3% at the worst of the 2018 storm.</small>
+          </div>
+          <label class="switch" for="research"><span class="name">Research <small>(uses 0.65)</small></span><input type="checkbox" id="research" checked></label>
+          <label class="switch" for="oxygen"><span class="name">Oxygen machine <small>(uses 0.45)</small></span><input type="checkbox" id="oxygen" checked></label>
+          <small>The habitat always uses 0.15, and the backup generator always gives 0.15.</small>
+        </div>
+        <div class="meter" aria-live="polite">
+          <div class="bar-row"><span>Energy in</span><div class="bar-track"><div class="bar-fill" id="bar-in" style="background: var(--good); width: 50%"></div></div><span class="num" id="num-in">1.10</span></div>
+          <div class="bar-row"><span>Energy out</span><div class="bar-track"><div class="bar-fill" id="bar-out" style="background: var(--danger); width: 50%"></div></div><span class="num" id="num-out">1.25</span></div>
+          <div class="verdict bad" id="verdict"><b id="verdict-big">−0.15 per second</b><span id="verdict-text">The battery is draining.</span></div>
+          <p class="note" style="color: var(--muted); font-size: 0.92rem" id="verdict-tip">Even on a clear day, running everything drains the battery a little.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="storm">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="label">Real data</span>
+        <h2>Two real storms that Opportunity lived through</h2>
+        <p class="lede">Every mission in the game uses one of these storms. The rover reported how much solar energy it made each day, and the game copies how far that number fell.</p>
+      </div>
+      <div class="card chart-card">
         <div class="chart-head">
           <div class="stack" style="gap: 4px">
-            <h3 id="chart-title">Sunlight reaching the panels during one mission</h3>
+            <h3 id="chart-title">Sunlight reaching the panels during one game mission</h3>
             <p style="color: var(--muted); font-size: 0.9rem">Percent of clear-sky sunlight, mission time in minutes</p>
           </div>
           <div class="toggle" role="group" aria-label="Choose a storm">
@@ -258,7 +436,7 @@
         </div>
         <div class="readouts">
           <div class="readout"><b id="r-before">645 Wh</b><span>Solar energy per day before the storm</span></div>
-          <div class="readout"><b id="r-peak">21 Wh</b><span id="r-peak-label">On June 10, 2018, dust opacity tau 10.5</span></div>
+          <div class="readout"><b id="r-peak">21 Wh</b><span id="r-peak-label">On June 10, 2018, tau 10.5</span></div>
           <div class="readout" id="r-fate-box"><b id="r-fate">Lost</b><span id="r-fate-label">Opportunity went silent and never woke up</span></div>
         </div>
       </div>
@@ -266,98 +444,115 @@
   </section>
 
   <section>
-    <div class="wrap split">
-      <div class="stack">
-        <span class="eyebrow">Four minutes on Mars</span>
-        <h2>One mission, start to debrief.</h2>
-        <p class="lede">The crew has to survive with battery and oxygen above zero and still finish 90 seconds of research. Switching research off saves power but stops the science.</p>
+    <div class="wrap">
+      <div class="section-head">
+        <span class="label">Words to know</span>
+        <h2>Mission glossary</h2>
       </div>
-      <ol class="timeline">
-        <li><time>00:00</time><div><h3>Pick a role, then start</h3><p>A how-to-play checklist ticks itself off as each player opens the console and chooses a job.</p></div></li>
-        <li class="alert"><time>00:25</time><div><h3>Solar storm alert</h3><p>Fifteen seconds to reach the crew shelter. Anyone outside from 00:40 to 01:05 adds to a shared radiation dose, and there are no consoles inside.</p></div></li>
-        <li class="dust"><time>01:15</time><div><h3>Dust starts to dim the sun</h3><p>Only the weather officer can see how fast. The rest of the crew has to ask.</p></div></li>
-        <li class="dust"><time>02:15</time><div><h3>Storm peak</h3><p>3% or 18% of normal sunlight, depending on which real storm the mission drew.</p></div></li>
-        <li><time>03:15</time><div><h3>The dust thins</h3><p>Switch everything back on too early and the battery still runs out.</p></div></li>
-        <li><time>04:00</time><div><h3>Debrief</h3><p>Every console opens on what happened: lowest reserves, when research was cut, time outside the shelter, and what really happened to Opportunity.</p></div></li>
-      </ol>
+      <dl class="glossary">
+        <div class="card term"><dt>Sol <small>noun</small></dt><dd>One day on Mars. It lasts about 24 hours and 40 minutes.</dd></div>
+        <div class="card term"><dt>Tau <small>τ</small></dt><dd>A number for how dusty the sky is. Bigger tau means more dust and less sunlight.</dd></div>
+        <div class="card term"><dt>Watt-hour <small>Wh</small></dt><dd>An amount of electrical energy. Opportunity made about 645 Wh on a clear day.</dd></div>
+        <div class="card term"><dt>Rover <small>noun</small></dt><dd>A robot vehicle that drives on another planet. Opportunity explored Mars from 2004 to 2018.</dd></div>
+        <div class="card term"><dt>Solar particle event</dt><dd>A burst of very fast particles from the Sun that raises radiation for hours or days.</dd></div>
+        <div class="card term"><dt>Habitat <small>noun</small></dt><dd>The building where the crew lives and works. In the game, it holds the oxygen machine.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="label">Quick check</span>
+        <h2>Three questions before you play</h2>
+      </div>
+      <form class="quiz" id="quiz-form">
+        <div class="card question">
+          <fieldset>
+            <legend>1. A dust storm covers the sky. What happens to the solar panels?</legend>
+            <label class="choice"><input type="radio" name="q1" value="a"> They make more power, because the storm is windy.</label>
+            <label class="choice"><input type="radio" name="q1" value="b" data-right> They make less power, because dust blocks sunlight.</label>
+            <label class="choice"><input type="radio" name="q1" value="c"> Nothing changes if you clean them.</label>
+          </fieldset>
+          <p class="feedback" id="f1"></p>
+        </div>
+        <div class="card question">
+          <fieldset>
+            <legend>2. The battery is draining fast during the storm. What saves the most power?</legend>
+            <label class="choice"><input type="radio" name="q2" value="a" data-right> Switching research off for a while.</label>
+            <label class="choice"><input type="radio" name="q2" value="b"> Switching the habitat off.</label>
+            <label class="choice"><input type="radio" name="q2" value="c"> Opening the shelter door.</label>
+          </fieldset>
+          <p class="feedback" id="f2"></p>
+        </div>
+        <div class="card question">
+          <fieldset>
+            <legend>3. A solar storm alert sounds. What should the crew do?</legend>
+            <label class="choice"><input type="radio" name="q3" value="a"> Keep working at the consoles.</label>
+            <label class="choice"><input type="radio" name="q3" value="b"> Wait for the dust storm to end.</label>
+            <label class="choice"><input type="radio" name="q3" value="c" data-right> Set the machines, then get into the shelter.</label>
+          </fieldset>
+          <p class="feedback" id="f3"></p>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section id="teachers">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="label">For teachers</span>
+        <h2>A 35-minute class session</h2>
+        <p class="lede">Groups of three play one mission each. You run the server as Mission Control and can pause at any time to let the crew talk.</p>
+      </div>
+      <div class="teach">
+        <div class="card">
+          <h3>Lesson plan</h3>
+          <ol class="plan">
+            <li><time>5 min</time><span>Ask the two warm-up questions on the right. Note the answers.</span></li>
+            <li><time>5 min</time><span>Lessons 1 to 3 on this page, or the quick check above.</span></li>
+            <li><time>5 min</time><span>Students join, read the how-to-play panel, and pick roles.</span></li>
+            <li><time>5 min</time><span>Play the four-minute mission. Pause once during the storm.</span></li>
+            <li><time>10 min</time><span>Read the Debrief tab together and discuss the reflection questions.</span></li>
+            <li><time>5 min</time><span>Ask the warm-up questions again and compare.</span></li>
+          </ol>
+        </div>
+        <div class="card">
+          <h3>Warm-up questions</h3>
+          <ol class="ask">
+            <li>Why would a dust storm be dangerous for a base that runs on solar power?</li>
+            <li>If you could switch off one machine to save power, which one would you choose, and what would you lose?</li>
+          </ol>
+          <h3 style="margin-top: 8px">Reflection after the mission</h3>
+          <ol class="ask">
+            <li>Which resource limited you?</li>
+            <li>What did the weather forecast change?</li>
+            <li>What would you do differently next time?</li>
+          </ol>
+          <h3 style="margin-top: 8px">Setup</h3>
+          <p style="color: var(--muted); font-size: 0.95rem">Install Fabric for Minecraft 26.3 with the mod, run <code>/mars create</code> once, then students use <code>/mars join</code>. Start with <code>/mission start</code>; pause with <code>/mission pause</code>. To repeat a lesson with the same storm, use <code>/mission storm 2018</code> or <code>2007</code>.</p>
+        </div>
+      </div>
     </div>
   </section>
 
   <section>
-    <div class="wrap stack" style="gap: 28px">
-      <div class="stack">
-        <span class="eyebrow">The crew</span>
-        <h2>Each role sees a different part of the problem.</h2>
+    <div class="wrap">
+      <div class="section-head">
+        <span class="label">What is real</span>
+        <h2>Measured by NASA, or chosen for the game</h2>
+        <p class="lede">A game has to simplify. We label every number so students and judges can tell science from game balance.</p>
       </div>
-      <div class="roles">
-        <article class="role">
-          <div class="swatch" style="background: var(--accent)"></div>
-          <h3>Power engineer</h3>
-          <dl>
-            <div><dt>Sees</dt><dd>Battery and energy balance</dd></div>
-            <div><dt>Controls</dt><dd>Research, the biggest load at 0.65 energy per second</dd></div>
-          </dl>
-        </article>
-        <article class="role">
-          <div class="swatch" style="background: var(--oxygen)"></div>
-          <h3>Life-support engineer</h3>
-          <dl>
-            <div><dt>Sees</dt><dd>Oxygen reserve and the two emergency canisters</dd></div>
-            <div><dt>Controls</dt><dd>Oxygen production, which costs 0.45 energy per second</dd></div>
-          </dl>
-        </article>
-        <article class="role">
-          <div class="swatch" style="background: var(--dust)"></div>
-          <h3>Weather officer</h3>
-          <dl>
-            <div><dt>Sees</dt><dd>The sunlight now and a 30-second forecast, hidden from everyone else</dd></div>
-            <div><dt>Controls</dt><dd>The forecast broadcast that warns the crew</dd></div>
-          </dl>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="wrap stack" style="gap: 28px">
-      <div class="stack">
-        <span class="eyebrow">Inside the outpost</span>
-        <h2>Built in Minecraft so a class can play together.</h2>
-      </div>
-      <div class="gallery">
-        <figure class="frame" style="margin: 0">
-          <img src="img/habitat-hud.png" alt="The habitat with the mission HUD showing battery, oxygen, science and sunlight" width="854" height="480" loading="lazy">
-          <figcaption><span>Mission HUD</span><span>Habitat</span></figcaption>
-        </figure>
-        <figure class="frame" style="margin: 0">
-          <img src="img/astronaut-dialogue.png" alt="Commander Vega explaining why cleaning the panels would not help during a dust storm" width="854" height="480" loading="lazy">
-          <figcaption><span>Commander Vega</span><span>Crew guide</span></figcaption>
-        </figure>
-        <figure class="frame" style="margin: 0">
-          <img src="img/power-yard.png" alt="The research console in the power yard with solar panels and an orange sky" width="854" height="480" loading="lazy">
-          <figcaption><span>Research console</span><span>Power yard</span></figcaption>
-        </figure>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="wrap stack" style="gap: 28px">
-      <div class="stack">
-        <span class="eyebrow">What is real</span>
-        <h2>We label every number as measured or made up.</h2>
-        <p class="lede">The game is a simplified model. These are the values that come from NASA, and the ones we chose so the mission plays well.</p>
-      </div>
-      <div class="table-scroll">
+      <div class="card table-scroll">
         <table>
           <thead><tr><th>Value</th><th>In the game</th><th>Source</th><th>Kind</th></tr></thead>
           <tbody>
             <tr><td>Opportunity, June 2018</td><td class="num">645 → 21 Wh (3%)</td><td><a href="https://science.nasa.gov/resource/on-mars-light-is-energy/" target="_blank" rel="noopener">NASA Science, On Mars, Light Is Energy</a></td><td><span class="tag real">Measured</span></td></tr>
             <tr><td>Opportunity, July 2007</td><td class="num">700 → 128 Wh (18%)</td><td><a href="https://www.jpl.nasa.gov/news/nasa-mars-rovers-braving-severe-dust-storms" target="_blank" rel="noopener">NASA JPL, Mars Rovers Braving Severe Dust Storms</a></td><td><span class="tag real">Measured</span></td></tr>
-            <tr><td>Solar particle event, Sept 2017</td><td class="num">Shelter alert</td><td><a href="https://www.jpl.nasa.gov/news/large-solar-storm-sparks-global-aurora-and-doubles-radiation-levels-on-the-martian-surface/" target="_blank" rel="noopener">NASA JPL, surface radiation more than doubled at Curiosity</a></td><td><span class="tag real">Event</span></td></tr>
-            <tr><td>Ten days of dimming</td><td class="num">60 seconds</td><td>Time compression</td><td><span class="tag game">Game</span></td></tr>
-            <tr><td>Battery, oxygen, energy rates</td><td class="num">Game units</td><td>Chosen for balance and tested</td><td><span class="tag game">Game</span></td></tr>
-            <tr><td>Radiation dose</td><td class="num">5% per crew-second</td><td>No real dose in sieverts</td><td><span class="tag game">Game</span></td></tr>
+            <tr><td>Solar particle event, Sept 2017</td><td class="num">Shelter alert</td><td><a href="https://www.jpl.nasa.gov/news/large-solar-storm-sparks-global-aurora-and-doubles-radiation-levels-on-the-martian-surface/" target="_blank" rel="noopener">NASA JPL, radiation more than doubled at Curiosity</a></td><td><span class="tag real">Event</span></td></tr>
+            <tr><td>Ten days of dimming</td><td class="num">60 seconds</td><td>Squeezed so it fits a class period</td><td><span class="tag game">Game</span></td></tr>
+            <tr><td>Battery, oxygen, energy use</td><td class="num">Game units</td><td>Chosen for balance and tested</td><td><span class="tag game">Game</span></td></tr>
+            <tr><td>Radiation dose</td><td class="num">5% per second outside</td><td>No real dose in sieverts</td><td><span class="tag game">Game</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -367,18 +562,63 @@
 
 <footer>
   <div class="wrap">
-    <p>Nimbus Nova is an independent student project for the 2026 NASA Space Apps Challenge. It is not endorsed by NASA, Mojang, or Microsoft. Minecraft is required and sold separately; the mod's own code is MIT licensed.</p>
+    <p>Nimbus Nova is an independent student project for the 2026 NASA Space Apps Challenge, made for the Build a Junior Astronaut Mission Trainer challenge. It is not endorsed by NASA, Mojang, or Microsoft. Minecraft is required and sold separately; the mod's code is MIT licensed. <a href="https://github.com/KawaseDev/Nimbus-Nova-MC" target="_blank" rel="noopener">Source on GitHub</a>.</p>
     <p>Characters, the outpost, and its terrain are fictional. AI tools assisted with code and documentation; the idea and design choices come from the team.</p>
   </div>
 </footer>
 
 <script>
   (function () {
-    const storms = {
-      "2018": { before: 645, peak: 21, label: "On June 10, 2018, dust opacity tau 10.5", fate: "Lost", fateLabel: "Opportunity went silent and never woke up", lived: false },
-      "2007": { before: 700, peak: 128, label: "On July 18, 2007, dust opacity tau above 5.5", fate: "Survived", fateLabel: "The team skipped contact with Earth to save power", lived: true }
+    // Power budget tool: same rates as MissionState and DustStormProfile.
+    const sun = document.getElementById("sun"), research = document.getElementById("research"), oxygen = document.getElementById("oxygen");
+    function fmt(n) { return (n < 0 ? "−" : n > 0 ? "+" : "") + Math.abs(n).toFixed(2); }
+    function update() {
+      const s = Number(sun.value) / 100;
+      const energyIn = 0.15 + 0.95 * s;
+      const energyOut = 0.15 + (oxygen.checked ? 0.45 : 0) + (research.checked ? 0.65 : 0);
+      const net = energyIn - energyOut;
+      document.getElementById("sun-out").textContent = sun.value + "%";
+      document.getElementById("num-in").textContent = energyIn.toFixed(2);
+      document.getElementById("num-out").textContent = energyOut.toFixed(2);
+      document.getElementById("bar-in").style.width = (energyIn / 1.25 * 100) + "%";
+      document.getElementById("bar-out").style.width = (energyOut / 1.25 * 100) + "%";
+      const verdict = document.getElementById("verdict");
+      verdict.className = "verdict " + (net >= 0 ? "ok" : "bad");
+      document.getElementById("verdict-big").textContent = fmt(net) + " per second";
+      document.getElementById("verdict-text").textContent = net >= 0
+        ? "The battery is filling up or holding steady."
+        : "The battery is draining. The starting battery (80 units) would last about " + Math.round(80 / -net) + " seconds.";
+      let tip;
+      if (!oxygen.checked) tip = "Careful: without the oxygen machine, the crew's air runs out. Canisters only buy a little time.";
+      else if (net >= 0) tip = research.checked ? "Great: everything runs and the battery still holds." : "Safe, but the science is paused. Can you turn research back on?";
+      else if (research.checked) tip = "Research uses the most power. What happens if you switch it off?";
+      else tip = "Even with research off, there is not enough sun. In the game, the battery you saved earlier carries you through.";
+      document.getElementById("verdict-tip").textContent = tip;
+    }
+    [sun, research, oxygen].forEach(el => el.addEventListener("input", update));
+    update();
+
+    // Quiz: instant feedback, nothing is sent anywhere.
+    const explain = {
+      q1: ["Right. Dust floats between the Sun and the panels, so less light gets through.", "Not quite. The dust is up in the air, so cleaning or wind does not bring the light back."],
+      q2: ["Right. Research uses 0.65, the biggest load. Turning it off pauses the science but saves the most.", "Not quite. The habitat cannot be switched off, and research is the biggest load at 0.65."],
+      q3: ["Right. Set your machines first, because there are no consoles in the shelter.", "Not quite. Fast particles from the Sun are dangerous outside, so everyone goes to the shelter."]
     };
-    // Same curve as DustStormProfile.java: clear until 75 s, straight fall to the peak at 135 s, hold to 195 s, recover to 50% by 240 s.
+    document.getElementById("quiz-form").addEventListener("change", event => {
+      const input = event.target;
+      if (input.type !== "radio") return;
+      const group = input.name, right = input.hasAttribute("data-right");
+      document.querySelectorAll('input[name="' + group + '"]').forEach(other => other.closest(".choice").classList.remove("right", "wrong"));
+      input.closest(".choice").classList.add(right ? "right" : "wrong");
+      document.getElementById("f" + group.slice(1)).textContent = explain[group][right ? 0 : 1];
+    });
+    document.getElementById("quiz-form").addEventListener("submit", event => event.preventDefault());
+
+    // Storm chart: same curve as DustStormProfile.java.
+    const storms = {
+      "2018": { before: 645, peak: 21, label: "On June 10, 2018, tau 10.5", fate: "Lost", fateLabel: "Opportunity went silent and never woke up", lived: false },
+      "2007": { before: 700, peak: 128, label: "On July 18, 2007, tau above 5.5", fate: "Survived", fateLabel: "The team skipped contact with Earth to save power", lived: true }
+    };
     function factor(peak, t) {
       if (t < 75) return 1;
       if (t < 135) return 1 + (peak - 1) * (t - 75) / 60;
@@ -388,8 +628,7 @@
     const W = 680, H = 290, L = 52, R = 16, T = 24, B = 48;
     const x = t => L + (W - L - R) * t / 240;
     const y = f => T + (H - T - B) * (1 - f);
-    const svg = document.getElementById("chart");
-    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.getElementById("chart"), ns = "http://www.w3.org/2000/svg";
     function el(name, attrs, text) {
       const node = document.createElementNS(ns, name);
       for (const key in attrs) node.setAttribute(key, attrs[key]);
@@ -397,12 +636,10 @@
       svg.appendChild(node);
       return node;
     }
-    // Bands: solar storm alert and dust storm
-    el("rect", { x: x(40), y: T, width: x(65) - x(40), height: H - T - B, fill: "var(--solar)" });
-    el("text", { x: x(52.5), y: T + 14, "text-anchor": "middle", "font-size": 10, fill: "var(--danger)" }, "SOLAR");
-    el("rect", { x: x(75), y: T, width: x(195) - x(75), height: H - T - B, fill: "var(--dust-soft)" });
-    el("text", { x: x(135), y: T + 14, "text-anchor": "middle", "font-size": 10, fill: "var(--dust)" }, "DUST STORM");
-    // Grid and axes
+    el("rect", { x: x(40), y: T, width: x(65) - x(40), height: H - T - B, fill: "var(--oxygen-soft)" });
+    el("text", { x: x(52.5), y: T + 14, "text-anchor": "middle", "font-size": 10, fill: "var(--oxygen)" }, "SHELTER");
+    el("rect", { x: x(75), y: T, width: x(195) - x(75), height: H - T - B, fill: "var(--mars-soft)" });
+    el("text", { x: x(135), y: T + 14, "text-anchor": "middle", "font-size": 10, fill: "var(--mars)" }, "DUST STORM");
     [0, 0.5, 1].forEach(f => {
       el("line", { x1: L, x2: W - R, y1: y(f), y2: y(f), stroke: "var(--line)", "stroke-width": 1 });
       el("text", { x: L - 10, y: y(f) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--muted)" }, Math.round(f * 100) + "%");
@@ -411,11 +648,10 @@
       el("line", { x1: x(t), x2: x(t), y1: H - B, y2: H - B + 5, stroke: "var(--line)" });
       el("text", { x: x(t), y: H - B + 20, "text-anchor": "middle", "font-size": 11, fill: "var(--muted)" }, "0" + (t / 60) + ":00");
     });
-    const area = el("path", { fill: "var(--accent)", opacity: 0.12 });
-    const curve = el("path", { class: "curve", fill: "none", stroke: "var(--accent)", "stroke-width": 3, "stroke-linejoin": "round" });
-    const dot = el("circle", { r: 5, fill: "var(--accent)" });
-    const peakLabel = el("text", { "font-size": 12, "font-weight": 600, fill: "var(--fg)" });
-
+    const area = el("path", { fill: "var(--amber)", opacity: 0.14 });
+    const curve = el("path", { fill: "none", stroke: "var(--amber)", "stroke-width": 3, "stroke-linejoin": "round" });
+    const dot = el("circle", { r: 5, fill: "var(--amber)" });
+    const peakLabel = el("text", { "font-size": 12, "font-weight": 600, fill: "var(--ink)", "text-anchor": "middle" });
     function render(id) {
       const s = storms[id], peak = s.peak / s.before;
       let d = "";
@@ -426,7 +662,6 @@
       dot.setAttribute("cy", y(peak));
       peakLabel.setAttribute("x", x(165));
       peakLabel.setAttribute("y", y(peak) - 12);
-      peakLabel.setAttribute("text-anchor", "middle");
       peakLabel.textContent = Math.round(peak * 100) + "% at the peak";
       document.getElementById("r-before").textContent = s.before + " Wh";
       document.getElementById("r-peak").textContent = s.peak + " Wh";
@@ -434,8 +669,7 @@
       document.getElementById("r-fate").textContent = s.fate;
       document.getElementById("r-fate-label").textContent = s.fateLabel;
       document.getElementById("r-fate-box").className = "readout " + (s.lived ? "lived" : "lost");
-      for (const key of ["2018", "2007"])
-        document.getElementById("storm-" + key).setAttribute("aria-pressed", String(key === id));
+      for (const key of ["2018", "2007"]) document.getElementById("storm-" + key).setAttribute("aria-pressed", String(key === id));
     }
     document.getElementById("storm-2018").addEventListener("click", () => render("2018"));
     document.getElementById("storm-2007").addEventListener("click", () => render("2007"));
