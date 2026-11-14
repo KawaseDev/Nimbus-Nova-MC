@@ -56,6 +56,18 @@ public final class MissionController {
     private int ticks;
     private MissionState.Phase lastBroadcastPhase = MissionState.Phase.READY;
 
+    /** Decides whether a player is outside the shelter; null means the player is not at the outpost. */
+    @FunctionalInterface
+    public interface ShelterCheck {
+        Boolean exposed(ServerPlayer player);
+    }
+
+    private static ShelterCheck shelterCheck = _ -> null;
+
+    public static void setShelterCheck(final ShelterCheck check) {
+        shelterCheck = check;
+    }
+
     public static MissionController get(final MinecraftServer server) {
         return SESSIONS.computeIfAbsent(server, ignored -> new MissionController());
     }
@@ -93,6 +105,11 @@ public final class MissionController {
                 controller.mission.pause();
 
             controller.mission.tickSecond();
+            int exposed = 0;
+            for (final ServerPlayer player : server.getPlayerList().getPlayers())
+                if (Boolean.TRUE.equals(shelterCheck.exposed(player))) exposed++;
+
+            controller.mission.recordExposure(exposed);
             controller.broadcast(server);
         });
 

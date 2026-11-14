@@ -25,6 +25,7 @@ public final class NpcDialogue {
                     + (role == CrewRole.OBSERVER ? "Choose your role in the mission console, then ask Mission Control to start. "
                     : "You are our " + role.label.toLowerCase() + ". " + roleJob(role) + " When the crew is ready, ask Mission Control to start. ")
                     + "A dust storm is coming. It follows a real storm that NASA's Opportunity rover lived through on Mars. "
+                    + "If a solar storm alert sounds, everyone goes to the crew shelter south of the habitat. "
                     + "Survive four minutes and complete 90 seconds of powered research for full success.";
             case ACTIVE -> state.storm()
                     ? "The dust front is here. Less sunlight reaches our solar panels: in the real " + storm.label

@@ -56,15 +56,25 @@ final class MissionHud implements MissionPalette {
         if (MissionTutorial.visible(packet))
             MissionTutorial.render(graphics, packet, objectiveX, y + 75, objectiveWidth, false);
 
-        if (state.phase() == MissionState.Phase.ACTIVE && (state.battery() <= 25 || state.oxygen() <= 25 || state.storm())
+        final boolean solar = MissionState.solarWarning(state.elapsedSeconds()) || MissionState.solarStorm(state.elapsedSeconds());
+        if (state.phase() == MissionState.Phase.ACTIVE && (solar || state.battery() <= 25 || state.oxygen() <= 25 || state.storm())
                 && graphics.guiHeight() >= 260) {
-            final String warning = state.oxygen() <= 25 ? "LOW OXYGEN / restore production"
+            final String warning = solar ? solarWarning(state)
+                    : state.oxygen() <= 25 ? "LOW OXYGEN / restore production"
                     : state.battery() <= 25 ? "LOW BATTERY / reduce power demand" : "DUST FRONT / solar output reduced";
             final int warningWidth = Math.min(graphics.guiWidth() - 24, (int) Math.ceil(NovaRenderer.width(warning, 10)) + 24);
             final int warningX = (graphics.guiWidth() - warningWidth) / 2;
             MissionUi.panel(graphics, warningX, graphics.guiHeight() - 79, warningWidth, 24);
             MissionUi.text(graphics, warning, warningX + 12, graphics.guiHeight() - 71, DANGER);
         }
+    }
+
+    private static String solarWarning(final MissionState.Snapshot state) {
+        final int elapsed = state.elapsedSeconds();
+        return MissionState.solarWarning(elapsed)
+                ? "SOLAR STORM IN " + (MissionState.SOLAR_START_SECONDS - elapsed) + " s / everyone into the crew shelter"
+                : "SOLAR STORM / stay in the shelter " + (MissionState.SOLAR_END_SECONDS - elapsed) + " s / crew dose "
+                + Math.round(state.radiationDose()) + "%";
     }
 
     private static void renderCompact(final GuiGraphicsExtractor graphics, final MissionSnapshotPayload packet) {
@@ -84,7 +94,9 @@ final class MissionHud implements MissionPalette {
         MissionUi.text(graphics, "Science " + Math.min(state.researchSeconds(), MissionState.RESEARCH_TARGET_SECONDS) + "/90s", x + 10, y + 65, SUCCESS);
         final String sky = MissionUi.seesWeather(packet) ? "Sun " + MissionUi.sunPercent(state) + "% > " + MissionUi.forecastPercent(state) + "%"
                 : state.storm() ? "DUST: ASK WEATHER" : MissionUi.rate(state.generation() - state.demand()) + " energy/s";
-        MissionUi.rightText(graphics, sky, x + width - 10, y + 65, state.storm() ? DANGER : MUTED);
+        final boolean solar = state.phase() == MissionState.Phase.ACTIVE
+                && (MissionState.solarWarning(state.elapsedSeconds()) || MissionState.solarStorm(state.elapsedSeconds()));
+        MissionUi.rightText(graphics, solar ? "SOLAR STORM: SHELTER!" : sky, x + width - 10, y + 65, solar || state.storm() ? DANGER : MUTED);
         if (MissionTutorial.visible(packet))
             MissionTutorial.render(graphics, packet, x, y + 84, width, true);
     }

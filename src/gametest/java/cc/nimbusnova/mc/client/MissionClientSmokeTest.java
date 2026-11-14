@@ -1,5 +1,6 @@
 package cc.nimbusnova.mc.client;
 
+import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.mission.CrewRole;
 import cc.nimbusnova.mc.content.ModContent;
@@ -161,8 +162,20 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             context.waitTicks(5);
             context.takeScreenshot("research-console-model");
             world.getServer().runCommand("mission equipment research false");
+            // Wait out the solar particle storm inside the crew shelter, then return outside for the dust capture.
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 0.5 66 26.5 0 0");
             world.getServer().runOnServer(server -> {
-                for (int tick = 0; tick < 1600; tick++)
+                final MissionController controller = MissionController.get(server);
+                while (controller.snapshot().elapsedSeconds() < MissionState.SOLAR_END_SECONDS)
+                    ServerTickEvents.END_SERVER_TICK.invoker().onEndTick(server);
+
+                if (controller.snapshot().radiationDose() != 0 || controller.snapshot().phase() != MissionState.Phase.ACTIVE)
+                    throw new AssertionError("A sheltered crew must take no radiation dose");
+            });
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p -24 66 -3 0 20");
+            world.getServer().runOnServer(server -> {
+                final MissionController controller = MissionController.get(server);
+                while (controller.snapshot().elapsedSeconds() < 80)
                     ServerTickEvents.END_SERVER_TICK.invoker().onEndTick(server);
             });
             context.waitFor(client -> NimbusNovaClient.snapshot.state().elapsedSeconds() >= 80);

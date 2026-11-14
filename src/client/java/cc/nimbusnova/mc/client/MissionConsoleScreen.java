@@ -217,7 +217,8 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
 
                     if (panelHeight >= 290) {
                         MissionUi.text(graphics, packet.role().label + "  /  " + packet.crew() + " crew online", contentX, contentY + 126, ACCENT);
-                        MissionUi.text(graphics, state.decisions() + " equipment decisions / prototype game units", contentX, contentY + 143, MUTED);
+                        MissionUi.text(graphics, state.decisions() + " equipment decisions  |  Radiation dose " + Math.round(state.radiationDose())
+                                + "% / prototype game units", contentX, contentY + 143, state.radiationDose() >= 50 ? DANGER : MUTED);
                         MissionUi.text(graphics, "Survive 4 minutes and complete 90 seconds of research.", contentX, contentY + 164, TEXT);
                     }
                 }
@@ -261,13 +262,17 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
                     final DustStorm storm = state.dustStorm();
                     MissionUi.wrap(graphics, "A dust storm starts dimming the sun at 01:15. By 02:15 only " + storm.peakPercent()
                                     + "% of the sunlight is left, and the dust starts to thin at 03:15. Keep battery and oxygen above zero "
-                                    + "until 04:00; finish 90 seconds of research for full success. This storm is real: " + storm.summary(),
+                                    + "until 04:00; finish 90 seconds of research for full success. This storm is real: " + storm.summary()
+                                    + " At 00:25 a solar storm alert gives you 15 seconds to reach the crew shelter, south of the habitat; "
+                                    + "stay inside until 01:05.",
                             contentX, contentY + 18, contentWidth, panelHeight >= 290 ? 8 : 6, TEXT);
 
                     if (panelHeight >= 290) {
                         MissionUi.wrap(graphics, "Real data: the sunlight drop and dust opacity (tau: how much dust blocks the sun). "
                                         + "Game assumptions: battery size, energy use, about 10 sols (Mars days) squeezed into 1 minute, "
-                                        + "the backup generator, and the recovery. Each reset may bring a different real storm.",
+                                        + "the backup generator, and the recovery. Each reset may bring a different real storm. "
+                                        + "The solar storm is inspired by September 2017, when NASA's Curiosity measured more than double "
+                                        + "its earlier surface radiation record; its timing and dose units are made up.",
                                 contentX, contentY + 116, contentWidth, 5, MUTED);
                     }
                 }

@@ -28,13 +28,16 @@ public final class MissionDebrief {
                 + "  |  Research " + Math.min(state.researchSeconds(), MissionState.RESEARCH_TARGET_SECONDS)
                 + " of " + MissionState.RESEARCH_TARGET_SECONDS + " s");
         facts.add("Lowest battery " + Math.round(state.lowestBattery()) + "%  |  Lowest oxygen "
-                + Math.round(state.lowestOxygen()) + "%  |  " + state.decisions() + " equipment decisions");
+                + Math.round(state.lowestOxygen()) + "%  |  Radiation dose " + Math.round(state.radiationDose()) + "%  |  "
+                + state.decisions() + " equipment decisions");
         return facts;
     }
 
     public static List<String> consequences(final MissionState.Snapshot state) {
         final List<String> lines = new ArrayList<>();
-        if (state.phase() == MissionState.Phase.FAILED) {
+        if (state.phase() == MissionState.Phase.FAILED && state.radiationDose() >= 100)
+            lines.add("The crew reached the radiation limit at " + time(state.elapsedSeconds()) + ", outside the shelter during the solar storm.");
+        else if (state.phase() == MissionState.Phase.FAILED) {
             if (state.battery() <= 0)
                 lines.add("The battery ran out at " + time(state.elapsedSeconds()) + " " + stormStage(state.elapsedSeconds())
                         + (state.researchOnline() ? ", with research still switched on." : "."));
@@ -42,6 +45,12 @@ public final class MissionDebrief {
                 lines.add("Oxygen ran out at " + time(state.elapsedSeconds())
                         + (state.oxygenOnline() ? "." : ", with oxygen production switched off."));
         }
+
+        if (state.radiationDose() > 0 && state.radiationDose() < 100)
+            lines.add("Crew members spent " + Math.round(state.radiationDose() / MissionState.DOSE_PER_EXPOSED_SECOND)
+                    + " seconds outside the shelter during the solar storm.");
+        else if (state.radiationDose() == 0 && state.elapsedSeconds() >= MissionState.SOLAR_END_SECONDS)
+            lines.add("Nobody was caught outside the shelter during the solar storm.");
 
         if (state.firstResearchCutSecond() < 0)
             lines.add("Research stayed on for the whole mission.");
