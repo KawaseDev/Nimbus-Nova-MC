@@ -6,6 +6,7 @@ import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.vehicle.RoverRenderer;
 import cc.nimbusnova.mc.client.npc.MissionNpcClient;
 import cc.nimbusnova.mc.client.effect.DustStormEffects;
+import cc.nimbusnova.mc.client.guidance.HologramGuidance;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
@@ -34,6 +35,8 @@ public final class NimbusNovaClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         NovaRenderer.initialize();
+        GuidedMissionClient.register();
+        HologramGuidance.register();
         RoverRenderer.register();
         MissionNpcClient.register();
         DustStormEffects.register();

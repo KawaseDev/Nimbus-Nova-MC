@@ -3,6 +3,7 @@ package cc.nimbusnova.mc;
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.content.ModContent;
 import cc.nimbusnova.mc.content.ModBlocks;
+import cc.nimbusnova.mc.content.OutpostContent;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
 import cc.nimbusnova.mc.vehicle.RoverContent;
 import cc.nimbusnova.mc.npc.MissionNpcs;
@@ -18,6 +19,7 @@ public final class NimbusNovaMod implements ModInitializer {
     public void onInitialize() {
         ModContent.register();
         ModBlocks.register();
+        OutpostContent.register();
         MissionController.register();
         RoverContent.register();
         MissionNpcs.register();

@@ -103,6 +103,22 @@ tasks.register('importedTerrainTest', JavaExec) {
 
 check.dependsOn importedTerrainTest
 
+tasks.register('missionPreparationTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.mission.MissionPreparationTest'
+    enableAssertions = true
+}
+
+tasks.register('outpostAssetTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.content.outpost.OutpostAssetTest'
+    enableAssertions = true
+}
+
+check.dependsOn missionPreparationTest, outpostAssetTest
+
 fabricApi {
     configureTests {
         createSourceSet = true

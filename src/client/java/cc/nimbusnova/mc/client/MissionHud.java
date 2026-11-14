@@ -1,8 +1,9 @@
 package cc.nimbusnova.mc.client;
 
+import cc.nimbusnova.mc.client.render.NovaRenderer;
+import cc.nimbusnova.mc.mission.MissionProgressPayload;
 import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
 import cc.nimbusnova.mc.mission.MissionState;
-import cc.nimbusnova.mc.client.render.NovaRenderer;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -17,87 +18,64 @@ final class MissionHud implements MissionPalette {
     static void render(final GuiGraphicsExtractor graphics, final DeltaTracker deltaTracker) {
         final Minecraft client = Minecraft.getInstance();
         final MissionSnapshotPayload packet = NimbusNovaClient.snapshot;
-        if (packet == null || client.gui.hud.isHidden() || client.gui.screen() != null) return;
+        if (packet == null || client.player == null || client.level == null || client.gui.hud.isHidden() || client.gui.screen() != null) return;
 
         final MissionState.Snapshot state = packet.state();
-        if (graphics.guiWidth() < 480) {
-            renderCompact(graphics, packet);
+        final MissionProgressPayload objective = GuidedMissionClient.progress();
+        final int width = Math.min(320, graphics.guiWidth() - 16), left = 8, top = 8;
+        MissionUi.panel(graphics, left, top, width, 32);
+        NovaRenderer.text(graphics, packet.role().label, left + 10, top + 5, 10, ACCENT);
+        final String status = state.phase() == MissionState.Phase.READY ? "PREPARE / no timer"
+                : state.phase() == MissionState.Phase.PAUSED ? "PAUSED"
+                : state.phase().ended() ? state.phase().name() : MissionUi.time(MissionState.DURATION_SECONDS - state.elapsedSeconds()) + " remaining";
+        MissionUi.rightText(graphics, status, left + width - 10, top + 8, state.phase() == MissionState.Phase.FAILED ? DANGER : TEXT);
+        NovaRenderer.text(graphics, "Power " + Math.round(state.battery()) + "%", left + 10, top + 20, 8.5F, state.battery() <= 25 ? DANGER : MUTED);
+        NovaRenderer.text(graphics, "Air " + Math.round(state.oxygen()) + "%", left + width / 3F, top + 20, 8.5F, state.oxygen() <= 25 ? DANGER : MUTED);
+        NovaRenderer.text(graphics, "Science " + Math.min(state.researchSeconds(), MissionState.RESEARCH_TARGET_SECONDS) + "/90s",
+                left + width * 2 / 3F, top + 20, 8.5F, MUTED);
+
+        if (state.phase().ended()) {
+            drawObjective(graphics, left, top + 36, width, state.objective(),
+                    "Open your mission tablet to review the crew's decisions.", "J  Read mission report", null, SUCCESS, "REPORT");
             return;
         }
 
-        final int x = 12, y = 12, width = 184;
-        final Color status = state.phase() == MissionState.Phase.FAILED ? DANGER
-                : state.phase() == MissionState.Phase.SUCCESS ? SUCCESS : ACCENT;
-
-        MissionUi.panel(graphics, x, y, width, 116);
-        NovaRenderer.rect(graphics, x + 4, y + 9, 2, 20, 1, status);
-        MissionUi.text(graphics, "NIMBUS NOVA", x + 12, y + 10, TEXT);
-        MissionUi.rightText(graphics, MissionUi.time(MissionState.DURATION_SECONDS - state.elapsedSeconds()), x + width - 10, y + 10, status);
-        final String sky = MissionUi.seesWeather(packet)
-                ? "SUN " + MissionUi.sunPercent(state) + "% > " + MissionUi.forecastPercent(state) + "%"
-                : state.storm() ? "DUST: ASK WEATHER" : "HABITAT SYSTEMS";
-        MissionUi.text(graphics, state.phase().name() + " / " + sky, x + 12, y + 25, MUTED);
-
-        MissionUi.text(graphics, "Battery", x + 12, y + 45, MUTED);
-        MissionUi.rightText(graphics, Math.round(state.battery()) + "%", x + width - 12, y + 45, state.battery() <= 25 ? DANGER : ACCENT);
-        MissionUi.bar(graphics, x + 12, y + 58, width - 24, state.battery(), state.battery() <= 25 ? DANGER : ACCENT);
-
-        MissionUi.text(graphics, "Oxygen", x + 12, y + 72, MUTED);
-        MissionUi.rightText(graphics, Math.round(state.oxygen()) + "%", x + width - 12, y + 72, state.oxygen() <= 25 ? DANGER : OXYGEN);
-        MissionUi.bar(graphics, x + 12, y + 85, width - 24, state.oxygen(), state.oxygen() <= 25 ? DANGER : OXYGEN);
-        MissionUi.text(graphics, MissionUi.rate(state.generation() - state.demand()) + " energy/s  |  "
-                + Math.min(100, state.researchSeconds() * 100 / MissionState.RESEARCH_TARGET_SECONDS) + "% science", x + 12, y + 101, MUTED);
-
-        final int objectiveX = graphics.guiWidth() - 230, objectiveWidth = 218;
-        MissionUi.panel(graphics, objectiveX, y, objectiveWidth, 67);
-        MissionUi.text(graphics, packet.role().label, objectiveX + 10, y + 10, ACCENT);
-        MissionUi.wrap(graphics, state.objective(), objectiveX + 10, y + 25, objectiveWidth - 20, 2, TEXT);
-        MissionUi.text(graphics, NimbusNovaClient.consoleKey.getTranslatedKeyMessage().getString() + "  Mission console", objectiveX + 10, y + 51, MUTED);
-        if (MissionTutorial.visible(packet))
-            MissionTutorial.render(graphics, packet, objectiveX, y + 75, objectiveWidth, false);
-
-        final boolean solar = MissionState.solarWarning(state.elapsedSeconds()) || MissionState.solarStorm(state.elapsedSeconds());
-        if (state.phase() == MissionState.Phase.ACTIVE && (solar || state.battery() <= 25 || state.oxygen() <= 25 || state.storm())
-                && graphics.guiHeight() >= 260) {
-            final String warning = solar ? solarWarning(state)
-                    : state.oxygen() <= 25 ? "LOW OXYGEN / restore production"
-                    : state.battery() <= 25 ? "LOW BATTERY / reduce power demand" : "DUST FRONT / solar output reduced";
-            final int warningWidth = Math.min(graphics.guiWidth() - 24, (int) Math.ceil(NovaRenderer.width(warning, 10)) + 24);
-            final int warningX = (graphics.guiWidth() - warningWidth) / 2;
-            MissionUi.panel(graphics, warningX, graphics.guiHeight() - 79, warningWidth, 24);
-            MissionUi.text(graphics, warning, warningX + 12, graphics.guiHeight() - 71, DANGER);
+        if (state.phase() == MissionState.Phase.PAUSED) {
+            drawObjective(graphics, left, top + 36, width, "Discuss your next move",
+                    "Mission Control paused the clock and reserves. Talk with your crew.", "Wait for Mission Control to resume", null, ACCENT, "PAUSED");
+            return;
         }
-    }
 
-    private static String solarWarning(final MissionState.Snapshot state) {
-        final int elapsed = state.elapsedSeconds();
-        return MissionState.solarWarning(elapsed)
-                ? "SOLAR STORM IN " + (MissionState.SOLAR_START_SECONDS - elapsed) + " s / everyone into the crew shelter"
-                : "SOLAR STORM / stay in the shelter " + (MissionState.SOLAR_END_SECONDS - elapsed) + " s / crew dose "
-                + Math.round(state.radiationDose()) + "%";
-    }
+        if (!ObjectiveGuidance.onMars()) {
+            drawObjective(graphics, left, top + 36, width, "Enter Aster Outpost",
+                    "Open the mission tablet and choose Enter outpost. Your crew is preparing on Mars.",
+                    NimbusNovaClient.consoleKey.getTranslatedKeyMessage().getString() + "  Open mission tablet", null, ACCENT, "START HERE");
+            return;
+        }
 
-    private static void renderCompact(final GuiGraphicsExtractor graphics, final MissionSnapshotPayload packet) {
-        final MissionState.Snapshot state = packet.state();
-        final int x = 8, y = 8, width = graphics.guiWidth() - 16, meterWidth = (width - 36) / 2;
-        MissionUi.panel(graphics, x, y, width, 80);
-        MissionUi.text(graphics, "NIMBUS NOVA", x + 10, y + 8, TEXT);
-        MissionUi.rightText(graphics, state.phase() + " / " + MissionUi.time(MissionState.DURATION_SECONDS - state.elapsedSeconds()),
-                x + width - 10, y + 8, state.storm() ? DANGER : ACCENT);
-        MissionUi.text(graphics, packet.role().label, x + 10, y + 23, MUTED);
-        MissionUi.rightText(graphics, NimbusNovaClient.consoleKey.getTranslatedKeyMessage().getString() + "  Mission console",
-                x + width - 10, y + 23, MUTED);
-        MissionUi.text(graphics, "Battery " + Math.round(state.battery()) + "%", x + 10, y + 39, state.battery() <= 25 ? DANGER : ACCENT);
-        MissionUi.text(graphics, "Oxygen " + Math.round(state.oxygen()) + "%", x + 26 + meterWidth, y + 39, state.oxygen() <= 25 ? DANGER : OXYGEN);
-        MissionUi.bar(graphics, x + 10, y + 52, meterWidth, state.battery(), state.battery() <= 25 ? DANGER : ACCENT);
-        MissionUi.bar(graphics, x + 26 + meterWidth, y + 52, meterWidth, state.oxygen(), state.oxygen() <= 25 ? DANGER : OXYGEN);
-        MissionUi.text(graphics, "Science " + Math.min(state.researchSeconds(), MissionState.RESEARCH_TARGET_SECONDS) + "/90s", x + 10, y + 65, SUCCESS);
-        final String sky = MissionUi.seesWeather(packet) ? "Sun " + MissionUi.sunPercent(state) + "% > " + MissionUi.forecastPercent(state) + "%"
-                : state.storm() ? "DUST: ASK WEATHER" : MissionUi.rate(state.generation() - state.demand()) + " energy/s";
         final boolean solar = state.phase() == MissionState.Phase.ACTIVE
                 && (MissionState.solarWarning(state.elapsedSeconds()) || MissionState.solarStorm(state.elapsedSeconds()));
-        MissionUi.rightText(graphics, solar ? "SOLAR STORM: SHELTER!" : sky, x + width - 10, y + 65, solar || state.storm() ? DANGER : MUTED);
-        if (MissionTutorial.visible(packet))
-            MissionTutorial.render(graphics, packet, x, y + 84, width, true);
+        final Color accent = objective != null && objective.stage().equals("SHELTER_SAFE") ? SUCCESS
+                : solar || state.battery() <= 20 || state.oxygen() <= 20 ? DANGER : ACCENT;
+        drawObjective(graphics, left, top + 36, width,
+                objective == null ? "Meet Commander Vega" : objective.title(),
+                objective == null || objective.stage().equals("BRIEFING")
+                        ? "WASD: walk. Mouse: look. Follow the arrow to Commander Vega, then right-click him."
+                        : objective.stage().equals("ROLE") ? "Open your mission tablet, choose Crew, and pick your astronaut job." : objective.instruction(),
+                objective == null ? "Right-click the astronaut" : ObjectiveGuidance.navigation(objective), objective, accent,
+                objective == null ? "FIRST TASK" : state.phase() != MissionState.Phase.READY ? solar ? "SAFETY" : "MISSION"
+                        : objective.ready() ? "CREW READY" : "CREW " + objective.completed() + "/" + objective.total());
+    }
+
+    private static void drawObjective(final GuiGraphicsExtractor graphics, final int x, final int y, final int width,
+                                      final String title, final String instruction, final String action,
+                                      final MissionProgressPayload objective, final Color accent, final String badge) {
+        MissionUi.panel(graphics, x, y, width, 72);
+        final float titleSize = NovaRenderer.width(title, 13) > width - 95 ? 11 : 13;
+        NovaRenderer.text(graphics, title, x + 12, y + 7, titleSize, TEXT);
+        NovaRenderer.text(graphics, badge, x + width - 10 - NovaRenderer.width(badge, 8), y + 10, 8, accent);
+        NovaRenderer.wrap(graphics, instruction, x + 12, y + 29, width - 24, 9.5F, 2, TEXT);
+        ObjectiveGuidance.arrow(graphics, objective, x + 17, y + 61, accent);
+        NovaRenderer.wrap(graphics, action, x + (objective == null ? 12 : 31), y + 55, width - (objective == null ? 24 : 43), 9, 1, accent);
     }
 }

@@ -2,6 +2,7 @@ package cc.nimbusnova.mc.npc;
 
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
+import cc.nimbusnova.mc.mission.MissionPreparation;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -36,9 +37,16 @@ public final class MissionAstronaut extends PathfinderMob {
             return InteractionResult.PASS;
 
         final MissionController controller = MissionController.get(serverPlayer.level().getServer());
+        if (getType() == MissionNpcs.GUIDE && controller.snapshot().phase() == MissionState.Phase.READY) {
+            final String stage = controller.progress(serverPlayer).stage();
+            controller.interaction(serverPlayer, stage.equals("READY") ? MissionPreparation.TaskKind.LAUNCH
+                    : stage.equals("DELIVER") ? MissionPreparation.TaskKind.DELIVER_SAMPLE : MissionPreparation.TaskKind.BRIEFING);
+        }
+
         final MissionState.Snapshot state = controller.snapshot();
         ServerPlayNetworking.send(serverPlayer, new NpcDialoguePayload(getName().getString(),
-                NpcDialogue.briefing(state, controller.role(serverPlayer.getUUID())),
+                state.phase() == MissionState.Phase.READY ? controller.progress(serverPlayer).instruction()
+                        + " " + controller.progress(serverPlayer).actionHint() : NpcDialogue.briefing(state, controller.role(serverPlayer.getUUID())),
                 NpcDialogue.powerHint(state), NpcDialogue.oxygenHint(state)));
         return InteractionResult.SUCCESS_SERVER;
     }

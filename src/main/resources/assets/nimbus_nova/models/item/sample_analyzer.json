@@ -1,0 +1,17 @@
+{
+  "parent": "nimbus_nova:block/sample_analyzer",
+  "display": {
+    "gui": {
+      "rotation": [
+        25,
+        225,
+        0
+      ],
+      "scale": [
+        0.7,
+        0.7,
+        0.7
+      ]
+    }
+  }
+}

@@ -1,7 +1,9 @@
 package cc.nimbusnova.mc.world;
 
 import cc.nimbusnova.mc.content.ModBlocks;
+import cc.nimbusnova.mc.content.OutpostContent;
 import cc.nimbusnova.mc.mission.MissionController;
+import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.npc.MissionNpcs;
 import cc.nimbusnova.mc.vehicle.RoverContent;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -22,14 +24,16 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
-import net.minecraft.world.level.block.entity.SignText;
 import net.minecraft.world.level.block.entity.SignTextSlot;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import net.minecraft.world.level.block.state.properties.DoorHingeSide;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.Vec3;
@@ -40,6 +44,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
+import java.util.List;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +55,10 @@ public final class MarsTrainingMap {
             Identifier.parse("nimbus_nova:mars_training"));
     public static final BlockPos RESEARCH_STATION = new BlockPos(-24, 66, 0);
     public static final BlockPos OXYGEN_STATION = new BlockPos(-5, 66, 3);
+    public static final BlockPos SAMPLE_DEPOSIT = new BlockPos(40, 66, -16);
+    public static final BlockPos SAMPLE_ANALYZER = new BlockPos(6, 66, 1);
+    public static final BlockPos SUPPLY_LOCKER = new BlockPos(7, 66, -3);
+    public static final BlockPos WEATHER_STATION = new BlockPos(14, 66, -4);
     private static final int FLOOR_Y = 65;
     private static final int SITE_RADIUS = 48;
     private static final Map<MinecraftServer, Map<UUID, ReturnPoint>> RETURN_POINTS = new IdentityHashMap<>();
@@ -64,7 +73,7 @@ public final class MarsTrainingMap {
         ServerLifecycleEvents.SERVER_STOPPED.register(RETURN_POINTS::remove);
         CommandRegistrationCallback.EVENT.register((dispatcher, _, _) -> dispatcher.register(Commands.literal("mars")
                 .executes(context -> {
-                    context.getSource().sendSuccess(() -> Component.literal("Mars training: /mars create (operator), /mars join, /mars leave. "
+                    context.getSource().sendSuccess(() -> Component.literal("Mars training: /mars create, /mars upgrade (operator), /mars join, /mars leave. "
                             + MarsTerrain.terrainDescription()), false);
                     return 1;
                 })
@@ -74,6 +83,15 @@ public final class MarsTrainingMap {
                                 return create(context.getSource());
                             } catch (final IOException exception) {
                                 context.getSource().sendFailure(Component.literal("Outpost state could not be saved/read. No retry will overwrite existing terrain: " + exception.getMessage()));
+                                return 0;
+                            }
+                        }))
+                .then(Commands.literal("upgrade").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                        .executes(context -> {
+                            try {
+                                return upgrade(context.getSource());
+                            } catch (final IOException exception) {
+                                context.getSource().sendFailure(Component.literal("Cannot verify the outpost state: " + exception.getMessage()));
                                 return 0;
                             }
                         }))
@@ -126,6 +144,10 @@ public final class MarsTrainingMap {
         buildShelter(level);
         buildRoverBay(level);
         buildTerrainDetails(level);
+        buildMissionEquipment(level);
+        buildWayfinding(level);
+        beacon(level, -8, -18, Blocks.CONCRETE.orange());
+        beacon(level, -3, -13, Blocks.CONCRETE.cyan());
         verifyArrival(level);
         writeConstructionStage(source.getServer(), true);
         bindStations(source.getServer());
@@ -153,7 +175,184 @@ public final class MarsTrainingMap {
         player.teleportTo(destination, 0.5, FLOOR_Y + 1, -27.5, Set.of(), 0, 0, true);
         player.resetFallDistance();
         player.sendSystemMessage(Component.literal("Welcome to Aster Outpost. Fictional training site / authored terrain. Press J for mission controls. /mars leave returns you."));
+        if (!destination.getBlockState(SAMPLE_ANALYZER).is(OutpostContent.SAMPLE_ANALYZER))
+            player.sendSystemMessage(Component.literal("This older outpost needs mission equipment. Ask Mission Control to run /mars upgrade."));
+
         return 1;
+    }
+
+    private static int upgrade(final CommandSourceStack source) throws IOException {
+        final ServerLevel level = source.getServer().getLevel(DIMENSION);
+        if (level == null || readConstructionStage(source.getServer()) != 2) {
+            source.sendFailure(Component.literal("Create an outpost with /mars create before upgrading it."));
+            return 0;
+        }
+
+        final var phase = MissionController.get(source.getServer()).snapshot().phase();
+        if (phase == MissionState.Phase.ACTIVE || phase == MissionState.Phase.PAUSED) {
+            source.sendFailure(Component.literal("End or reset the mission before upgrading the outpost."));
+            return 0;
+        }
+
+        final DoorSite[] doors = {
+                habitatDoors()[0], habitatDoors()[1], habitatDoors()[2], habitatDoors()[3],
+                new DoorSite(new BlockPos(0, FLOOR_Y + 1, 20), Direction.NORTH, Blocks.POLISHED_DEEPSLATE),
+                new DoorSite(new BlockPos(20, FLOOR_Y + 1, 0), Direction.WEST, Blocks.CONCRETE.white())
+        };
+        for (final DoorSite door : doors) {
+            final BlockPos unsafe = unsafeDoorway(level, door);
+            if (unsafe == null) continue;
+            source.sendFailure(Component.literal("Upgrade stopped: a doorway or its approach was changed at " + unsafe
+                    + ". Your blocks were preserved; clear that opening or use a fresh test world."));
+            return 0;
+        }
+
+        final EquipmentSite[] equipment = {
+                new EquipmentSite(SAMPLE_DEPOSIT, OutpostContent.SAMPLE_DEPOSIT, Blocks.COPPER_ORE),
+                new EquipmentSite(SAMPLE_ANALYZER, OutpostContent.SAMPLE_ANALYZER, Blocks.AIR),
+                new EquipmentSite(SUPPLY_LOCKER, OutpostContent.SUPPLY_LOCKER, Blocks.AIR),
+                new EquipmentSite(WEATHER_STATION, OutpostContent.WEATHER_TERMINAL, Blocks.AIR)
+        };
+        for (final EquipmentSite site : equipment) {
+            final var current = level.getBlockState(site.position);
+            final var floor = level.getBlockState(site.position.below());
+            final boolean floorCanBeAdded = floor.isAir()
+                    && level.getBlockState(site.position.below(2)).isFaceSturdy(level, site.position.below(2), Direction.UP);
+            if ((current.isAir() || current.is(site.replacement) || current.is(site.prototype))
+                    && (floor.isFaceSturdy(level, site.position.below(), Direction.UP) || floorCanBeAdded)) continue;
+            source.sendFailure(Component.literal("Upgrade stopped: the mission equipment spot was changed at " + site.position
+                    + ". No blocks were replaced. Move your build away from that anchor or use a fresh test world."));
+            return 0;
+        }
+
+        for (final DoorSite door : doors) {
+            if (!doorInstalled(level, door))
+                installDoorway(level, door);
+        }
+
+        for (final EquipmentSite site : equipment) {
+            if (level.getBlockState(site.position.below()).isAir())
+                level.setBlock(site.position.below(), Blocks.CONCRETE.lightGray().defaultBlockState(), Block.UPDATE_CLIENTS);
+
+            if (!level.getBlockState(site.position).is(site.replacement))
+                level.setBlock(site.position, site.replacement.defaultBlockState(), Block.UPDATE_CLIENTS);
+        }
+
+        bindStations(source.getServer());
+        final int removedSigns = removePrototypeSigns(level);
+        upgradeProjector(level, -8, -18, Blocks.CONCRETE.orange());
+        upgradeProjector(level, -3, -13, Blocks.CONCRETE.cyan());
+        upgradeProjector(level, -4, 18, Blocks.CONCRETE.yellow());
+        upgradeProjector(level, 20, 17, Blocks.CONCRETE.lightBlue());
+        upgradeProjector(level, -18, -4, Blocks.CONCRETE.orange());
+        upgradeProjector(level, 10, -17, Blocks.CONCRETE.cyan());
+        source.sendSuccess(() -> Component.literal("Mission equipment and original doorways are ready. Replaced " + removedSigns
+                + " known prototype signs with hologram guidance; other terrain and builds were preserved."), false);
+        return 1;
+    }
+
+    private static void upgradeProjector(final ServerLevel level, final int x, final int z, final Block color) {
+        final BlockPos position = new BlockPos(x, FLOOR_Y + 1, z);
+        if (level.getBlockState(position).is(OutpostContent.HOLOGRAM_PROJECTOR)) return;
+
+        final boolean originalBeacon = level.getBlockState(position.below()).is(color)
+                && level.getBlockState(position).is(color) && level.getBlockState(position.above()).is(color)
+                && level.getBlockState(position.above(2)).is(color) && level.getBlockState(position.above(3)).is(Blocks.OCHRE_FROGLIGHT)
+                && level.getBlockState(position.above(4)).isAir();
+        if (originalBeacon) {
+            for (int height = 1; height <= 3; height++)
+                level.setBlock(position.above(height), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+        } else if (!level.getBlockState(position).isAir()) return;
+
+        if (!level.getBlockState(position.below()).isFaceSturdy(level, position.below(), Direction.UP)) {
+            if (!level.getBlockState(position.below()).isAir()
+                    || !level.getBlockState(position.below(2)).isFaceSturdy(level, position.below(2), Direction.UP)) return;
+
+            level.setBlock(position.below(), color.defaultBlockState(), Block.UPDATE_CLIENTS);
+        }
+
+        level.setBlock(position, OutpostContent.HOLOGRAM_PROJECTOR.defaultBlockState(), Block.UPDATE_CLIENTS);
+    }
+
+    private static int removePrototypeSigns(final ServerLevel level) {
+        final LegacySign[] signs = {
+                new LegacySign(new BlockPos(-8, 66, -18), List.of("ASTER OUTPOST", "Landing pad", "Training terrain", "/mars leave")),
+                new LegacySign(new BlockPos(-4, 67, 6), List.of("OXYGEN SYSTEM", "Right-click stone", "Life-support role", "Shared reserves")),
+                new LegacySign(new BlockPos(4, 67, 6), List.of("MISSION CONTROL", "Press J", "Select a role", "Prepare the crew")),
+                new LegacySign(new BlockPos(-4, 66, -6), List.of("ASTER HABITAT", "Fictional site", "Authored terrain", "No suit hazard yet")),
+                new LegacySign(new BlockPos(-2, 67, -13), List.of("AIRLOCK ENTRY", "Walk onto the plate", "Doors open for you", "Pressure not modeled")),
+                new LegacySign(new BlockPos(-20, 66, 0), List.of("POWER / RESEARCH", "Right-click console", "Power engineer", "Research uses power")),
+                new LegacySign(new BlockPos(-20, 66, 0), List.of("POWER / RESEARCH", "Right-click console", "Repair before launch", "Power engineer")),
+                new LegacySign(new BlockPos(-35, 66, 0), List.of("SOLAR ARRAY", "Dust lowers supply", "Panels are scenery", "J: live simulation")),
+                new LegacySign(new BlockPos(21, 66, -3), List.of("GREENHOUSE", "Demonstration crops", "Food model planned", "Water is limited")),
+                new LegacySign(new BlockPos(-4, 66, 18), List.of("CREW SHELTER", "Protection has cost", "Stock supplies first", "Radiation planned")),
+                new LegacySign(new BlockPos(-4, 66, 18), List.of("CREW SHELTER", "Solar storm? Get in", "No consoles inside", "Plan before alerts")),
+                new LegacySign(new BlockPos(20, 66, 17), List.of("ROVER WORKSHOP", "Static rover mockup", "Driving is planned", "Explore on foot")),
+                new LegacySign(new BlockPos(20, 66, 17), List.of("ROVER WORKSHOP", "Right-click to board", "Movement keys drive", "Sneak to exit")),
+                new LegacySign(new BlockPos(39, 66, -12), List.of("SCIENCE SITE", "Inspect rock layers", "Fictional samples", "Return to habitat")),
+                new LegacySign(new BlockPos(39, 66, -12), List.of("SAMPLE SITE", "Right-click the rock", "Take it to analyzer", "Fictional sample")),
+                new LegacySign(new BlockPos(5, 66, -12), List.of("OUTPOST ROUTES", "Habitat: ahead", "Power: left", "Greenhouse: right")),
+                new LegacySign(new BlockPos(8, 66, -3), List.of("CREW SUPPLIES", "Right-click locker", "Take your mission kit", "One kit per astronaut")),
+                new LegacySign(new BlockPos(8, 66, 1), List.of("SAMPLE ANALYZER", "Bring back the sample", "Right-click to deliver", "Then prepare launch")),
+                new LegacySign(new BlockPos(13, 66, -2), List.of("WEATHER STATION", "Right-click to scan", "Tell the crew", "Forecast solar power")),
+                new LegacySign(new BlockPos(-18, 67, -5), List.of("POWER", "Repair station", "Watch your objective", "Follow its marker")),
+                new LegacySign(new BlockPos(10, 67, -18), List.of("SAMPLE ROUTE", "Follow blue arrows", "Watch your objective", "Follow its marker")),
+                new LegacySign(new BlockPos(4, 67, 16), List.of("SHELTER", "Enter for solar alert", "Watch your objective", "Follow its marker")),
+                new LegacySign(new BlockPos(19, 67, 15), List.of("ROVER BAY", "Right-click to drive", "Watch your objective", "Follow its marker"))
+        };
+        int removed = 0;
+        for (final LegacySign legacy : signs) {
+            final BlockState state = level.getBlockState(legacy.position);
+            if ((!state.is(Blocks.OAK_SIGN) && !state.is(Blocks.OAK_WALL_SIGN))
+                    || !(level.getBlockEntity(legacy.position) instanceof SignBlockEntity sign)) continue;
+
+            final boolean originalFront = sign.getText(SignTextSlot.FRONT).getMessages(false).stream().map(Component::getString).toList().equals(legacy.lines);
+            final boolean originalBack = sign.getText(SignTextSlot.BACK).getMessages(false).stream().map(Component::getString).toList().equals(legacy.lines);
+            if (!originalFront || !originalBack) continue;
+
+            level.setBlock(legacy.position, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+            removed++;
+        }
+
+        return removed;
+    }
+
+    private static boolean doorInstalled(final ServerLevel level, final DoorSite site) {
+        for (int index = -1; index <= 0; index++) {
+            final BlockPos foot = site.center.relative(site.facing.getClockWise(), index);
+            final BlockState lower = level.getBlockState(foot), upper = level.getBlockState(foot.above());
+            if (!(lower.getBlock() instanceof DoorBlock) || upper.getBlock() != lower.getBlock()
+                    || lower.getValue(DoorBlock.HALF) != DoubleBlockHalf.LOWER || upper.getValue(DoorBlock.HALF) != DoubleBlockHalf.UPPER)
+                return false;
+        }
+
+        return true;
+    }
+
+    private static BlockPos unsafeDoorway(final ServerLevel level, final DoorSite site) {
+        if (doorInstalled(level, site)) return null;
+
+        final Direction side = site.facing.getClockWise();
+        for (int width = -1; width <= 1; width++) {
+            for (int height = 0; height <= 2; height++) {
+                final BlockPos position = site.center.relative(side, width).above(height);
+                final var state = level.getBlockState(position);
+                if (!state.isAir() && !state.is(site.wall)) return position;
+            }
+        }
+
+        for (int index = -1; index <= 0; index++) {
+            final BlockPos foot = site.center.relative(side, index);
+            if (!level.getBlockState(foot.below()).isFaceSturdy(level, foot.below(), Direction.UP)) return foot.below();
+            for (final Direction approach : new Direction[] { site.facing, site.facing.getOpposite() }) {
+                final BlockPos plate = foot.relative(approach);
+                final var state = level.getBlockState(plate);
+                if ((!state.isAir() && !state.is(Blocks.STONE_PRESSURE_PLATE))
+                        || !level.getBlockState(plate.below()).isFaceSturdy(level, plate.below(), Direction.UP)) return plate;
+            }
+        }
+
+        return null;
     }
 
     private static int leave(final ServerPlayer player) {
@@ -252,7 +451,6 @@ public final class MarsTrainingMap {
                 place(level, x, FLOOR_Y + 1, z, Blocks.SEA_LANTERN);
         }
 
-        sign(level, -8, FLOOR_Y + 1, -18, "ASTER OUTPOST", "Landing pad", "Training terrain", "/mars leave");
     }
 
     private static void buildHabitat(final ServerLevel level) {
@@ -271,9 +469,24 @@ public final class MarsTrainingMap {
         fill(level, 4, FLOOR_Y + 1, 4, 7, FLOOR_Y + 1, 6, Blocks.POLISHED_DEEPSLATE);
         place(level, 5, FLOOR_Y + 2, 5, Blocks.SEA_LANTERN);
         place(level, 7, FLOOR_Y + 2, 5, Blocks.CRAFTER);
-        sign(level, -4, FLOOR_Y + 2, 6, "OXYGEN SYSTEM", "Right-click stone", "Life-support role", "Shared reserves");
-        sign(level, 4, FLOOR_Y + 2, 6, "MISSION CONTROL", "Press J", "Select a role", "Prepare the crew");
-        sign(level, -4, FLOOR_Y + 1, -6, "ASTER HABITAT", "Fictional site", "Authored terrain", "No suit hazard yet");
+
+
+
+        for (final int wallX : new int[] { -10, 10 }) {
+            fill(level, wallX, FLOOR_Y + 2, -6, wallX, FLOOR_Y + 3, -3, Blocks.STAINED_GLASS.lightBlue());
+            fill(level, wallX, FLOOR_Y + 2, 3, wallX, FLOOR_Y + 3, 6, Blocks.STAINED_GLASS.lightBlue());
+        }
+
+        for (int stripZ = -5; stripZ <= 3; stripZ += 2) {
+            place(level, -8, FLOOR_Y, stripZ, Blocks.SEA_LANTERN);
+            place(level, 8, FLOOR_Y, stripZ, Blocks.SEA_LANTERN);
+        }
+
+        room(level, -2, -12, 2, -8, Blocks.CONCRETE.white(), Blocks.CONCRETE.gray());
+        installDoorway(level, new DoorSite(new BlockPos(0, FLOOR_Y + 1, -12), Direction.NORTH, Blocks.CONCRETE.white()));
+        for (final DoorSite doorway : habitatDoors())
+            installDoorway(level, doorway);
+
     }
 
     private static void buildPowerYard(final ServerLevel level) {
@@ -289,8 +502,8 @@ public final class MarsTrainingMap {
         fill(level, -27, FLOOR_Y, -1, -21, FLOOR_Y, 1, Blocks.POLISHED_DEEPSLATE);
         level.setBlock(RESEARCH_STATION, ModBlocks.RESEARCH_CONSOLE.defaultBlockState(), Block.UPDATE_CLIENTS);
         place(level, -26, FLOOR_Y + 1, 0, Blocks.SEA_LANTERN);
-        sign(level, -20, FLOOR_Y + 1, 0, "POWER / RESEARCH", "Right-click console", "Power engineer", "Research uses power");
-        sign(level, -35, FLOOR_Y + 1, 0, "SOLAR ARRAY", "Dust lowers supply", "Panels are scenery", "J: live simulation");
+
+
     }
 
     private static void buildGreenhouse(final ServerLevel level) {
@@ -312,7 +525,8 @@ public final class MarsTrainingMap {
 
         fill(level, 24, FLOOR_Y + 1, -1, 32, FLOOR_Y + 1, 1, Blocks.STAINED_GLASS.cyan());
         fill(level, 25, FLOOR_Y + 1, 0, 31, FLOOR_Y + 1, 0, Blocks.WATER);
-        sign(level, 21, FLOOR_Y + 1, -3, "GREENHOUSE", "Demonstration crops", "Food model planned", "Water is limited");
+
+        installDoorway(level, new DoorSite(new BlockPos(20, FLOOR_Y + 1, 0), Direction.WEST, Blocks.CONCRETE.white()));
     }
 
     /** Inside the crew shelter's walls, built by {@link #buildShelter}. */
@@ -330,7 +544,8 @@ public final class MarsTrainingMap {
             place(level, x, FLOOR_Y + 2, 29, Blocks.BARREL);
 
         place(level, 0, FLOOR_Y + 4, 26, Blocks.SEA_LANTERN);
-        sign(level, -4, FLOOR_Y + 1, 18, "CREW SHELTER", "Solar storm? Get in", "No consoles inside", "Plan before alerts");
+
+        installDoorway(level, new DoorSite(new BlockPos(0, FLOOR_Y + 1, 20), Direction.NORTH, Blocks.POLISHED_DEEPSLATE));
     }
 
     private static void buildRoverBay(final ServerLevel level) {
@@ -348,7 +563,6 @@ public final class MarsTrainingMap {
                 level.addFreshEntity(rover);
         }
 
-        sign(level, 20, FLOOR_Y + 1, 17, "ROVER WORKSHOP", "Right-click to board", "Movement keys drive", "Sneak to exit");
     }
 
     private static void buildTerrainDetails(final ServerLevel level) {
@@ -363,9 +577,97 @@ public final class MarsTrainingMap {
         }
 
         fill(level, 39, FLOOR_Y, -17, 41, FLOOR_Y, -11, Blocks.CONCRETE.lightGray());
-        place(level, 40, FLOOR_Y + 1, -16, Blocks.COPPER_ORE);
-        sign(level, 39, FLOOR_Y + 1, -12, "SCIENCE SITE", "Inspect rock layers", "Fictional samples", "Return to habitat");
-        sign(level, 5, FLOOR_Y + 1, -12, "OUTPOST ROUTES", "Habitat: ahead", "Power: left", "Greenhouse: right");
+
+
+    }
+
+    private static void buildMissionEquipment(final ServerLevel level) {
+        level.setBlock(SAMPLE_DEPOSIT, OutpostContent.SAMPLE_DEPOSIT.defaultBlockState(), Block.UPDATE_CLIENTS);
+        level.setBlock(SAMPLE_ANALYZER, OutpostContent.SAMPLE_ANALYZER.defaultBlockState(), Block.UPDATE_CLIENTS);
+        level.setBlock(SUPPLY_LOCKER, OutpostContent.SUPPLY_LOCKER.defaultBlockState(), Block.UPDATE_CLIENTS);
+        fill(level, 12, FLOOR_Y, -6, 16, FLOOR_Y, -2, Blocks.CONCRETE.lightGray());
+        level.setBlock(WEATHER_STATION, OutpostContent.WEATHER_TERMINAL.defaultBlockState(), Block.UPDATE_CLIENTS);
+
+
+
+    }
+
+    private static void buildWayfinding(final ServerLevel level) {
+        for (int x = -6; x >= -24; x -= 6)
+            floorArrow(level, x, 0, Direction.WEST, Blocks.CONCRETE.orange());
+
+        for (int z = 12; z <= 18; z += 6)
+            floorArrow(level, 0, z, Direction.SOUTH, Blocks.CONCRETE.yellow());
+
+        fill(level, 4, FLOOR_Y, -15, 40, FLOOR_Y, -13, Blocks.CONCRETE.lightGray());
+        for (int x = 10; x <= 34; x += 8)
+            floorArrow(level, x, -14, Direction.EAST, Blocks.CONCRETE.cyan());
+
+        beacon(level, -18, -4, Blocks.CONCRETE.orange());
+        beacon(level, 10, -17, Blocks.CONCRETE.cyan());
+        beacon(level, -4, 18, Blocks.CONCRETE.yellow());
+        beacon(level, 20, 17, Blocks.CONCRETE.lightBlue());
+    }
+
+    private static void floorArrow(final ServerLevel level, final int x, final int z, final Direction direction, final Block color) {
+        final BlockPos center = new BlockPos(x, FLOOR_Y, z);
+        final Direction side = direction.getClockWise();
+        for (int offset = -2; offset <= 1; offset++) {
+            final BlockPos point = center.relative(direction, offset);
+            place(level, point.getX(), FLOOR_Y, point.getZ(), color);
+        }
+
+        for (final int wing : new int[] { -1, 1 }) {
+            final BlockPos point = center.relative(side, wing);
+            place(level, point.getX(), FLOOR_Y, point.getZ(), color);
+        }
+    }
+
+    private static void beacon(final ServerLevel level, final int x, final int z, final Block color) {
+        place(level, x, FLOOR_Y, z, color);
+        level.setBlock(new BlockPos(x, FLOOR_Y + 1, z), OutpostContent.HOLOGRAM_PROJECTOR.defaultBlockState(), Block.UPDATE_CLIENTS);
+    }
+
+    private static DoorSite[] habitatDoors() {
+        return new DoorSite[] {
+                new DoorSite(new BlockPos(0, FLOOR_Y + 1, -8), Direction.NORTH, Blocks.CONCRETE.white()),
+                new DoorSite(new BlockPos(0, FLOOR_Y + 1, 8), Direction.SOUTH, Blocks.CONCRETE.white()),
+                new DoorSite(new BlockPos(-10, FLOOR_Y + 1, 0), Direction.WEST, Blocks.CONCRETE.white()),
+                new DoorSite(new BlockPos(10, FLOOR_Y + 1, 0), Direction.EAST, Blocks.CONCRETE.white())
+        };
+    }
+
+    private static void installDoorway(final ServerLevel level, final DoorSite site) {
+        final Direction side = site.facing.getClockWise();
+        for (int width = -1; width <= 1; width++) {
+            for (int height = 0; height <= 2; height++) {
+                final BlockPos position = site.center.relative(side, width).above(height);
+                level.setBlock(position, site.wall.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+            }
+        }
+
+        for (int index = 0; index < 2; index++) {
+            final BlockPos foot = site.center.relative(side, index - 1);
+            final var door = Blocks.IRON_DOOR.defaultBlockState().setValue(DoorBlock.FACING, site.facing)
+                    .setValue(DoorBlock.HINGE, index == 0 ? DoorHingeSide.LEFT : DoorHingeSide.RIGHT)
+                    .setValue(DoorBlock.OPEN, false).setValue(BlockStateProperties.POWERED, false);
+            level.setBlock(foot, door.setValue(DoorBlock.HALF, DoubleBlockHalf.LOWER), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+            level.setBlock(foot.above(), door.setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+            for (final Direction approach : new Direction[] { site.facing, site.facing.getOpposite() })
+                level.setBlock(foot.relative(approach), Blocks.STONE_PRESSURE_PLATE.defaultBlockState(), Block.UPDATE_ALL);
+        }
+    }
+
+    private record DoorSite(BlockPos center, Direction facing, Block wall) {
+        /* w */
+    }
+
+    private record EquipmentSite(BlockPos position, Block replacement, Block prototype) {
+        /* w */
+    }
+
+    private record LegacySign(BlockPos position, List<String> lines) {
+        /* w */
     }
 
     private static void room(final ServerLevel level, final int minX, final int minZ, final int maxX, final int maxZ,
@@ -376,21 +678,17 @@ public final class MarsTrainingMap {
         fill(level, minX, FLOOR_Y + 1, minZ, minX, FLOOR_Y + 4, maxZ, walls);
         fill(level, maxX, FLOOR_Y + 1, minZ, maxX, FLOOR_Y + 4, maxZ, walls);
         fill(level, minX, FLOOR_Y + 5, minZ, maxX, FLOOR_Y + 5, maxZ, roof);
-    }
+        fill(level, minX, FLOOR_Y, minZ, maxX, FLOOR_Y, minZ, Blocks.POLISHED_DEEPSLATE);
+        fill(level, minX, FLOOR_Y, maxZ, maxX, FLOOR_Y, maxZ, Blocks.POLISHED_DEEPSLATE);
+        fill(level, minX, FLOOR_Y, minZ, minX, FLOOR_Y, maxZ, Blocks.POLISHED_DEEPSLATE);
+        fill(level, maxX, FLOOR_Y, minZ, maxX, FLOOR_Y, maxZ, Blocks.POLISHED_DEEPSLATE);
+        for (final int cornerX : new int[] { minX, maxX }) {
+            for (final int cornerZ : new int[] { minZ, maxZ })
+                fill(level, cornerX, FLOOR_Y + 1, cornerZ, cornerX, FLOOR_Y + 4, cornerZ, Blocks.POLISHED_DEEPSLATE);
+        }
 
-    private static void sign(final ServerLevel level, final int x, final int y, final int z,
-                             final String first, final String second, final String third, final String fourth) {
-        final BlockPos position = new BlockPos(x, y, z);
-        level.setBlock(position, Blocks.OAK_SIGN.defaultBlockState(), Block.UPDATE_CLIENTS);
-        if (!(level.getBlockEntity(position) instanceof SignBlockEntity sign))
-            throw new IllegalStateException("Could not create the outpost sign at " + position);
-
-        final SignText text = SignText.EMPTY.asMutable().setColor(DyeColor.WHITE).setTextGlowing(true)
-                .setLine(0, Component.literal(first)).setLine(1, Component.literal(second))
-                .setLine(2, Component.literal(third)).setLine(3, Component.literal(fourth)).asImmutable();
-        sign.setText(text, SignTextSlot.FRONT);
-        sign.setText(text, SignTextSlot.BACK);
-        sign.setChanged();
+        for (int supportX = minX + 2; supportX < maxX; supportX += 4)
+            fill(level, supportX, FLOOR_Y + 5, minZ, supportX, FLOOR_Y + 5, maxZ, Blocks.POLISHED_DEEPSLATE);
     }
 
     private static void fill(final ServerLevel level, final int minX, final int minY, final int minZ,

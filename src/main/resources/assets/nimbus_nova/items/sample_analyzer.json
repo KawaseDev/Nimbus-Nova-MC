@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "nimbus_nova:item/sample_analyzer"
+  }
+}

@@ -1,13 +1,16 @@
 package cc.nimbusnova.mc.client.npc;
 
 import cc.nimbusnova.mc.client.MissionButton;
+import cc.nimbusnova.mc.client.GuidedMissionClient;
+import cc.nimbusnova.mc.client.NimbusNovaClient;
+import cc.nimbusnova.mc.client.MissionConsoleScreen;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.render.NovaScreen;
 import cc.nimbusnova.mc.npc.NpcDialoguePayload;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -21,6 +24,7 @@ public final class NpcDialogueScreen extends NovaScreen {
     private int left, top, panelWidth, panelHeight;
     private List<String> lines = List.of();
     private int linesPerPage;
+    private @Nullable MissionButton continueMission;
 
     public NpcDialogueScreen(final NpcDialoguePayload dialogue) {
         super(Component.literal("Talk with " + dialogue.name()));
@@ -79,17 +83,33 @@ public final class NpcDialogueScreen extends NovaScreen {
                     rebuildWidgets();
                 }));
         next.active = (page + 1) * linesPerPage < lines.size();
-        addRenderableWidget(new MissionButton(left + panelWidth - 104, top + panelHeight - 36, 90, 22, "Back to crew", this::onClose));
+        continueMission = addRenderableWidget(new MissionButton(left + panelWidth - 104, top + panelHeight - 36, 90, 22, "Next task", () -> {
+            final var mission = NimbusNovaClient.missionSnapshot();
+            if (mission != null && mission.state().phase().ended())
+                minecraft.setScreenAndShow(new MissionConsoleScreen(3));
+            else if (GuidedMissionClient.progress() != null && GuidedMissionClient.progress().stage().equals("ROLE"))
+                minecraft.setScreenAndShow(new MissionConsoleScreen(1));
+            else if (GuidedMissionClient.progress() != null && GuidedMissionClient.progress().ready())
+                minecraft.setScreenAndShow(new MissionConsoleScreen());
+            else
+                onClose();
+        }));
     }
 
     @Override
     public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
+        final var mission = NimbusNovaClient.missionSnapshot();
+        if (continueMission != null)
+            continueMission.setMessage(Component.literal(mission != null && mission.state().phase().ended() ? "Mission report"
+                    : GuidedMissionClient.progress() != null && GuidedMissionClient.progress().stage().equals("ROLE") ? "Choose role"
+                    : GuidedMissionClient.progress() != null && GuidedMissionClient.progress().ready() ? "Launch tablet" : "Next task"));
         final Color background = new Color(14, 22, 29, 242), border = new Color(78, 101, 113),
                 text = new Color(238, 239, 233), accent = new Color(239, 177, 94), muted = new Color(165, 181, 188);
         NovaRenderer.rect(graphics, left, top, panelWidth, panelHeight, 10, background);
         NovaRenderer.stroke(graphics, left, top, panelWidth, panelHeight, 10, 1, border);
         NovaRenderer.text(graphics, dialogue.name(), left + 16, top + 14, 15, accent);
-        NovaRenderer.text(graphics, "Aster Outpost / crew conversation", left + 16, top + 33, 9, muted);
+        NovaRenderer.text(graphics, GuidedMissionClient.progress() == null ? "Your astronaut guide"
+                        : GuidedMissionClient.progress().title(), left + 16, top + 33, 9, muted);
         for (int line = 0; line < linesPerPage && page * linesPerPage + line < lines.size(); line++)
             NovaRenderer.text(graphics, lines.get(page * linesPerPage + line), left + 16, top + 88 + line * 14, 11, text);
 

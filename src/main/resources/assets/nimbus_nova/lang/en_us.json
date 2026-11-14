@@ -18,5 +18,9 @@
   "block.nimbus_nova.oxygen_console": "Oxygen processor",
   "entity.nimbus_nova.mars_rover": "Aster Rover",
   "entity.nimbus_nova.mission_guide": "Commander Vega",
-  "entity.nimbus_nova.mission_engineer": "Engineer Sol"
+  "entity.nimbus_nova.mission_engineer": "Engineer Sol",
+  "block.nimbus_nova.sample_deposit": "Mars sample deposit",
+  "block.nimbus_nova.sample_analyzer": "Sample analyzer",
+  "block.nimbus_nova.outpost_supply_locker": "Crew supply locker",
+  "block.nimbus_nova.outpost_weather_terminal": "Weather terminal"
 }
