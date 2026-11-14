@@ -146,3 +146,27 @@ tasks.register('educationPauseTest', JavaExec) {
 }
 
 check.dependsOn educationPauseTest
+tasks.register('scifiAssetTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.content.scifi.ScifiAssetTest'
+    enableAssertions = true
+}
+
+tasks.register('domeGeometryTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.world.DomeGeometryTest'
+    enableAssertions = true
+}
+
+check.dependsOn scifiAssetTest, domeGeometryTest
+
+tasks.register('lessonModelTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.lesson.LessonModelTest'
+    enableAssertions = true
+}
+
+check.dependsOn lessonModelTest

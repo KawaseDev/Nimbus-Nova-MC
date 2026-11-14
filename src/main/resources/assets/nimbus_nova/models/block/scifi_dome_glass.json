@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": {
+      "sprite": "nimbus_nova:block/scifi_dome_glass",
+      "force_translucent": true
+    }
+  }
+}

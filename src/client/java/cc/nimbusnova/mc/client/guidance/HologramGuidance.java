@@ -42,7 +42,10 @@ public final class HologramGuidance {
             new Anchor("Rover workshop", 28.5, 69, 25.5),
             new Anchor("Mission guide", -7.5, 67.4, -17.5),
             new Anchor("Habitat airlock", -2.5, 67.4, -12.5),
-            new Anchor("Shelter entrance", -3.5, 67.4, 18.5));
+            new Anchor("Shelter entrance", -3.5, 67.4, 18.5),
+            new Anchor("Airlock pressure lab", -0.5, 67.8, -9.5),
+            new Anchor("Backup power reserve", 3.5, 67.8, 5.5),
+            new Anchor("Shielding experiment", 2.5, 67.8, 25.5));
     private static final Color CYAN = new Color(115, 230, 237);
     private static final Color AMBER = new Color(248, 193, 108);
     private static final Color BACKGROUND = new Color(11, 25, 33, 213);

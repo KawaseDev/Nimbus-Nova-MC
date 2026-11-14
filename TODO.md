@@ -168,3 +168,18 @@ Status: implemented. The actual client test passed preparation, both visual puzz
 - [x] Commit and push working batches, preserving teammate changes.
 
 Two-child observation remains necessary before claiming age-appropriate usability or educational effectiveness.
+
+## Dome, equipment lessons, and rendering fixes
+
+- [x] Add 14 custom structural/equipment blocks with original models and animated textures.
+- [x] Build a domed fresh-world layout with exterior solar arrays and preserved mission exits.
+- [x] Add pressure equalization, finite backup energy, and shielding/mass experiments.
+- [x] Keep real science principles distinct from authored resource values and decorative props.
+- [x] Fix overlapping/coplanar equipment faces, cropped UVs, disconnected dome ribs, and the locker door's adjacent-block intrusion.
+- [x] Complete the final native-client station playthrough and inspect corrected geometry screenshots.
+- [x] Push the final verified batch and sync teammate changes.
+- [ ] Observe learners/educators before claiming usability or educational effectiveness.
+
+Next proposed mission: Return Window, using a separate spacecraft map and departure objective; see PLAN.md. Do not mark it playable before its own mission loop exists.
+
+Verification: Java 25 `build runClientGameTest` passed with the pressure/backup/shielding runtime checks and complete guided mission success. Inspected fresh native captures of the dome, airlocks, oxygen console, hollow open locker, air tanks, cabinet, greenhouse approach, and lab screens. Existing saves are not rebuilt automatically; reload assets/restart the client for model changes and use a fresh test world for the complete authored layout. Multiplayer/classroom testing remains open.

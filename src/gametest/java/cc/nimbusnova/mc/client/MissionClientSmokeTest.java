@@ -65,6 +65,48 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             System.out.println("Movement checks: Earth=" + earthMovement + "; Mars=" + marsMovement);
             world.getConnection().waitForChunksRender();
             GuidedMissionChecks.capture(context, "mars-outpost");
+            context.runOnClient(client -> client.gui.hud.toggle());
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 50 88 -53 42 8");
+            context.waitFor(client -> client.player != null && client.player.getY() > 80);
+            context.waitTicks(5);
+            world.getConnection().waitForChunksRender();
+            GuidedMissionChecks.capture(context, "dome-exterior");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 12 68 -9 35 -13");
+            context.waitFor(client -> client.player != null && client.player.getX() < 15);
+            context.waitTicks(5);
+            world.getConnection().waitForChunksRender();
+            GuidedMissionChecks.capture(context, "dome-interior");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p -7 66 -7 -35 -8");
+            context.waitTicks(10);
+            GuidedMissionChecks.capture(context, "geometry-habitat-wall");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p -8 66 0 -45 17");
+            context.waitTicks(10);
+            GuidedMissionChecks.capture(context, "geometry-life-support");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 4 66 -6 -40 17");
+            context.waitTicks(10);
+            GuidedMissionChecks.capture(context, "geometry-locker-closed");
+            world.getServer().runOnServer(server -> {
+                final var level = world.getConnection().getServerLevel();
+                level.setBlock(MarsTrainingMap.SUPPLY_LOCKER, level.getBlockState(MarsTrainingMap.SUPPLY_LOCKER)
+                        .setValue(BlockStateProperties.OPEN, true), 2);
+            });
+            world.getConnection().waitForClientboundPackets();
+            context.waitTicks(10);
+            GuidedMissionChecks.capture(context, "geometry-locker-open");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p -6 66 0 40 14");
+            context.waitTicks(10);
+            GuidedMissionChecks.capture(context, "geometry-air-tanks");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 5 66 2 -35 -5");
+            context.waitTicks(10);
+            GuidedMissionChecks.capture(context, "geometry-cryo-cabinet");
+
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 12 66 -7 -15 10");
+            context.waitTicks(10);
+            GuidedMissionChecks.capture(context, "geometry-weather-greenhouse");
+            world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 0 66 15 0 -5");
+            context.waitTicks(10);
+            GuidedMissionChecks.capture(context, "geometry-shelter");
+            context.runOnClient(client -> client.gui.hud.toggle());
             GuidedMissionChecks.checkOutpost(context, world);
             if (MissionTutorial.consoleOpened)
                 throw new AssertionError("The tutorial must start with the console step unchecked");
@@ -80,6 +122,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
                 throw new AssertionError("Opening the console must tick the tutorial's first step");
 
             GuidedMissionChecks.prepare(context, world);
+            ScienceStationChecks.practice(context, world);
             context.setScreen(MissionConsoleScreen::new);
             context.clickScreenButton("Start mission");
             context.waitFor(client -> NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.ACTIVE);
@@ -100,6 +143,8 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             world.getServer().runCommand("mission acknowledge");
             world.getServer().runCommand("mission resume");
             context.waitFor(client -> NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.ACTIVE);
+            context.setScreen(() -> null);
+            ScienceStationChecks.active(context, world);
             context.setScreen(MissionConsoleScreen::new);
             GuidedMissionChecks.capture(context, "mission-overview");
             context.clickScreenButton("Crew");

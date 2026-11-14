@@ -6,6 +6,22 @@ public final class MissionStateTest {
     }
 
     public static void main(final String[] arguments) {
+        final MissionState reserves = new MissionState();
+        assert reserves.cycleAirlock() && reserves.snapshot().oxygen() == 75 : "Preparation is a resource-free rehearsal";
+        assert !reserves.useBackupPower() && reserves.backupCellsRemaining() == 2;
+        reserves.start();
+        assert reserves.useBackupPower() && reserves.snapshot().battery() == 90;
+        assert reserves.useBackupPower() && reserves.snapshot().battery() == 100;
+        assert !reserves.useBackupPower() && reserves.backupCellsRemaining() == 0 : "The crew shares a finite store";
+        assert reserves.cycleAirlock() && reserves.snapshot().oxygen() == 73;
+        reserves.pause();
+        assert !reserves.cycleAirlock() && !reserves.useBackupPower();
+        reserves.resume();
+        for (int cycle = 0; cycle < 36; cycle++)
+            assert reserves.cycleAirlock();
+
+        assert reserves.snapshot().oxygen() == 1 && !reserves.cycleAirlock() : "Cycling cannot exhaust breathable reserves";
+
         final MissionState initial = new MissionState();
         assert !initial.replenishOxygen() : "Canisters must not mutate an idle mission";
         initial.tickSecond();

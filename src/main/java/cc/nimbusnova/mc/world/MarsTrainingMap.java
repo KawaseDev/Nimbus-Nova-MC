@@ -2,6 +2,8 @@ package cc.nimbusnova.mc.world;
 
 import cc.nimbusnova.mc.content.ModBlocks;
 import cc.nimbusnova.mc.content.OutpostContent;
+import cc.nimbusnova.mc.content.ScienceStations;
+import cc.nimbusnova.mc.content.ScifiBlocks;
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.npc.MissionNpcs;
@@ -73,7 +75,7 @@ public final class MarsTrainingMap {
         ServerLifecycleEvents.SERVER_STOPPED.register(RETURN_POINTS::remove);
         CommandRegistrationCallback.EVENT.register((dispatcher, _, _) -> dispatcher.register(Commands.literal("mars")
                 .executes(context -> {
-                    context.getSource().sendSuccess(() -> Component.literal("Mars training: /mars create, /mars upgrade (operator), /mars join, /mars leave. "
+                    context.getSource().sendSuccess(() -> Component.literal("Mars training: /mars create, /mars upgrade, /mars dome (operator), /mars join, /mars leave. "
                             + MarsTerrain.terrainDescription()), false);
                     return 1;
                 })
@@ -90,6 +92,15 @@ public final class MarsTrainingMap {
                         .executes(context -> {
                             try {
                                 return upgrade(context.getSource());
+                            } catch (final IOException exception) {
+                                context.getSource().sendFailure(Component.literal("Cannot verify the outpost state: " + exception.getMessage()));
+                                return 0;
+                            }
+                        }))
+                .then(Commands.literal("dome").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                        .executes(context -> {
+                            try {
+                                return addDome(context.getSource());
                             } catch (final IOException exception) {
                                 context.getSource().sendFailure(Component.literal("Cannot verify the outpost state: " + exception.getMessage()));
                                 return 0;
@@ -126,7 +137,7 @@ public final class MarsTrainingMap {
         }
 
         for (final BlockPos position : BlockPos.betweenClosed(-SITE_RADIUS, FLOOR_Y, -SITE_RADIUS,
-                SITE_RADIUS, FLOOR_Y + 10, SITE_RADIUS)) {
+                SITE_RADIUS, FLOOR_Y + OutpostDome.HEIGHT, SITE_RADIUS)) {
             if (level.getBlockState(position).isAir()) continue;
             source.sendFailure(Component.literal("The reserved Mars site contains existing blocks. Creation stopped without replacing them."));
             return 0;
@@ -136,6 +147,7 @@ public final class MarsTrainingMap {
         writeConstructionStage(source.getServer(), false);
         source.sendSuccess(() -> Component.literal("Building the original Mars training outpost..."), false);
 
+        OutpostDome.build(level);
         buildPaths(level);
         buildLandingPad(level);
         buildHabitat(level);
@@ -196,6 +208,7 @@ public final class MarsTrainingMap {
 
         final DoorSite[] doors = {
                 habitatDoors()[0], habitatDoors()[1], habitatDoors()[2], habitatDoors()[3],
+                new DoorSite(new BlockPos(0, FLOOR_Y + 1, -12), Direction.NORTH, Blocks.CONCRETE.white()),
                 new DoorSite(new BlockPos(0, FLOOR_Y + 1, 20), Direction.NORTH, Blocks.POLISHED_DEEPSLATE),
                 new DoorSite(new BlockPos(20, FLOOR_Y + 1, 0), Direction.WEST, Blocks.CONCRETE.white())
         };
@@ -211,7 +224,10 @@ public final class MarsTrainingMap {
                 new EquipmentSite(SAMPLE_DEPOSIT, OutpostContent.SAMPLE_DEPOSIT, Blocks.COPPER_ORE),
                 new EquipmentSite(SAMPLE_ANALYZER, OutpostContent.SAMPLE_ANALYZER, Blocks.AIR),
                 new EquipmentSite(SUPPLY_LOCKER, OutpostContent.SUPPLY_LOCKER, Blocks.AIR),
-                new EquipmentSite(WEATHER_STATION, OutpostContent.WEATHER_TERMINAL, Blocks.AIR)
+                new EquipmentSite(WEATHER_STATION, OutpostContent.WEATHER_TERMINAL, Blocks.AIR),
+                new EquipmentSite(new BlockPos(-1, 66, -10), ScienceStations.AIRLOCK_CONTROL, Blocks.AIR),
+                new EquipmentSite(new BlockPos(3, 66, 5), ScienceStations.BACKUP_POWER, Blocks.AIR),
+                new EquipmentSite(new BlockPos(2, 66, 25), ScienceStations.SHIELD_BENCH, Blocks.AIR)
         };
         for (final EquipmentSite site : equipment) {
             final var current = level.getBlockState(site.position);
@@ -226,7 +242,7 @@ public final class MarsTrainingMap {
         }
 
         for (final DoorSite door : doors) {
-            if (!doorInstalled(level, door))
+            if (!doorInstalled(level, door) || level.getBlockState(door.center).is(Blocks.IRON_DOOR))
                 installDoorway(level, door);
         }
 
@@ -248,6 +264,30 @@ public final class MarsTrainingMap {
         upgradeProjector(level, 10, -17, Blocks.CONCRETE.cyan());
         source.sendSuccess(() -> Component.literal("Mission equipment and original doorways are ready. Replaced " + removedSigns
                 + " known prototype signs with hologram guidance; other terrain and builds were preserved."), false);
+        return 1;
+    }
+
+    private static int addDome(final CommandSourceStack source) throws IOException {
+        final ServerLevel level = source.getServer().getLevel(DIMENSION);
+        if (level == null || readConstructionStage(source.getServer()) != 2) {
+            source.sendFailure(Component.literal("Create an outpost first. The dome command preserves existing builds."));
+            return 0;
+        }
+
+        final var phase = MissionController.get(source.getServer()).snapshot().phase();
+        if (phase == MissionState.Phase.ACTIVE || phase == MissionState.Phase.PAUSED) {
+            source.sendFailure(Component.literal("End or reset the mission before adding the dome."));
+            return 0;
+        }
+
+        final BlockPos conflict = OutpostDome.findConflict(level);
+        if (conflict != null) {
+            source.sendFailure(Component.literal("Dome installation stopped at " + conflict + ". Existing blocks were preserved. Clear the shell footprint or use a fresh test world."));
+            return 0;
+        }
+
+        OutpostDome.build(level);
+        source.sendSuccess(() -> Component.literal("Aster's demonstration dome is installed. Glass does not protect against radiation; use the reinforced crew shelter."), false);
         return 1;
     }
 
@@ -424,11 +464,18 @@ public final class MarsTrainingMap {
     }
 
     private static void buildPaths(final ServerLevel level) {
-        fill(level, -2, FLOOR_Y, -28, 2, FLOOR_Y, 30, Blocks.CONCRETE.lightGray());
-        fill(level, -32, FLOOR_Y, -2, 32, FLOOR_Y, 2, Blocks.CONCRETE.lightGray());
-        fill(level, 0, FLOOR_Y, 23, 30, FLOOR_Y, 27, Blocks.CONCRETE.lightGray());
+        for (int x = -17; x <= 17; x++) {
+            for (int z = -17; z <= 17; z++) {
+                if (x * x + z * z > 17 * 17) continue;
+                place(level, x, FLOOR_Y, z, ScifiBlocks.FLOOR_TILE);
+            }
+        }
+
+        fill(level, -2, FLOOR_Y, -28, 2, FLOOR_Y, 30, ScifiBlocks.FLOOR_TILE);
+        fill(level, -32, FLOOR_Y, -2, 32, FLOOR_Y, 2, ScifiBlocks.FLOOR_TILE);
+        fill(level, 0, FLOOR_Y, 23, 30, FLOOR_Y, 27, ScifiBlocks.FLOOR_TILE);
         for (int distance = -24; distance <= 24; distance += 8) {
-            place(level, -3, FLOOR_Y, distance, Blocks.OCHRE_FROGLIGHT);
+            place(level, -3, FLOOR_Y, distance, ScifiBlocks.FLOOR_LIGHT);
             place(level, 3, FLOOR_Y, distance, Blocks.OCHRE_FROGLIGHT);
         }
     }
@@ -454,21 +501,26 @@ public final class MarsTrainingMap {
     }
 
     private static void buildHabitat(final ServerLevel level) {
-        room(level, -10, -8, 10, 8, Blocks.CONCRETE.white(), Blocks.CONCRETE.gray());
+        room(level, -10, -8, 10, 8, ScifiBlocks.HULL_PANEL, ScifiBlocks.HULL_PANEL);
         fill(level, -1, FLOOR_Y + 1, -8, 1, FLOOR_Y + 3, -8, Blocks.AIR);
         fill(level, -1, FLOOR_Y + 1, 8, 1, FLOOR_Y + 3, 8, Blocks.AIR);
         fill(level, -10, FLOOR_Y + 1, -1, -10, FLOOR_Y + 3, 1, Blocks.AIR);
         fill(level, 10, FLOOR_Y + 1, -1, 10, FLOOR_Y + 3, 1, Blocks.AIR);
         fill(level, -7, FLOOR_Y + 2, -8, -3, FLOOR_Y + 3, -8, Blocks.STAINED_GLASS.lightBlue());
         fill(level, 3, FLOOR_Y + 2, -8, 7, FLOOR_Y + 3, -8, Blocks.STAINED_GLASS.lightBlue());
-        fill(level, -8, FLOOR_Y + 5, -6, 8, FLOOR_Y + 5, 6, Blocks.CONCRETE.orange());
-        fill(level, -2, FLOOR_Y + 5, -5, 2, FLOOR_Y + 5, 5, Blocks.SEA_LANTERN);
+        fill(level, -8, FLOOR_Y + 5, -6, 8, FLOOR_Y + 5, 6, ScifiBlocks.HULL_PANEL);
+        fill(level, -2, FLOOR_Y + 5, -5, 2, FLOOR_Y + 5, 5, ScifiBlocks.STRIP_LIGHT);
         fill(level, -8, FLOOR_Y + 1, 4, -3, FLOOR_Y + 1, 6, Blocks.SMOOTH_QUARTZ);
         level.setBlock(OXYGEN_STATION, ModBlocks.OXYGEN_CONSOLE.defaultBlockState(), Block.UPDATE_CLIENTS);
         fill(level, -8, FLOOR_Y + 2, 5, -7, FLOOR_Y + 3, 6, Blocks.STAINED_GLASS.cyan());
         fill(level, 4, FLOOR_Y + 1, 4, 7, FLOOR_Y + 1, 6, Blocks.POLISHED_DEEPSLATE);
         place(level, 5, FLOOR_Y + 2, 5, Blocks.SEA_LANTERN);
-        place(level, 7, FLOOR_Y + 2, 5, Blocks.CRAFTER);
+        place(level, 7, FLOOR_Y + 2, 5, ScifiBlocks.CRYO_CABINET);
+        for (final int tankZ : new int[] { 2, 4, 6 })
+            place(level, -9, FLOOR_Y + 1, tankZ, ScifiBlocks.AIR_TANK);
+
+        for (final int ventX : new int[] { -6, 6 })
+            place(level, ventX, FLOOR_Y + 4, 0, ScifiBlocks.VENT);
 
 
 
@@ -482,7 +534,7 @@ public final class MarsTrainingMap {
             place(level, 8, FLOOR_Y, stripZ, Blocks.SEA_LANTERN);
         }
 
-        room(level, -2, -12, 2, -8, Blocks.CONCRETE.white(), Blocks.CONCRETE.gray());
+        room(level, -2, -12, 2, -8, ScifiBlocks.HULL_PANEL, ScifiBlocks.HULL_PANEL);
         installDoorway(level, new DoorSite(new BlockPos(0, FLOOR_Y + 1, -12), Direction.NORTH, Blocks.CONCRETE.white()));
         for (final DoorSite doorway : habitatDoors())
             installDoorway(level, doorway);
@@ -490,33 +542,38 @@ public final class MarsTrainingMap {
     }
 
     private static void buildPowerYard(final ServerLevel level) {
-        fill(level, -37, FLOOR_Y, -10, -17, FLOOR_Y, 10, Blocks.CONCRETE.gray());
-        for (int panelX = -34; panelX <= -22; panelX += 6) {
-            for (final int panelZ : new int[] { -6, 5 }) {
-                place(level, panelX, FLOOR_Y + 1, panelZ, Blocks.POLISHED_BLACKSTONE);
+        fill(level, -46, FLOOR_Y, -10, -38, FLOOR_Y, 10, ScifiBlocks.FLOOR_TILE);
+        for (final int panelZ : new int[] { -6, 5 }) {
+            for (final int panelX : new int[] { -44, -39 }) {
+                place(level, panelX, FLOOR_Y + 1, panelZ, ScifiBlocks.SUPPORT_BEAM);
                 fill(level, panelX - 2, FLOOR_Y + 2, panelZ - 2, panelX + 2, FLOOR_Y + 2, panelZ + 2, Blocks.STAINED_GLASS.blue());
-                fill(level, panelX, FLOOR_Y + 2, panelZ - 2, panelX, FLOOR_Y + 2, panelZ + 2, Blocks.POLISHED_BLACKSTONE);
+                fill(level, panelX, FLOOR_Y + 2, panelZ - 2, panelX, FLOOR_Y + 2, panelZ + 2, ScifiBlocks.SUPPORT_BEAM);
             }
         }
 
-        fill(level, -27, FLOOR_Y, -1, -21, FLOOR_Y, 1, Blocks.POLISHED_DEEPSLATE);
+        fill(level, -46, FLOOR_Y, -2, -21, FLOOR_Y, 2, ScifiBlocks.FLOOR_TILE);
+        fill(level, -41, FLOOR_Y, 0, -25, FLOOR_Y, 0, ScifiBlocks.CABLE_TRUNK);
+        for (final int bankX : new int[] { -29, -27 }) {
+            place(level, bankX, FLOOR_Y + 1, 4, ScifiBlocks.BATTERY_BANK);
+            place(level, bankX, FLOOR_Y + 1, -4, ScifiBlocks.BATTERY_BANK);
+            place(level, bankX, FLOOR_Y + 2, 4, ScifiBlocks.STRIP_LIGHT);
+        }
+
         level.setBlock(RESEARCH_STATION, ModBlocks.RESEARCH_CONSOLE.defaultBlockState(), Block.UPDATE_CLIENTS);
-        place(level, -26, FLOOR_Y + 1, 0, Blocks.SEA_LANTERN);
-
-
+        place(level, -26, FLOOR_Y, 0, ScifiBlocks.FLOOR_LIGHT);
     }
 
     private static void buildGreenhouse(final ServerLevel level) {
-        room(level, 20, -8, 36, 8, Blocks.CONCRETE.white(), Blocks.STAINED_GLASS.green());
-        fill(level, 20, FLOOR_Y + 2, -6, 36, FLOOR_Y + 4, -6, Blocks.GLASS);
-        fill(level, 20, FLOOR_Y + 2, 6, 36, FLOOR_Y + 4, 6, Blocks.GLASS);
+        room(level, 20, -7, 33, 7, ScifiBlocks.HULL_PANEL, ScifiBlocks.DOME_GLASS);
+        fill(level, 21, FLOOR_Y + 2, -7, 32, FLOOR_Y + 4, -7, ScifiBlocks.DOME_GLASS);
+        fill(level, 21, FLOOR_Y + 2, 7, 32, FLOOR_Y + 4, 7, ScifiBlocks.DOME_GLASS);
         fill(level, 20, FLOOR_Y + 1, -1, 20, FLOOR_Y + 3, 1, Blocks.AIR);
         for (final int bedZ : new int[] { -4, 3 }) {
-            fill(level, 23, FLOOR_Y + 1, bedZ, 33, FLOOR_Y + 1, bedZ + 1, Blocks.FARMLAND);
-            for (int x = 23; x <= 33; x++) {
+            fill(level, 22, FLOOR_Y + 1, bedZ, 22, FLOOR_Y + 1, bedZ + 1, ScifiBlocks.HYDROPONIC_TRAY);
+            fill(level, 32, FLOOR_Y + 1, bedZ, 32, FLOOR_Y + 1, bedZ + 1, ScifiBlocks.HYDROPONIC_TRAY);
+            for (int x = 23; x <= 31; x++) {
                 for (int z = bedZ; z <= bedZ + 1; z++) {
-                    level.setBlock(new BlockPos(x, FLOOR_Y + 1, z), Blocks.FARMLAND.defaultBlockState()
-                            .setValue(BlockStateProperties.MOISTURE, 7), Block.UPDATE_CLIENTS);
+                    level.setBlock(new BlockPos(x, FLOOR_Y + 1, z), Blocks.FARMLAND.defaultBlockState().setValue(BlockStateProperties.MOISTURE, 7), Block.UPDATE_CLIENTS);
                     level.setBlock(new BlockPos(x, FLOOR_Y + 2, z), Blocks.WHEAT.defaultBlockState()
                             .setValue(BlockStateProperties.AGE_7, 7), Block.UPDATE_CLIENTS);
                 }
@@ -536,10 +593,10 @@ public final class MarsTrainingMap {
     }
 
     private static void buildShelter(final ServerLevel level) {
-        room(level, -8, 20, 8, 32, Blocks.POLISHED_DEEPSLATE, Blocks.DEEPSLATE_TILES);
+        room(level, -8, 20, 8, 32, ScifiBlocks.REINFORCED_HULL, ScifiBlocks.REINFORCED_HULL);
         fill(level, -1, FLOOR_Y + 1, 20, 1, FLOOR_Y + 3, 20, Blocks.AIR);
         fill(level, -7, FLOOR_Y + 4, 20, 7, FLOOR_Y + 4, 20, Blocks.CONCRETE.orange());
-        fill(level, -5, FLOOR_Y + 1, 28, 5, FLOOR_Y + 1, 30, Blocks.SMOOTH_QUARTZ);
+        fill(level, -5, FLOOR_Y + 1, 28, 5, FLOOR_Y + 1, 30, ScifiBlocks.CRYO_CABINET);
         for (final int x : new int[] { -5, 0, 5 })
             place(level, x, FLOOR_Y + 2, 29, Blocks.BARREL);
 
@@ -549,13 +606,13 @@ public final class MarsTrainingMap {
     }
 
     private static void buildRoverBay(final ServerLevel level) {
-        fill(level, 19, FLOOR_Y, 18, 37, FLOOR_Y, 32, Blocks.CONCRETE.gray());
+        fill(level, 19, FLOOR_Y, 18, 37, FLOOR_Y, 32, ScifiBlocks.FLOOR_TILE);
         for (final int x : new int[] { 20, 36 }) {
             for (final int z : new int[] { 19, 31 })
-                fill(level, x, FLOOR_Y + 1, z, x, FLOOR_Y + 4, z, Blocks.IRON_BLOCK);
+                fill(level, x, FLOOR_Y + 1, z, x, FLOOR_Y + 4, z, ScifiBlocks.SUPPORT_BEAM);
         }
 
-        fill(level, 19, FLOOR_Y + 5, 18, 37, FLOOR_Y + 5, 32, Blocks.SMOOTH_STONE);
+        fill(level, 19, FLOOR_Y + 5, 18, 37, FLOOR_Y + 5, 32, ScifiBlocks.HULL_PANEL);
         final var rover = RoverContent.ROVER.create(level, EntitySpawnReason.COMMAND);
         if (rover != null) {
             rover.snapTo(28.5, FLOOR_Y + 1, 25.5, 180, 0);
@@ -587,6 +644,9 @@ public final class MarsTrainingMap {
         level.setBlock(SUPPLY_LOCKER, OutpostContent.SUPPLY_LOCKER.defaultBlockState(), Block.UPDATE_CLIENTS);
         fill(level, 12, FLOOR_Y, -6, 16, FLOOR_Y, -2, Blocks.CONCRETE.lightGray());
         level.setBlock(WEATHER_STATION, OutpostContent.WEATHER_TERMINAL.defaultBlockState(), Block.UPDATE_CLIENTS);
+        level.setBlock(new BlockPos(-1, 66, -10), ScienceStations.AIRLOCK_CONTROL.defaultBlockState(), Block.UPDATE_CLIENTS);
+        level.setBlock(new BlockPos(3, 66, 5), ScienceStations.BACKUP_POWER.defaultBlockState(), Block.UPDATE_CLIENTS);
+        level.setBlock(new BlockPos(2, 66, 25), ScienceStations.SHIELD_BENCH.defaultBlockState(), Block.UPDATE_CLIENTS);
 
 
 
@@ -642,13 +702,13 @@ public final class MarsTrainingMap {
         for (int width = -1; width <= 1; width++) {
             for (int height = 0; height <= 2; height++) {
                 final BlockPos position = site.center.relative(side, width).above(height);
-                level.setBlock(position, site.wall.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+                level.setBlock(position, ScifiBlocks.SUPPORT_BEAM.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
             }
         }
 
         for (int index = 0; index < 2; index++) {
             final BlockPos foot = site.center.relative(side, index - 1);
-            final var door = Blocks.IRON_DOOR.defaultBlockState().setValue(DoorBlock.FACING, site.facing)
+            final var door = ScifiBlocks.AIRLOCK_DOOR.defaultBlockState().setValue(DoorBlock.FACING, site.facing)
                     .setValue(DoorBlock.HINGE, index == 0 ? DoorHingeSide.LEFT : DoorHingeSide.RIGHT)
                     .setValue(DoorBlock.OPEN, false).setValue(BlockStateProperties.POWERED, false);
             level.setBlock(foot, door.setValue(DoorBlock.HALF, DoubleBlockHalf.LOWER), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
@@ -672,7 +732,7 @@ public final class MarsTrainingMap {
 
     private static void room(final ServerLevel level, final int minX, final int minZ, final int maxX, final int maxZ,
                              final Block walls, final Block roof) {
-        fill(level, minX, FLOOR_Y, minZ, maxX, FLOOR_Y, maxZ, Blocks.CONCRETE.lightGray());
+        fill(level, minX, FLOOR_Y, minZ, maxX, FLOOR_Y, maxZ, ScifiBlocks.FLOOR_TILE);
         fill(level, minX, FLOOR_Y + 1, minZ, maxX, FLOOR_Y + 4, minZ, walls);
         fill(level, minX, FLOOR_Y + 1, maxZ, maxX, FLOOR_Y + 4, maxZ, walls);
         fill(level, minX, FLOOR_Y + 1, minZ, minX, FLOOR_Y + 4, maxZ, walls);
@@ -684,11 +744,11 @@ public final class MarsTrainingMap {
         fill(level, maxX, FLOOR_Y, minZ, maxX, FLOOR_Y, maxZ, Blocks.POLISHED_DEEPSLATE);
         for (final int cornerX : new int[] { minX, maxX }) {
             for (final int cornerZ : new int[] { minZ, maxZ })
-                fill(level, cornerX, FLOOR_Y + 1, cornerZ, cornerX, FLOOR_Y + 4, cornerZ, Blocks.POLISHED_DEEPSLATE);
+                fill(level, cornerX, FLOOR_Y + 1, cornerZ, cornerX, FLOOR_Y + 4, cornerZ, ScifiBlocks.SUPPORT_BEAM);
         }
 
         for (int supportX = minX + 2; supportX < maxX; supportX += 4)
-            fill(level, supportX, FLOOR_Y + 5, minZ, supportX, FLOOR_Y + 5, maxZ, Blocks.POLISHED_DEEPSLATE);
+            fill(level, supportX, FLOOR_Y + 5, minZ, supportX, FLOOR_Y + 5, maxZ, ScifiBlocks.SUPPORT_BEAM);
     }
 
     private static void fill(final ServerLevel level, final int minX, final int minY, final int minZ,
@@ -698,7 +758,7 @@ public final class MarsTrainingMap {
     }
 
     private static void place(final ServerLevel level, final int x, final int y, final int z, final Block block) {
-        if (Math.abs(x) > SITE_RADIUS || Math.abs(z) > SITE_RADIUS || y < FLOOR_Y || y > FLOOR_Y + 10)
+        if (Math.abs(x) > SITE_RADIUS || Math.abs(z) > SITE_RADIUS || y < FLOOR_Y || y > FLOOR_Y + OutpostDome.HEIGHT)
             throw new IllegalArgumentException("Outpost placement outside its reserved build bounds");
 
         level.setBlock(new BlockPos(x, y, z), block.defaultBlockState(), Block.UPDATE_CLIENTS);

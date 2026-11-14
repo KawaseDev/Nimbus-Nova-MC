@@ -252,7 +252,7 @@ Historical basis: NASA's Opportunity rover experienced a Mars-wide dust storm in
 
 Specify at least two viable strategies during balancing. For example, a cautious crew can return early with less research, while another crew can collect more research after preserving sufficient reserves. Do not make a mandatory scripted failure look like an avoidable player mistake.
 
-Use food and water as reserve/planning concerns in this short mission. Introduce substantial greenhouse growth in a longer mission. Radiation is a separate future scenario unless its data and learning purpose justify adding it here.
+Use food and water as reserve/planning concerns in this short mission. Introduce substantial greenhouse growth in a longer mission. The current mission includes a short, explicitly authored solar-particle shelter event; dedicated radiation scenarios remain future work.
 
 ## 10. Mission library roadmap
 
@@ -498,3 +498,11 @@ The first mission now begins with untimed, role-aware preparation: a physical NP
 The active lesson combines an early shelter response, a NASA-linked dust profile, an authored relay fault requiring a second circuit repair, and the choice of when to power research. Success still requires both survival and science. A small crew objective HUD and world holograms show the next action and location; raw rates and source detail sit in secondary tablet views. Native doors, new functional models, and protected equipment support movement through the outpost.
 
 This implements the platform decision through consequential spatial tasks. It does not yet establish child usability or learning effectiveness; observe two students completing the lesson before making those claims. The README is the current play guide and TODO records remaining classroom/multiplayer checks.
+
+## Domed first-mission base and next mission
+
+The first mission now uses a fictional demonstration dome with custom hull, doors, lighting, machinery, and three optional hands-on labs. Keep preparation untimed and let students rehearse pressure equalization, finite power storage, and shielding/mass comparisons before dealing with the shared mission reserves. Props and experimental model values must remain clearly distinguished from functioning systems and NASA observations. The glass dome is architecture; the heavy crew shelter provides the authored mission protection zone.
+
+For a teacher-led comparison, ask crews to predict whether using a backup cell early or reserving it for the dust peak will work better, then retry and compare battery minima, completed research, and remaining cells. Ask students to explain why glass around a habitat is different from a massive storm shelter and why repeated airlock trips consume reserves. These activities create opportunities to learn; child/educator observation is still needed to establish learning outcomes.
+
+Recommended next build: **Return Window**, on a distinct spacecraft interior map. Reuse the validated crew roles, pressure-training interaction, finite battery store, NPC hints, and debrief. Give the crew a different objective: complete a departure checklist, isolate a leak, restore guidance, and choose how much scientific cargo can be carried within an authored mass/energy budget before a scripted departure. Establish the source-backed constraints and label game assumptions before implementing its events. Keep flight bounded to a short cooperative launch/docking sequence initially. The remaining roadmap missions stay planned and unavailable until playable.
