@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
+import cc.nimbusnova.mc.moon.MoonPayload;
 import cc.nimbusnova.mc.bridge.JoinNamePayload;
 import cc.nimbusnova.mc.mission.OpenConsolePayload;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
@@ -28,6 +29,7 @@ import net.minecraft.resources.Identifier;
 
 public final class NimbusNovaClient implements ClientModInitializer {
     static MissionSnapshotPayload snapshot;
+    static MoonPayload moon;
     static KeyMapping consoleKey;
 
     public static MissionSnapshotPayload missionSnapshot() {
@@ -67,6 +69,11 @@ public final class NimbusNovaClient implements ClientModInitializer {
         });
         consoleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nimbus_nova.console", InputConstants.KEY_J,
                 KeyMapping.Category.register(Identifier.parse("nimbus_nova:mission"))));
+        ClientPlayNetworking.registerGlobalReceiver(MoonPayload.TYPE, (packet, context) -> context.client().execute(() -> {
+            moon = packet.stage().isEmpty() ? null : packet;
+            if (context.client().gui.screen() instanceof MoonScreen screen) screen.update(packet);
+            else if (packet.open() && moon != null) context.client().setScreenAndShow(new MoonScreen(packet));
+        }));
         ClientPlayNetworking.registerGlobalReceiver(MissionSnapshotPayload.TYPE,
                 (packet, context) -> context.client().execute(() -> snapshot = packet));
         ClientPlayNetworking.registerGlobalReceiver(OpenConsolePayload.TYPE, (packet, context) ->
@@ -81,12 +88,13 @@ public final class NimbusNovaClient implements ClientModInitializer {
         ClientPlayConnectionEvents.DISCONNECT.register((_, _) -> {
             JoinSessionScreen.takeNickname();
             snapshot = null;
+            moon = null;
             MissionTutorial.consoleOpened = false;
         });
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (consoleKey.consumeClick()) {
                 if (client.player != null && client.gui.screen() == null)
-                    client.setScreenAndShow(new MissionConsoleScreen());
+                    client.setScreenAndShow(moon == null ? new MissionConsoleScreen() : new MoonScreen(moon));
             }
         });
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,

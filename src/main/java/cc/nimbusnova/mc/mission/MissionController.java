@@ -686,6 +686,8 @@ public final class MissionController {
         try {
             switch (action) {
                 case "start" -> {
+                    if (cc.nimbusnova.mc.moon.MoonController.get(source.getServer()).active())
+                        throw new IllegalStateException("End the Moon mission first.");
                     if (source.getServer().getPlayerList().getPlayerCount() == 0)
                         throw new IllegalStateException("A crew member must join before the mission starts.");
 

@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc;
 
 import cc.nimbusnova.mc.mission.MissionController;
+import cc.nimbusnova.mc.moon.MoonController;
 import cc.nimbusnova.mc.bridge.TeacherBridge;
 import cc.nimbusnova.mc.content.ModContent;
 import cc.nimbusnova.mc.content.ModBlocks;
@@ -26,6 +27,7 @@ public final class NimbusNovaMod implements ModInitializer {
         ScifiBlocks.register();
         ScienceStations.register();
         MissionController.register();
+        MoonController.register();
         TeacherBridge.register();
         RoverContent.register();
         MissionNpcs.register();

@@ -18,6 +18,11 @@ public final class MoonMissionTest {
                     mission.resume();
                 }
                 for (MoonMission.Role role : MoonMission.required(mission.stage())) mission.confirm(role);
+                expectFailure(mission::advance);
+                MoonMission.Decision decision = MoonMission.decision(mission.stage());
+                MoonMission.Role wrong = decision.role() == MoonMission.Role.POWER ? MoonMission.Role.PILOT : MoonMission.Role.POWER;
+                expectFailure(() -> mission.choose(wrong, true));
+                mission.choose(decision.role(), true);
                 mission.advance();
             }
             assert visitedSurface == (variant == MoonMission.Variant.EXPLORATION);
@@ -29,6 +34,17 @@ public final class MoonMissionTest {
         manuallyPaused.pause();
         manuallyPaused.resume();
         assert !manuallyPaused.paused();
+        MoonMission alternative = new MoonMission(MoonMission.Variant.RESCUE);
+        alternative.choose(MoonMission.Role.SUPPLIES, false);
+        assert alternative.parts() == 5 && alternative.decisionMade();
+        for (MoonMission.Role role : MoonMission.required(alternative.stage())) alternative.confirm(role);
+        alternative.advance();
+        alternative.acknowledge();
+        alternative.resume();
+        alternative.choose(MoonMission.Role.MAINTENANCE, false);
+        assert alternative.fuel() == 97 && !alternative.decisionMade();
+        alternative.choose(MoonMission.Role.MAINTENANCE, true);
+        assert alternative.decisionMade();
         System.out.println("Moon mission checks passed: both routes, crew reports and educational pauses.");
     }
     private static void expectFailure(Runnable action) {

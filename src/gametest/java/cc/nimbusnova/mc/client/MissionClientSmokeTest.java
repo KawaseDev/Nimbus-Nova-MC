@@ -3,6 +3,8 @@ package cc.nimbusnova.mc.client;
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.mission.CrewRole;
+import cc.nimbusnova.mc.moon.MoonController;
+import cc.nimbusnova.mc.moon.MoonMission;
 import cc.nimbusnova.mc.content.ModContent;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
 import cc.nimbusnova.mc.world.MarsTerrain;
@@ -40,6 +42,34 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             final MarsMovementChecks.Sample earthMovement = world.getServer().computeOnServer(
                     server -> MarsMovementChecks.sample(world.getConnection().getServerLevel()));
             world.getServer().runOnServer(server -> server.getPlayerList().op(new NameAndId(world.getConnection().getServerPlayer().getGameProfile())));
+            world.getServer().runOnServer(server -> MoonController.get(server).teacherAction(server, "moon_rescue"));
+            context.waitForScreen(MoonScreen.class);
+            context.clickScreenButton("SUPPLIES");
+            context.waitFor(client -> NimbusNovaClient.moon != null && NimbusNovaClient.moon.role().equals("SUPPLIES"));
+            context.clickScreenButton("Carry spare parts");
+            context.waitFor(client -> NimbusNovaClient.moon.decisionMade());
+            context.clickScreenButton("Confirm report");
+            context.waitFor(client -> (NimbusNovaClient.moon.confirmed() & 1 << MoonMission.Role.SUPPLIES.ordinal()) != 0);
+            world.getServer().runOnServer(server -> {
+                MoonController controller = MoonController.get(server);
+                for (MoonMission.Role role : MoonMission.Role.values()) if (role != MoonMission.Role.SUPPLIES) controller.mission().confirm(role);
+                controller.teacherAction(server, "moon_advance");
+            });
+            context.waitFor(client -> NimbusNovaClient.moon != null && NimbusNovaClient.moon.incident().equals("DOCKING"));
+            GuidedMissionChecks.capture(context, "moon-docking-education");
+            context.clickScreenButton("Next");
+            GuidedMissionChecks.capture(context, "moon-docking-evidence");
+            world.getServer().runOnServer(server -> {
+                MoonController controller = MoonController.get(server);
+                boolean rejected = false;
+                try { controller.teacherAction(server, "moon_resume"); } catch (IllegalStateException expected) { rejected = true; }
+                if (!rejected) throw new AssertionError("Moon lesson resumed without teacher confirmation");
+                controller.teacherAction(server, "moon_acknowledge");
+                controller.teacherAction(server, "moon_resume");
+                controller.teacherAction(server, "moon_end");
+            });
+            context.waitFor(client -> NimbusNovaClient.moon == null);
+            context.setScreen(() -> null);
             world.getServer().runCommand("mars create");
             world.getServer().runCommand("mars create");
             world.getServer().runCommand("mars");

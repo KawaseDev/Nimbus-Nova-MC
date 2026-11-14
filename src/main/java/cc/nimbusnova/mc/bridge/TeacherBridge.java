@@ -153,6 +153,36 @@ public final class TeacherBridge {
                         data.addProperty("oxygen", snapshot.oxygen());
                         data.addProperty("lastEvent", snapshot.lastEvent());
                         data.addProperty("players", server.getPlayerList().getPlayerCount());
+                        var moon = cc.nimbusnova.mc.moon.MoonController.get(server).mission();
+                        if (moon != null) {
+                            JsonObject lunar = new JsonObject();
+                            lunar.addProperty("variant", moon.variant().name());
+                            lunar.addProperty("stage", moon.stage().name());
+                            lunar.addProperty("paused", moon.paused());
+                            lunar.addProperty("acknowledged", moon.acknowledged());
+                            lunar.addProperty("decisionMade", moon.decisionMade());
+                            lunar.addProperty("battery", moon.battery());
+                            lunar.addProperty("oxygen", moon.oxygen());
+                            lunar.addProperty("water", moon.water());
+                            lunar.addProperty("fuel", moon.fuel());
+                            lunar.addProperty("parts", moon.parts());
+                            lunar.addProperty("feedback", moon.feedback());
+                            lunar.addProperty("required", cc.nimbusnova.mc.moon.MoonMission.required(moon.stage()).toString());
+                            lunar.addProperty("confirmed", moon.confirmations().toString());
+                            var event = moon.incident();
+                            if (event != null) {
+                                JsonObject lesson = new JsonObject();
+                                lesson.addProperty("title", event.title);
+                                lesson.addProperty("observation", event.observation);
+                                lesson.addProperty("explanation", event.explanation);
+                                lesson.addProperty("hazard", event.hazard);
+                                lesson.addProperty("question", event.question);
+                                lesson.addProperty("evidence", event.evidence);
+                                lesson.addProperty("source", event.source);
+                                lunar.add("education", lesson);
+                            }
+                            data.add("moon", lunar);
+                        }
                         var incident = controller.education().incident();
                         if (incident != null) {
                             JsonObject lesson = new JsonObject();
@@ -190,7 +220,7 @@ public final class TeacherBridge {
                     }
                     String[] parts = new String(exchange.getRequestBody().readNBytes(65), StandardCharsets.UTF_8).split(" ", -1);
                     if (parts.length != 2 || !parts[0].matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
-                            || !java.util.Set.of("start", "pause", "resume", "acknowledge", "abort", "reset").contains(parts[1])) {
+                            || !java.util.Set.of("start", "pause", "resume", "acknowledge", "abort", "reset", "moon_exploration", "moon_rescue", "moon_pause", "moon_resume", "moon_acknowledge", "moon_advance", "moon_end").contains(parts[1])) {
                         exchange.sendResponseHeaders(400, -1); return;
                     }
                     UUID id = UUID.fromString(parts[0]);
@@ -198,6 +228,13 @@ public final class TeacherBridge {
                     server.execute(() -> {
                         String previous = completed.get(id);
                         if (previous != null) { result.complete(previous.equals(parts[1]) ? 204 : 409); return; }
+                        if (parts[1].startsWith("moon_")) {
+                            try { cc.nimbusnova.mc.moon.MoonController.get(server).teacherAction(server, parts[1]); }
+                            catch (IllegalStateException | IllegalArgumentException error) { result.complete(409); return; }
+                            completed.put(id, parts[1]);
+                            if (completed.size() > 256) completed.remove(completed.keySet().iterator().next());
+                            result.complete(204); return;
+                        }
                         MissionController controller = MissionController.get(server);
                         if (parts[1].equals("reset") && !controller.snapshot().phase().ended()) { result.complete(409); return; }
                         if (controller.control(server.createCommandSourceStack(), parts[1]) == 0) { result.complete(409); return; }
