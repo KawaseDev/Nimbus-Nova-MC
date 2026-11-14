@@ -170,3 +170,12 @@ tasks.register('lessonModelTest', JavaExec) {
 }
 
 check.dependsOn lessonModelTest
+
+tasks.register('moonMissionTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.moon.MoonMissionTest'
+    enableAssertions = true
+}
+
+check.dependsOn moonMissionTest
