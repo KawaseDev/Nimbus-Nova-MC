@@ -1,0 +1,12 @@
+{
+  "type": "nimbus_nova:scenario_greenhouse",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "minecraft:the_void",
+      "layers": [],
+      "features": false,
+      "lakes": false
+    }
+  }
+}

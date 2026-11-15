@@ -1,6 +1,8 @@
 package cc.nimbusnova.mc.ship;
 
 import cc.nimbusnova.mc.ship.rooms.ShipRooms;
+import cc.nimbusnova.mc.scenario.OutpostScenarioController;
+import cc.nimbusnova.mc.learning.LearningChecks;
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.moon.MoonController;
@@ -216,7 +218,15 @@ public final class ShipController {
 
     public void teacherAction(final MinecraftServer server, final String action) {
         if (action.equals("ship_select") || action.equals("ship_explore")) {
-            if (mission != null && !mission.snapshot().phase().ended()) throw new IllegalStateException("End the selected ship attempt before selecting another.");
+            if (mission != null && !mission.snapshot().phase().ended()) {
+                final MoonMission.Variant requested = action.equals("ship_explore") ? MoonMission.Variant.EXPLORATION : MoonMission.Variant.RESCUE;
+                if (mission.underlying().variant() != requested)
+                    throw new IllegalStateException("End the selected ship attempt before selecting another.");
+                broadcast(server, true);
+                return;
+            }
+            if (OutpostScenarioController.get(server).selected())
+                throw new IllegalStateException("End the selected outpost scenario before selecting another mission.");
             final MissionState.Phase mars = MissionController.get(server).snapshot().phase();
             if (mars == MissionState.Phase.ACTIVE || mars == MissionState.Phase.PAUSED || MoonController.get(server).active())
                 throw new IllegalStateException("End the current Mars or Moon attempt before selecting Return Window.");
@@ -226,6 +236,7 @@ public final class ShipController {
             } catch (final IOException error) {
                 throw new IllegalStateException(error.getMessage(), error);
             }
+            LearningChecks.clear(server, "ship");
             ShipRooms.clear(server);
             roomPowerEvent = false;
             roomBreachEvent = false;
@@ -237,12 +248,24 @@ public final class ShipController {
         } else {
             if (mission == null) throw new IllegalStateException("Select Return Window first with /ship select.");
             switch (action) {
-                case "ship_start" -> mission.start();
+                case "ship_start" -> {
+                    if (mission.snapshot().phase() == ShipMission.Phase.READY)
+                        mission.start();
+                    else if (mission.snapshot().phase().ended())
+                        throw new IllegalStateException("Reset the ended mission before launching another attempt.");
+                }
                 case "ship_pause" -> mission.pause();
-                case "ship_acknowledge" -> mission.acknowledge();
-                case "ship_resume" -> mission.resume();
+                case "ship_acknowledge" -> {
+                    if (mission.snapshot().incident() != null) LearningChecks.requireSolved(server, "ship");
+                    mission.acknowledge();
+                }
+                case "ship_resume" -> {
+                    if (mission.snapshot().incident() != null) LearningChecks.requireSolved(server, "ship");
+                    mission.resume();
+                }
                 case "ship_abort" -> mission.abort();
                 case "ship_reset" -> {
+                    LearningChecks.clear(server, "ship");
                     ShipRooms.clear(server);
                     roomPowerEvent = false;
                     roomBreachEvent = false;
@@ -252,6 +275,7 @@ public final class ShipController {
                     issuedSuits.clear();
                 }
                 case "ship_end" -> {
+                    LearningChecks.clear(server, "ship");
                     ShipRooms.clear(server);
                     for (final ServerPlayer player : server.getPlayerList().getPlayers()) {
                         if (player.level().dimension().equals(ShipMap.DIMENSION) || player.level().dimension().equals(LunarSurface.DIMENSION)) leave(player);
@@ -390,7 +414,7 @@ public final class ShipController {
                         ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player)).getBlockPos().equals(position));
     }
 
-    private void action(final ServerPlayer player, final ShipActionPayload packet) {
+    public void action(final ServerPlayer player, final ShipActionPayload packet) {
         if (mission == null) return;
         try {
             final boolean operator = player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
@@ -509,7 +533,7 @@ public final class ShipController {
         if (!ServerPlayNetworking.canSend(player, ShipPayload.TYPE)) return;
         final boolean operator = player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
         if (mission == null) {
-            ServerPlayNetworking.send(player, new ShipPayload("", "", "", "", 0, 0, -1, -1, -1, -1, -1, -1, "", "", "", "", "", 0, 0, false, BlockPos.ZERO, BlockPos.ZERO, open, operator));
+            ServerPlayNetworking.send(player, new ShipPayload("", "", "", "", 0, 0, -1, -1, -1, -1, -1, -1, "", "", "", "", "", 0, 0, false, BlockPos.ZERO, BlockPos.ZERO, open, operator, false));
             return;
         }
         final ShipMission.Snapshot state = mission.snapshot();
@@ -535,7 +559,7 @@ public final class ShipController {
                 operator || role == MoonMission.Role.LIFE_SUPPORT ? (int) state.co2() : -1,
                 state.phase().ended() ? state.phase().name() : objective.label, summary, state.feedback(), state.incident() == null ? "" : state.incident().name(),
                 task == null ? "" : task.name(), task == null ? 0 : mission.board(task), task == null ? 0 : mission.aux(task),
-                task != null && mission.completed(task), station, ShipMap.target(objective, player.blockPosition()), open, operator));
+                task != null && mission.completed(task), station, ShipMap.target(objective, player.blockPosition()), open, operator, mission.ready()));
     }
 
     public JsonObject teacherState() {
@@ -544,6 +568,7 @@ public final class ShipController {
         final JsonObject result = new JsonObject();
         result.addProperty("title", mission.underlying().variant() == MoonMission.Variant.EXPLORATION ? "Moon exploration / prototype" : "Return Window / spacecraft rescue");
         result.addProperty("phase", state.phase().name());
+        result.addProperty("ready", mission.ready());
         result.addProperty("outcome", state.outcome());
         result.addProperty("stage", state.stage().name());
         result.addProperty("battery", state.battery());

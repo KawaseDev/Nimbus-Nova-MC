@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "lit=false": {
+      "model": "nimbus_nova:block/lighting_lamp_off"
+    },
+    "lit=true,powered=false": {
+      "model": "nimbus_nova:block/lighting_lamp_on"
+    },
+    "lit=true,powered=true": {
+      "model": "nimbus_nova:block/lighting_lamp_emergency"
+    }
+  }
+}

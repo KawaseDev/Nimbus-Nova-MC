@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.content;
 
 import cc.nimbusnova.mc.mission.MissionController;
+import cc.nimbusnova.mc.hub.MissionHub;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponents;
@@ -86,7 +87,7 @@ public final class ModContent {
         @Override
         public InteractionResult use(final Level level, final Player player, final InteractionHand hand) {
             if (player instanceof ServerPlayer serverPlayer)
-                MissionController.get(serverPlayer.level().getServer()).openConsole(serverPlayer);
+                MissionHub.get(serverPlayer.level().getServer()).open(serverPlayer);
 
             return InteractionResult.SUCCESS;
         }

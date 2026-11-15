@@ -1,15 +1,22 @@
 {
   "ambient_light": 0.25,
   "attributes": {
-    "minecraft:visual/sky_color": "#020510",
-    "minecraft:visual/fog_color": "#030714",
+    "minecraft:visual/sky_color": "#000003",
+    "minecraft:visual/fog_color": "#000003",
     "minecraft:visual/cloud_color": "#00000000",
     "minecraft:visual/ambient_light_color": "#8997b0",
     "minecraft:gameplay/bed_rule": {
       "can_set_spawn": "always",
       "can_sleep": "never"
     },
-    "minecraft:gameplay/respawn_anchor_works": false
+    "minecraft:gameplay/respawn_anchor_works": false,
+    "minecraft:visual/star_brightness": 1.0,
+    "minecraft:visual/star_angle": 0.0,
+    "minecraft:visual/sun_angle": 180.0,
+    "minecraft:visual/moon_angle": 180.0,
+    "minecraft:visual/fog_start_distance": 1024.0,
+    "minecraft:visual/fog_end_distance": 2048.0,
+    "minecraft:visual/sky_fog_end_distance": 2048.0
   },
   "coordinate_scale": 1.0,
   "has_ceiling": false,
@@ -21,5 +28,6 @@
   "logical_height": 384,
   "min_y": -64,
   "monster_spawn_block_light_limit": 0,
-  "monster_spawn_light_level": 0
+  "monster_spawn_light_level": 0,
+  "skybox": "overworld"
 }

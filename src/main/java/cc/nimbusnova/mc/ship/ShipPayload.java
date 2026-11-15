@@ -11,7 +11,7 @@ public record ShipPayload(String phase, String stage, String role, String varian
                           int battery, int oxygen, int water, int fuel, int parts, int co2,
                           String title, String instruction, String feedback, String incident,
                           String task, int board, int aux, boolean complete,
-                          BlockPos station, BlockPos target, boolean open, boolean operator) implements CustomPacketPayload {
+                          BlockPos station, BlockPos target, boolean open, boolean operator, boolean ready) implements CustomPacketPayload {
     public static final Type<ShipPayload> TYPE = new Type<>(Identifier.parse("nimbus_nova:ship_state"));
     public static final StreamCodec<RegistryFriendlyByteBuf, ShipPayload> CODEC = CustomPacketPayload.codec(ShipPayload::write, ShipPayload::new);
 
@@ -19,7 +19,7 @@ public record ShipPayload(String phase, String stage, String role, String varian
         this(buffer.readUtf(32), buffer.readUtf(32), buffer.readUtf(32), buffer.readUtf(32), buffer.readVarInt(), buffer.readVarInt(),
                 buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(),
                 buffer.readUtf(128), buffer.readUtf(512), buffer.readUtf(512), buffer.readUtf(32), buffer.readUtf(32),
-                buffer.readVarInt(), buffer.readVarInt(), buffer.readBoolean(), buffer.readBlockPos(), buffer.readBlockPos(), buffer.readBoolean(), buffer.readBoolean());
+                buffer.readVarInt(), buffer.readVarInt(), buffer.readBoolean(), buffer.readBlockPos(), buffer.readBlockPos(), buffer.readBoolean(), buffer.readBoolean(), buffer.readBoolean());
     }
 
     private void write(final RegistryFriendlyByteBuf buffer) {
@@ -47,6 +47,7 @@ public record ShipPayload(String phase, String stage, String role, String varian
         buffer.writeBlockPos(target);
         buffer.writeBoolean(open);
         buffer.writeBoolean(operator);
+        buffer.writeBoolean(ready);
     }
 
     @Override

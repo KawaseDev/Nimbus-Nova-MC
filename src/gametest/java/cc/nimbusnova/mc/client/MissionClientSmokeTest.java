@@ -92,6 +92,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
                 boolean rejected = false;
                 try { controller.teacherAction(server, "moon_resume"); } catch (IllegalStateException expected) { rejected = true; }
                 if (!rejected) throw new AssertionError("Moon lesson resumed without teacher confirmation");
+                LearningGameChecks.solveOnServer(world.getConnection().getServerPlayer(), "moon");
                 controller.teacherAction(server, "moon_acknowledge");
                 controller.teacherAction(server, "moon_resume");
                 controller.teacherAction(server, "moon_end");
@@ -205,6 +206,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             GuidedMissionChecks.capture(context, "solar-education-hazards");
             context.clickScreenButton("Next lesson");
             GuidedMissionChecks.capture(context, "solar-education-source");
+            LearningGameChecks.solve(context, world, "mars");
             world.getServer().runCommand("mission acknowledge");
             world.getServer().runCommand("mission resume");
             context.waitFor(client -> NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.ACTIVE);
@@ -375,6 +377,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
                     || returnedMovement.fallDamage() != earthMovement.fallDamage())
                 throw new AssertionError("Leaving Mars must restore ordinary movement and fall damage");
             ShipMissionChecks.run(context, world);
+            OutpostScenarioChecks.run(context, world);
         }
 
         context.runOnClient(client -> {

@@ -8,6 +8,7 @@ import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
 import cc.nimbusnova.mc.mission.MissionProgressPayload;
 import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
+import cc.nimbusnova.mc.client.learning.LearningClient;
 import cc.nimbusnova.mc.client.render.NovaScreen;
 import java.awt.Color;
 import java.net.URI;
@@ -22,7 +23,7 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
     private int tab;
     private int panelX, panelY, panelWidth, panelHeight;
     private MissionButton start, pause, reset, oxygen, research, forecast, powerRole, lifeRole, weatherRole;
-    private MissionButton previousDebrief, nextDebrief, previousLesson, nextLesson, lessonSource;
+    private MissionButton previousDebrief, nextDebrief, previousLesson, nextLesson, lessonSource, crewCheck;
     private int lessonPage;
     private String lessonId = "";
     private int debriefPage, debriefLinesPerPage;
@@ -82,9 +83,10 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
                 if (minecraft.getConnection() != null)
                     minecraft.getConnection().sendCommand("mars create");
             } else if (NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.PAUSED
-                    && !NimbusNovaClient.snapshot.educationIncident().isEmpty() && !NimbusNovaClient.snapshot.educationConfirmed())
-                command("acknowledge");
-            else
+                    && !NimbusNovaClient.snapshot.educationIncident().isEmpty() && !NimbusNovaClient.snapshot.educationConfirmed()) {
+                if (LearningClient.solved("mars", NimbusNovaClient.snapshot.educationIncident())) command("acknowledge");
+                else LearningClient.open("mars");
+            } else
                 command(NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.PAUSED ? "resume" : "pause");
         }));
         reset = addRenderableWidget(new MissionButton(panelX + 24 + controlWidth * 2, footerY, controlWidth, 22, "Restart", () -> command("reset")));
@@ -96,13 +98,16 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
                 "Previous lesson", () -> { lessonPage--; updateControls(); }));
         nextLesson = addRenderableWidget(new MissionButton(panelX + panelWidth - 92, footerY - 28, 78, 22,
                 "Next lesson", () -> { lessonPage++; updateControls(); }));
-        lessonSource = addRenderableWidget(new MissionButton(panelX + (panelWidth - 130) / 2, footerY - 28, 130, 22,
+        lessonSource = addRenderableWidget(new MissionButton(panelX + 104, footerY - 28, (panelWidth - 218) / 2, 22,
                 "NASA source", () -> {
                     if (NimbusNovaClient.snapshot != null && !NimbusNovaClient.snapshot.educationIncident().isEmpty()) {
                         final var incident = EducationPause.Incident.valueOf(NimbusNovaClient.snapshot.educationIncident());
                         ConfirmLinkScreen.confirmLinkNow(this, URI.create(incident.source));
                     }
                 }));
+
+        crewCheck = addRenderableWidget(new MissionButton(panelX + 110 + (panelWidth - 218) / 2, footerY - 28,
+                (panelWidth - 218) / 2, 22, "Crew check", () -> LearningClient.open("mars")));
 
         final int systemWidth = (panelWidth - 36) / 3;
         powerRole = addRenderableWidget(new MissionButton(panelX + 12, panelY + 94, systemWidth, 22, "Power engineer", () -> command("role power")));
@@ -139,13 +144,14 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
         pause.active = operator && (prepareOutpost || phase == MissionState.Phase.ACTIVE || phase == MissionState.Phase.PAUSED);
         final boolean lesson = connected && !packet.educationIncident().isEmpty();
         pause.setMessage(Component.literal(prepareOutpost ? "Prepare outpost" : phase != MissionState.Phase.PAUSED ? "Pause"
-                : lesson && !packet.educationConfirmed() ? "Confirm learning" : "Resume"));
+                : lesson && !packet.educationConfirmed() ? "Crew check" : "Resume"));
         if (connected && !packet.educationIncident().equals(lessonId)) {
             lessonId = packet.educationIncident();
             lessonPage = 0;
         }
         previousLesson.visible = nextLesson.visible = lesson && tab == 2;
         lessonSource.visible = lesson && tab == 2 && lessonPage == 2;
+        crewCheck.visible = lesson && tab == 2;
         previousLesson.active = lessonPage > 0;
         nextLesson.active = lessonPage < 2;
         reset.active = operator && phase != MissionState.Phase.ACTIVE;

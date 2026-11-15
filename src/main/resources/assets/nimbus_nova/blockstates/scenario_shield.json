@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "nimbus_nova:block/scenario_shield"
+    }
+  }
+}

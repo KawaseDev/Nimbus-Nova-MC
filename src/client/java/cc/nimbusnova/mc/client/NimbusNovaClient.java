@@ -10,6 +10,10 @@ import cc.nimbusnova.mc.client.npc.MissionNpcClient;
 import cc.nimbusnova.mc.client.effect.DustStormEffects;
 import cc.nimbusnova.mc.client.guidance.HologramGuidance;
 import cc.nimbusnova.mc.client.ship.ShipClient;
+import cc.nimbusnova.mc.client.hub.HubClient;
+import cc.nimbusnova.mc.client.learning.LearningClient;
+import cc.nimbusnova.mc.client.scenario.ScenarioClient;
+import cc.nimbusnova.mc.client.space.OrbitScene;
 import cc.nimbusnova.mc.client.ship.rooms.RoomClient;
 import cc.nimbusnova.mc.world.ship.ShipMap;
 import cc.nimbusnova.mc.world.moon.LunarSurface;
@@ -48,6 +52,10 @@ public final class NimbusNovaClient implements ClientModInitializer {
         NovaRenderer.initialize();
         GuidedMissionClient.register();
         ShipClient.register();
+        HubClient.register();
+        LearningClient.register();
+        ScenarioClient.register();
+        OrbitScene.register();
         RoomClient.register();
         HologramGuidance.register();
         EntranceAirlockClient.register();
@@ -97,10 +105,16 @@ public final class NimbusNovaClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (consoleKey.consumeClick()) {
                 if (client.player != null && client.gui.screen() == null) {
-                    if (client.level != null && (client.level.dimension().equals(ShipMap.DIMENSION) || client.level.dimension().equals(LunarSurface.DIMENSION)))
+                    if (client.level != null && client.level.dimension().identifier().getPath().startsWith("scenario_"))
+                        ScenarioClient.open();
+                    else if (client.level != null && (client.level.dimension().equals(ShipMap.DIMENSION) || client.level.dimension().equals(LunarSurface.DIMENSION)))
                         ShipClient.open();
+                    else if (moon != null)
+                        client.setScreenAndShow(new MoonScreen(moon));
+                    else if (ObjectiveGuidance.onMars())
+                        client.setScreenAndShow(new MissionConsoleScreen());
                     else
-                        client.setScreenAndShow(moon == null ? new MissionConsoleScreen() : new MoonScreen(moon));
+                        HubClient.open();
                 }
             }
         });

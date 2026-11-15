@@ -283,6 +283,7 @@ final class ShipMissionChecks {
     private static void resume(final ClientGameTestContext context, final TestSingleplayerContext world) {
         context.waitFor(client -> ShipClient.state() != null && ShipClient.state().phase().equals("PAUSED"));
         GuidedMissionChecks.capture(context, "ship-incident-" + ShipClient.state().incident().toLowerCase());
+        LearningGameChecks.solve(context, world, "ship");
         world.getServer().runCommand("ship acknowledge");
         world.getServer().runCommand("ship resume");
         context.waitFor(client -> ShipClient.state() != null && ShipClient.state().phase().equals("ACTIVE"));

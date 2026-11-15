@@ -217,6 +217,7 @@ final class GuidedMissionChecks {
                 if (controller.education().incident() != null) {
                     if (controller.control(server.createCommandSourceStack(), "resume") != 0)
                         throw new AssertionError("An educational pause resumed without confirmation");
+                    LearningGameChecks.solveOnServer(world.getConnection().getServerPlayer(), "mars");
                     if (controller.control(server.createCommandSourceStack(), "acknowledge") != 1
                             || controller.control(server.createCommandSourceStack(), "resume") != 1)
                         throw new AssertionError("Mission Control could not confirm and resume");

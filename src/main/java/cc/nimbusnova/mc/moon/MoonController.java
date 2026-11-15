@@ -1,6 +1,8 @@
 package cc.nimbusnova.mc.moon;
 
 import cc.nimbusnova.mc.ship.ShipController;
+import cc.nimbusnova.mc.learning.LearningChecks;
+import cc.nimbusnova.mc.scenario.OutpostScenarioController;
 
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
@@ -54,19 +56,20 @@ public final class MoonController {
     public void teacherAction(MinecraftServer server, String action) {
         switch (action) {
             case "moon_exploration", "moon_rescue" -> {
-                if (active() || ShipController.get(server).selected()) throw new IllegalStateException("Finish or end the current Moon/ship mission first.");
+                if (active() || ShipController.get(server).selected() || OutpostScenarioController.get(server).selected()) throw new IllegalStateException("Finish or end the current Moon/ship mission first.");
                 MissionState.Phase phase = MissionController.get(server).snapshot().phase();
                 if (phase == MissionState.Phase.ACTIVE || phase == MissionState.Phase.PAUSED)
                     throw new IllegalStateException("End the Mars mission first.");
                 if (server.getPlayerList().getPlayerCount() == 0) throw new IllegalStateException("A student must join first.");
+                LearningChecks.clear(server, "moon");
                 roles.clear();
                 mission = new MoonMission(action.equals("moon_rescue") ? MoonMission.Variant.RESCUE : MoonMission.Variant.EXPLORATION);
             }
             case "moon_pause" -> requireMission().pause();
-            case "moon_acknowledge" -> requireMission().acknowledge();
-            case "moon_resume" -> requireMission().resume();
+            case "moon_acknowledge" -> { LearningChecks.requireSolved(server, "moon"); requireMission().acknowledge(); }
+            case "moon_resume" -> { LearningChecks.requireSolved(server, "moon"); requireMission().resume(); }
             case "moon_advance" -> requireMission().advance();
-            case "moon_end" -> { if (mission == null) throw new IllegalStateException("No Moon mission."); mission = null; roles.clear(); }
+            case "moon_end" -> { LearningChecks.clear(server, "moon"); if (mission == null) throw new IllegalStateException("No Moon mission."); mission = null; roles.clear(); }
             default -> throw new IllegalArgumentException("Unknown action.");
         }
         broadcast(server, action.equals("moon_exploration") || action.equals("moon_rescue") || action.equals("moon_advance"));
