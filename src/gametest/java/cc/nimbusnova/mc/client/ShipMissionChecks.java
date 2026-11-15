@@ -155,10 +155,19 @@ final class ShipMissionChecks {
         world.getServer().runCommand("ship end");
         context.waitFor(client -> client.level != null && !client.level.dimension().equals(ShipMap.DIMENSION));
         exploration(context, world);
+        canceledDescent(context, world);
         System.out.println("Ship runtime checks passed: schematic import, custom stations, cartridge assembly, momentum docking, star navigation, signal tuning, CO2 adapter, timed burn, heat budget and full rescue success.");
     }
 
     static void exploration(final ClientGameTestContext context, final TestSingleplayerContext world) {
+        exploration(context, world, false);
+    }
+
+    static void canceledDescent(final ClientGameTestContext context, final TestSingleplayerContext world) {
+        exploration(context, world, true);
+    }
+
+    private static void exploration(final ClientGameTestContext context, final TestSingleplayerContext world, final boolean cancelLanding) {
         world.getServer().runOnServer(server -> server.getPlayerList().op(new NameAndId(world.getConnection().getServerPlayer().getGameProfile())));
         world.getServer().runCommand("gamemode survival @p");
         world.getServer().runCommand("ship explore");
@@ -191,6 +200,20 @@ final class ShipMissionChecks {
         open(context, world, ShipTask.PILOT); action(context, 3);
         resume(context, world);
         open(context, world, ShipTask.PILOT);
+        if (cancelLanding) {
+            if (!context.computeOnClient(client -> client.gui.screen().children().stream().anyMatch(child -> child instanceof net.minecraft.client.gui.components.Button button && button.getMessage().getString().equals("Hold to cancel landing"))))
+                throw new AssertionError("The pilot needs a visible landing cancellation control");
+            action(context, 6);
+            if (!state(context).stage().equals("RETURN")) throw new AssertionError("Canceling descent must start the return");
+            align(context, world, ShipTask.PILOT);
+            align(context, world, ShipTask.COMMS);
+            context.waitFor(client -> ShipClient.state() != null && ShipClient.state().phase().equals("SUCCESS"));
+            if (!world.getServer().computeOnServer(server -> ShipController.get(server).mission().snapshot().outcome().contains("Landing canceled")))
+                throw new AssertionError("The successful return must report the canceled landing");
+            world.getServer().runCommand("ship end");
+            context.waitFor(client -> client.level != null && !client.level.dimension().equals(ShipMap.DIMENSION));
+            return;
+        }
         action(context, 0);
         if ((state(context).board() & 256) != 0) throw new AssertionError("Guidance must wait for maintenance");
         align(context, world, ShipTask.COMMS);
