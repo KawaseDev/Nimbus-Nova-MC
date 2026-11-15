@@ -187,6 +187,16 @@ public final class OutpostScenarioChecks {
         context.waitFor(client -> client.level != null && client.level.dimension().equals(ScenarioMaps.dimension(id)) && ScenarioClient.state() != null);
         context.waitForScreen(ScenarioScreen.class);
         FullscreenChecks.capture(context, "scenario-" + id + "-arrival");
+        context.setScreen(() -> null);
+        world.getServer().runCommand("execute in nimbus_nova:scenario_" + id + " run tp @p 0.5 65 10.5 180 0");
+        world.getConnection().waitForChunksRender();
+        GuidedMissionChecks.capture(context, "scenario-" + id + "-site");
+        world.getServer().runCommand("execute in nimbus_nova:scenario_" + id + " run tp @p 22.5 78 24.5 137 24");
+        context.waitTicks(2);
+        GuidedMissionChecks.capture(context, "scenario-" + id + "-overview");
+        world.getServer().runCommand("execute in nimbus_nova:scenario_" + id + " run tp @p 0.5 65 10.5 180 0");
+        world.getServer().runOnServer(server -> OutpostScenarioController.get(server).open(world.getConnection().getServerPlayer()));
+        context.waitForScreen(ScenarioScreen.class);
     }
     private static void success(final ClientGameTestContext context, final TestSingleplayerContext world, final String id) {
         context.waitFor(client -> ScenarioClient.state() != null && ScenarioClient.state().get("phase").getAsString().equals("SUCCESS"));

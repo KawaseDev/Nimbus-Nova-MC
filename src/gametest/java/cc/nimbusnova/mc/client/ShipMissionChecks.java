@@ -302,6 +302,9 @@ final class ShipMissionChecks {
         context.waitFor(_ -> ShipClient.state() != null && ShipClient.state().hasWaypoint() && ShipClient.state().target().equals(LunarSurface.SAMPLE));
         GuidedMissionChecks.capture(context, "moon-surface");
         FullscreenChecks.capture(context, "moon-surface");
+        world.getServer().runCommand("execute in nimbus_nova:lunar_surface run tp @p -13.5 74 -22.5 -32 26");
+        context.waitTicks(2);
+        GuidedMissionChecks.capture(context, "moon-surface-overview");
         world.getServer().runCommand("execute in nimbus_nova:lunar_surface run tp @p 9.5 63 -8.5");
         GuidedMissionChecks.use(world, LunarSurface.SAMPLE);
         if (!world.getServer().computeOnServer(server -> ShipController.get(server).mission().completed(ShipTask.SCIENCE)))
