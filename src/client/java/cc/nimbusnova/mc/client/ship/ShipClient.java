@@ -3,6 +3,8 @@ package cc.nimbusnova.mc.client.ship;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.ship.ShipActionPayload;
 import cc.nimbusnova.mc.ship.ShipPayload;
+import cc.nimbusnova.mc.world.moon.LunarSurface;
+import cc.nimbusnova.mc.client.suit.SuitLifeSupportClient;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
@@ -46,8 +48,17 @@ public final class ShipClient implements ShipPalette {
         ClientPlayConnectionEvents.DISCONNECT.register((_, _) -> state = null);
         HudElementRegistry.attachElementBefore(VanillaHudElements.CROSSHAIR, Identifier.parse("nimbus_nova:ship_hud"), (graphics, _) -> {
             final Minecraft client = Minecraft.getInstance();
-            if (state == null || client.level == null || client.player == null || client.gui.screen() != null
-                    || client.gui.hud.isHidden() || !client.level.dimension().identifier().toString().equals("nimbus_nova:return_window")) return;
+            if (state == null || client.level == null || client.player == null || client.gui.screen() != null || client.gui.hud.isHidden()) return;
+            if (client.level.dimension().equals(LunarSurface.DIMENSION)) {
+                final int width = Math.min(324, graphics.guiWidth() - 16);
+                NovaRenderer.rect(graphics, 8, 8, width, 49, 7, BACKGROUND);
+                NovaRenderer.text(graphics, "Moon surface", 18, 14, 10, ACCENT);
+                NovaRenderer.text(graphics, "Sample: x 10, z -8 / right-click", 18, 29, 8, MUTED);
+                final var suit = SuitLifeSupportClient.state();
+                NovaRenderer.text(graphics, (suit == null ? "" : "Suit air " + (int) Math.ceil(suit.air()) + "% / ") + "J tablet to return", 18, 43, 8, MUTED);
+                return;
+            }
+            if (!client.level.dimension().identifier().toString().equals("nimbus_nova:return_window")) return;
 
             final int panelWidth = Math.min(324, graphics.guiWidth() - 16);
             NovaRenderer.rect(graphics, 8, 8, panelWidth, 34, 7, BACKGROUND);

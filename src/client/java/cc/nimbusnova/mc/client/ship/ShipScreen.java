@@ -5,6 +5,7 @@ import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.ship.rooms.RoomClient;
 import cc.nimbusnova.mc.client.render.NovaScreen;
 import cc.nimbusnova.mc.moon.MoonMission;
+import cc.nimbusnova.mc.world.moon.LunarSurface;
 import cc.nimbusnova.mc.ship.ShipActionPayload;
 import cc.nimbusnova.mc.ship.ShipPayload;
 import cc.nimbusnova.mc.ship.ShipTask;
@@ -139,6 +140,15 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
                     control("abort", "Abort mission", left + 140, top + panelHeight - 60, 108);
             }
             addRenderableWidget(new MissionButton(left + 88, top + panelHeight - 29, 87, 20, "Leave ship", () -> command("leave", 0)));
+            if (state.variant().equals("EXPLORATION") && !ended()) {
+                if (onSurface())
+                    addRenderableWidget(new MissionButton(left + 180, top + panelHeight - 29, 116, 20, "Return to ship", () -> command("join", 0)));
+                else {
+                    addRenderableWidget(new MissionButton(left + 180, top + panelHeight - 29, 70, 20, "Get suit", () -> command("suit", 0))).active = !pending;
+                    if (state.stage().equals("SURFACE") && state.phase().equals("ACTIVE"))
+                        addRenderableWidget(new MissionButton(left + 255, top + panelHeight - 29, 80, 20, "Go outside", () -> command("surface", 0))).active = !pending;
+                }
+            }
             return;
         }
 
@@ -190,8 +200,10 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
             taskButton(left + 183, top + 145, 27, "G-", 3);
             taskButton(left + 213, top + 145, 27, "G+", 2);
             taskButton(left + bodyWidth - 73, top + 145, 87, "Transmit", 4);
-        } else if (state.stage().equals("SURFACE") && (state.task().equals("MEDICAL") || state.task().equals("SCIENCE"))) {
-            taskButton(left + 14, top + 145, bodyWidth, state.task().equals("MEDICAL") ? "Check crew suits" : "Secure nearby sample", 0);
+        } else if (state.stage().equals("SURFACE") && state.task().equals("MEDICAL")) {
+            taskButton(left + 14, top + 145, bodyWidth, "Check crew suits", 0);
+        } else if (state.stage().equals("SURFACE") && state.task().equals("SCIENCE")) {
+            // The sample is collected at the physical site rather than through this panel.
         } else if (filter()) {
             final String[] parts = { "Housing", "Fan", "Seal", "Cartridge" };
             final int partWidth = (bodyWidth - 15) / 4;
@@ -253,6 +265,10 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
 
     private boolean filter() {
         return state.task().equals("MEDICAL") && state.stage().equals("FILTER");
+    }
+
+    private boolean onSurface() {
+        return minecraft.level != null && minecraft.level.dimension().equals(LunarSurface.DIMENSION);
     }
 
     private boolean ended() {
@@ -334,7 +350,7 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
         } else if (state.task().equals("PILOT") && state.stage().equals("SURFACE")) {
             NovaRenderer.wrap(graphics, (state.board() == 0 ? "After the crew and suit check, launch using the dedicated ascent reserve." : "Verify alignment and the mechanical lock before transferring to the command module.") + " Ascent reserve: " + state.aux() + ".", left + 14, top + 65, bodyWidth, 10, 4, MUTED);
         } else if (state.stage().equals("SURFACE") && (state.task().equals("MEDICAL") || state.task().equals("SCIENCE"))) {
-            NovaRenderer.wrap(graphics, state.task().equals("MEDICAL") ? "Confirm suit communications and the surface reserve before an excursion." : "After the suit check, secure a nearby simulated lunar sample.", left + 14, top + 65, bodyWidth, 10, 4, MUTED);
+            NovaRenderer.wrap(graphics, state.task().equals("MEDICAL") ? "Confirm suit communications and the surface reserve before an excursion." : "After the suit check, use the crew tablet to go outside and collect the sample.", left + 14, top + 65, bodyWidth, 10, 4, MUTED);
         } else if (state.task().equals("PILOT") && state.stage().equals("RETURN")) {
             ShipPuzzleGraphics.burn(graphics, state, left + 14, top + 57, bodyWidth, 78);
             NovaRenderer.text(graphics, "Burn " + (state.board() & 255) + " / cut off at 6-8", left + 219, top + 151, 9,

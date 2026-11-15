@@ -152,7 +152,7 @@ This applies the Mars/Earth gravity ratio to Minecraft physics; it is a gameplay
 
 ## Play Return Window: spacecraft rescue
 
-The teacher panel also offers **Select Moon exploration prototype**, or an operator can use `/ship explore`. It reuses the spacecraft and adds simulated orbit capture, descent checks, landing, a suit check, sample selection, ascent and rendezvous. The lunar surface is currently represented at ship stations; it is not yet a walkable Moon environment or the complete classroom mission. The legacy Earth–Moon tablet remains a separate sequencing prototype.
+The teacher panel also offers **Select Moon exploration prototype**, or an operator can use `/ship explore`. It reuses the spacecraft and adds simulated orbit capture, descent checks, landing, ascent and rendezvous. After landing, check suits at the medical station, equip a suit using the crew tablet or `/ship suit`, and use **Go outside** or `/ship surface`. The maintenance specialist right-clicks the sample on the Moon, then the crew returns using **Return to ship** or `/ship join`. The surface is a small fictional training area, not a real landing site. The mission is still a prototype; the legacy Earth–Moon tablet remains separate.
 
 Select **Return Window** in the teacher menu, or run `/ship select` as an operator. This creates the separate `nimbus_nova:return_window` dimension and brings the connected crew aboard. `/ship join` admits students who arrive later; J opens the ship tablet. End the current Mars/Moon attempt before selecting it, and use `/ship end` when switching to another mission.
 
