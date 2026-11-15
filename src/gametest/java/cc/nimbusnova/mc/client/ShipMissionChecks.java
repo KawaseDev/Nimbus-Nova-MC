@@ -118,6 +118,7 @@ final class ShipMissionChecks {
         align(context, world, ShipTask.PILOT);
         align(context, world, ShipTask.COMMS);
         align(context, world, ShipTask.PILOT);
+        align(context, world, ShipTask.COMMS);
         resume(context, world);
         open(context, world, ShipTask.ENGINE);
         GuidedMissionChecks.capture(context, "ship-emergency-loads");
@@ -178,12 +179,16 @@ final class ShipMissionChecks {
         align(context, world, ShipTask.PILOT);
         align(context, world, ShipTask.COMMS);
         align(context, world, ShipTask.PILOT);
+        align(context, world, ShipTask.COMMS);
         context.waitFor(client -> ShipClient.state() != null && ShipClient.state().stage().equals("ORBIT"));
         open(context, world, ShipTask.PILOT);
         GuidedMissionChecks.capture(context, "moon-orbit-capture");
         action(context, 0); action(context, 3);
         if (!state(context).stage().equals("ORBIT")) throw new AssertionError("An insufficient burn was accepted");
         action(context, 1); action(context, 3);
+        if (!state(context).stage().equals("ORBIT")) throw new AssertionError("Capture must wait for a power check");
+        open(context, world, ShipTask.ENGINE); action(context, 0);
+        open(context, world, ShipTask.PILOT); action(context, 3);
         resume(context, world);
         open(context, world, ShipTask.PILOT);
         action(context, 0);

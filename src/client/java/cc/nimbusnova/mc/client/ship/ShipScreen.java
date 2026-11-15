@@ -156,6 +156,8 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
                 addRenderableWidget(new FuseCard(left + 14 + (cartridge - 1) * (cardWidth + 5), top + 57, cardWidth, cartridge));
             for (int slot = 0; slot < 4; slot++)
                 addRenderableWidget(new FuseSocket(left + 14 + slot * (cardWidth + 5), top + 111, cardWidth, slot));
+        } else if (state.task().equals("ENGINE") && state.stage().equals("ORBIT")) {
+            taskButton(left + 14, top + 145, bodyWidth, "Verify capture power", 0);
         } else if (state.task().equals("PILOT") && state.stage().equals("DOCKING")) {
             final int controlX = left + 136;
             taskButton(controlX + 34, top + 76, 32, "Up", 2);
@@ -326,6 +328,8 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
         final int bodyWidth = panelWidth - 28;
         if (fuses()) {
             NovaRenderer.text(graphics, "Choose a rated cartridge, then tap its matching bus socket.", left + 14, top + 94, 8, MUTED);
+        } else if (state.task().equals("ENGINE") && state.stage().equals("ORBIT")) {
+            NovaRenderer.wrap(graphics, "Check that capture power is available while keeping at least 30 units for the return.", left + 14, top + 65, bodyWidth, 10, 4, MUTED);
         } else if (state.task().equals("PILOT") && state.stage().equals("DOCKING")) {
             ShipPuzzleGraphics.docking(graphics, state, left + 14, top + 57, 106);
             final int velocityX = (state.board() >> 8 & 7) - 2, velocityY = (state.board() >> 11 & 7) - 2;

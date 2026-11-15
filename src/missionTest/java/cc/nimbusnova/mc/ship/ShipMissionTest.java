@@ -132,10 +132,14 @@ public final class ShipMissionTest {
         for (final int input : new int[] { 1, 1, 0, 0, 3, 3, 2, 2, 5 }) act(mission, ShipTask.PILOT, input);
         tuneSignal(mission);
         for (final int star : new int[] { 1, 3, 5, 6 }) act(mission, ShipTask.PILOT, star);
+        if (mission.snapshot().stage() != MoonMission.Stage.NAVIGATION) throw new AssertionError("Navigation requires maintenance confirmation");
+        tuneSignal(mission);
         if (mission.snapshot().stage() != MoonMission.Stage.ORBIT) throw new AssertionError("Exploration must approach lunar orbit");
         act(mission, ShipTask.PILOT, 0); act(mission, ShipTask.PILOT, 3);
         if (mission.snapshot().stage() != MoonMission.Stage.ORBIT) throw new AssertionError("An invalid orbit prediction cannot be committed");
         act(mission, ShipTask.PILOT, 1); act(mission, ShipTask.PILOT, 3);
+        if (mission.snapshot().stage() != MoonMission.Stage.ORBIT) throw new AssertionError("Orbit capture requires a power check");
+        act(mission, ShipTask.ENGINE, 0); act(mission, ShipTask.PILOT, 3);
         verifyPaused(mission); resume(mission);
         act(mission, ShipTask.PILOT, 0);
         if ((mission.board(ShipTask.PILOT) & 256) != 0) throw new AssertionError("Guidance requires a verified radar link");
@@ -278,6 +282,7 @@ public final class ShipMissionTest {
         for (final int star : new int[] { 1, 3, 5 })
             act(mission, ShipTask.PILOT, star);
         act(mission, ShipTask.PILOT, 6);
+        tuneSignal(mission);
         verifyPaused(mission);
         resume(mission);
         final int emergencyRevision = mission.revision();

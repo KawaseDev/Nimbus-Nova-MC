@@ -162,7 +162,7 @@ Choose the five roles before launch: power, life support, supplies, maintenance 
 
 1. **Prepare without a timer.** Assemble correctly rated power cartridges at an engine manifold and choose repair spares or extra science cargo in storage. Optional galley, medical, plant and exercise activities improve readiness at a finite water/parts/energy cost.
 2. **Dock using momentum.** Apply thruster impulses, coast and counter-thrust to stop inside the capture corridor. Being near the target is insufficient while still drifting. Maintenance tunes the communications carrier and gain without clipping the signal.
-3. **Navigate by a star fix.** Identify the three stars matching the reference constellation rather than matching numerical dials.
+3. **Navigate by a star fix.** The pilot identifies the three guide stars, and maintenance confirms the navigation signal.
 4. **Isolate the emergency.** Retain life support while shedding nonessential engine loads. The engineering bay shows the authored fault with smoke and active equipment lights.
 5. **Build the CO2 adapter.** Assemble the seal, housing, cartridge and fan in the correct connection order; run a pressure test and verify the seal before activating filtration. Adding oxygen does not remove CO2.
 6. **Restart essential systems.** Reassemble the changed cartridge layout, then allocate heating to navigation and the air loop while preserving the return reserve.

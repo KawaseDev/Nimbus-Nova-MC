@@ -122,6 +122,13 @@ public final class ShipMission {
     }
 
     private boolean engine(final int action) {
+        if (moon.stage() == MoonMission.Stage.ORBIT) {
+            if (action != 0 || completed(ShipTask.ENGINE)) return false;
+            if (battery < 30) { feedback = "The capture check needs power while keeping a return reserve."; return true; }
+            complete(ShipTask.ENGINE);
+            feedback = "Power and the return reserve are available for the planned capture.";
+            return true;
+        }
         if (moon.stage() == MoonMission.Stage.EMERGENCY) {
             if (action >= 0 && action < 3) {
                 loadMask ^= 1 << action;
@@ -181,6 +188,10 @@ public final class ShipMission {
         }
         if (orbitProfile != LunarLanding.Burn.PLANNED.ordinal()) {
             feedback = "The prediction misses the planned orbit. Review speed and orientation before committing.";
+            return true;
+        }
+        if (!completed(ShipTask.ENGINE)) {
+            feedback = "The power engineer must verify capture power and the return reserve first.";
             return true;
         }
         landing.capture(LunarLanding.Burn.PLANNED);
@@ -380,7 +391,7 @@ public final class ShipMission {
     private void verifyFlight(final ShipTask task) {
         complete(task);
         feedback = task == ShipTask.PILOT ? "Physical guidance check verified." : "Communication lock verified without clipping.";
-        if (completed(ShipTask.PILOT) && (moon.stage() == MoonMission.Stage.NAVIGATION || completed(ShipTask.COMMS)))
+        if (completed(ShipTask.PILOT) && completed(ShipTask.COMMS))
             advance(true);
     }
 
@@ -619,12 +630,12 @@ public final class ShipMission {
     public boolean activeTask(final ShipTask task) {
         if (phase.ended()) return false;
         return switch (task) {
-            case ENGINE -> moon.stage() == MoonMission.Stage.PREPARATION || moon.stage() == MoonMission.Stage.EMERGENCY || moon.stage() == MoonMission.Stage.RESTART;
+            case ENGINE -> moon.stage() == MoonMission.Stage.PREPARATION || moon.stage() == MoonMission.Stage.ORBIT || moon.stage() == MoonMission.Stage.EMERGENCY || moon.stage() == MoonMission.Stage.RESTART;
             case STORAGE -> moon.stage() == MoonMission.Stage.PREPARATION && !cargoSelected;
             case PILOT -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.NAVIGATION
                     || moon.stage() == MoonMission.Stage.ORBIT || moon.stage() == MoonMission.Stage.DESCENT
                     || moon.stage() == MoonMission.Stage.SURFACE || moon.stage() == MoonMission.Stage.RETURN;
-            case COMMS -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.DESCENT || moon.stage() == MoonMission.Stage.RETURN;
+            case COMMS -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.NAVIGATION || moon.stage() == MoonMission.Stage.DESCENT || moon.stage() == MoonMission.Stage.RETURN;
             case GALLEY -> moon.stage() == MoonMission.Stage.RESTART || (optionalComplete & 1 << task.ordinal()) == 0;
             case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER || moon.stage() == MoonMission.Stage.SURFACE && landing != null
                     && landing.phase() == LunarLanding.Phase.SURFACE || moon.stage() != MoonMission.Stage.SURFACE && (optionalComplete & 1 << task.ordinal()) == 0;
@@ -713,8 +724,8 @@ public final class ShipMission {
         return switch (moon.stage()) {
             case PREPARATION -> "Match four rated power cartridges at the engines and choose cargo at storage. Preparation has no timer.";
             case DOCKING -> "Pilot: cancel drift inside the docking capture box. Communications: tune the carrier without clipping the receiver.";
-            case NAVIGATION -> "Pilot: select three reliable guide stars from the detector readings to verify the return route.";
-            case ORBIT -> "Pilot: compare three burn predictions before committing to lunar-orbit capture.";
+            case NAVIGATION -> "Pilot: verify the star fix. Maintenance: verify the navigation communication link.";
+            case ORBIT -> "Power: verify capture power and the return reserve. Pilot: compare the burn predictions.";
             case DESCENT -> "Maintenance: verify the radar link. Pilot: check guidance, select the alternate site and control both landing speeds.";
             case SURFACE -> "Life support: check suits. Science: secure a sample. Pilot: launch and verify rendezvous.";
             case EMERGENCY -> "Power engineer: isolate science and comfort heating while keeping life support on.";
