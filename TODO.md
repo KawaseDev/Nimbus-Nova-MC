@@ -250,3 +250,5 @@ Java 25 `build runClientGameTest` passed. Native checks completed all five secon
 - [x] Test door modes, real item repairs, pressure recovery and full rescue in the native client; preserve teammate exploration changes.
 
 Native door and repair checks passed, followed by rescue success and the merged exploration prototype checks. The dashboard/repair captures were inspected. Room pressure is authored, not fluid simulation; real multiplayer/classroom testing remains open.
+
+Final integration note: compartment door/repair/recovery and rescue checks passed in native Minecraft before the latest lunar-surface updates. All teammate changes were preserved, and the final merged `build compileGametestJava` plus model checks passed. The fresh post-merge client rerun twice stalled before world creation in native `SDL_GL_SwapWindow`; it was stopped. No multiplayer or final post-merge graphics certification is claimed.
