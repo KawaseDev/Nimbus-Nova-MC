@@ -38,7 +38,7 @@
   <div class="intro"><h1>Mission Control</h1></div>
   <div class="grid">
     <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p id="mission-status" role="status">Mission unavailable.</p><div class="actions"><button id="mission-start" disabled aria-label="Start mission" title="Start mission">▶</button><button id="mission-pause" disabled aria-label="Pause mission" title="Pause mission">❚❚</button><button id="mission-end" disabled aria-label="End mission" title="End mission">■</button><button id="mission-reset" disabled>Reset</button></div><div id="education" hidden><h3 id="education-title"></h3><p id="education-observation"></p><p id="education-explanation"></p><p id="education-hazard"></p><p id="education-question"></p><p id="education-evidence"></p><p><a id="education-source" target="_blank" rel="noopener noreferrer">NASA source</a></p><button id="education-confirm" disabled>Confirm understanding</button></div><p id="mission-error" role="alert"></p></section>
-    <section class="card wide" aria-labelledby="ship-title"><h2 id="ship-title">Spacecraft missions</h2><p id="ship-status" role="status">Select a mission to prepare your crew.</p><p id="ship-feedback"></p><div class="actions"><button id="ship-select" disabled>Select rescue</button><button id="ship-explore" disabled>Select Moon exploration prototype</button><button id="ship-start" hidden>Start ship mission</button><button id="ship-pause" hidden>Pause</button><button id="ship-confirm" hidden>Confirm understanding</button><button id="ship-abort" hidden>Abort attempt</button><button id="ship-reset" hidden>Reset attempt</button><button id="ship-end" hidden>Leave ship mission</button></div></section>
+    <section class="card wide" aria-labelledby="ship-title"><h2 id="ship-title">Spacecraft missions</h2><p id="ship-status" role="status">Select a mission to prepare your crew.</p><p id="ship-feedback"></p><div id="ship-debrief" hidden><h3>Mission debrief</h3><p id="ship-outcome"></p><p id="ship-resources"></p><ul id="ship-decisions"></ul><h4>Discuss with the crew</h4><ul><li>What information justified continuing or stopping?</li><li>Which resources affected the return?</li><li>Why are CO₂, oxygen and pressure different?</li><li>Why can't a parachute land a spacecraft on the Moon?</li></ul></div><div class="actions"><button id="ship-select" disabled>Select rescue</button><button id="ship-explore" disabled>Select Moon exploration prototype</button><button id="ship-start" hidden>Start ship mission</button><button id="ship-pause" hidden>Pause</button><button id="ship-confirm" hidden>Confirm understanding</button><button id="ship-abort" hidden>Abort attempt</button><button id="ship-reset" hidden>Reset attempt</button><button id="ship-end" hidden>Leave ship mission</button></div></section>
     <section class="card wide" aria-labelledby="moon-title"><h2 id="moon-title">Earth to Moon</h2><p class="tag">Prototype</p><p id="moon-status" role="status">No Moon mission running.</p><p id="moon-crew"></p><p id="moon-feedback"></p><div id="moon-education" hidden><h3 id="moon-education-title"></h3><p id="moon-education-observation"></p><p id="moon-education-explanation"></p><p id="moon-education-hazard"></p><p id="moon-education-question"></p><p id="moon-education-evidence"></p><p><a id="moon-education-source" target="_blank" rel="noopener noreferrer">NASA source</a></p></div><div class="actions"><button id="moon-exploration">Start exploration</button><button id="moon-rescue">Start rescue</button><button id="moon-pause" hidden>Pause</button><button id="moon-confirm" hidden>Confirm understanding</button><button id="moon-advance" hidden>Next stage</button><button id="moon-end" hidden>End mission</button></div></section>
     <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p><div class="actions"><button id="power" disabled>Start server</button><button id="restart" disabled>Restart</button><button id="update-server" disabled>Update server</button></div><p>Builds the current version and restarts the server. Worlds are kept.</p><p id="server-error" role="alert"></p></section>
     <section class="card" aria-labelledby="join-title"><h2 id="join-title">Student session</h2><p id="session-status" role="status">Checking…</p></section>
@@ -145,6 +145,16 @@
       shipButtons[6].disabled = missionBusy;
       document.getElementById('ship-status').textContent = shipSelected ? `${ship.title || 'Return Window'} · ${ship.phase} · ${ship.stage} · Power ${Math.round(ship.battery)} · Oxygen ${Math.round(ship.oxygen)} · CO2 ${Math.round(ship.co2)}` : 'Select the ship to prepare your crew.';
       document.getElementById('ship-feedback').textContent = shipSelected ? ship.feedback : '';
+      document.getElementById('ship-debrief').hidden = !shipSelected || shipRunning;
+      if (shipSelected && !shipRunning) {
+        document.getElementById('ship-outcome').textContent = ship.outcome || ship.phase;
+        document.getElementById('ship-resources').textContent = `Power ${Math.round(ship.battery)} · Oxygen ${Math.round(ship.oxygen)} · Water ${Math.round(ship.water)} · Fuel ${Math.round(ship.fuel)} · Parts ${ship.parts} · CO₂ ${Math.round(ship.co2)}`;
+        document.getElementById('ship-decisions').replaceChildren(...(ship.decisions || []).map(decision => {
+          const item = document.createElement('li');
+          item.textContent = decision;
+          return item;
+        }));
+      }
       document.getElementById('mission-status').textContent = `${state.phase} · ${state.elapsedSeconds}s · Power ${Math.round(state.battery)}% · Oxygen ${Math.round(state.oxygen)}%`;
       missionButtons[0].disabled = missionBusy || shipRunning || !!state.moon && state.moon.stage !== 'COMPLETE' || state.phase !== 'READY' || state.players === 0;
       const moon = state.moon;
@@ -207,6 +217,7 @@
       shipButtons.forEach(button => { button.disabled = true; });
       document.getElementById('ship-explore').disabled = true;
       document.getElementById('ship-status').textContent = 'Spacecraft mission unavailable.';
+      document.getElementById('ship-debrief').hidden = true;
     }
   }
   async function missionAction(action) {

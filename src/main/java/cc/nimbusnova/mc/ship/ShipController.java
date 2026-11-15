@@ -493,6 +493,7 @@ public final class ShipController {
         final JsonObject result = new JsonObject();
         result.addProperty("title", mission.underlying().variant() == MoonMission.Variant.EXPLORATION ? "Moon exploration / prototype" : "Return Window / spacecraft rescue");
         result.addProperty("phase", state.phase().name());
+        result.addProperty("outcome", state.outcome());
         result.addProperty("stage", state.stage().name());
         result.addProperty("battery", state.battery());
         result.addProperty("oxygen", state.oxygen());
