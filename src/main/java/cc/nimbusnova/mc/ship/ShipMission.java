@@ -134,11 +134,12 @@ public final class ShipMission {
     }
 
     private boolean engine(final int action) {
-        if (moon.stage() == MoonMission.Stage.ORBIT) {
+        if (moon.stage() == MoonMission.Stage.ORBIT || moon.stage() == MoonMission.Stage.RETURN) {
             if (action != 0 || completed(ShipTask.ENGINE)) return false;
-            if (battery < 30) { feedback = "The capture check needs power while keeping a return reserve."; return true; }
+            if (moon.stage() == MoonMission.Stage.ORBIT && battery < 30) { feedback = "The capture check needs power while keeping a return reserve."; return true; }
             complete(ShipTask.ENGINE);
-            feedback = "Power and the return reserve are available for the planned capture.";
+            feedback = moon.stage() == MoonMission.Stage.ORBIT ? "Power and the return reserve are available for the planned capture."
+                    : "Return power checked. Review the remaining battery before re-entry.";
             return true;
         }
         if (moon.stage() == MoonMission.Stage.EMERGENCY) {
@@ -378,6 +379,7 @@ public final class ShipMission {
         }
         if (action == 0) {
             if (entryProfile != 1) { feedback = "Select the planned Earth-entry prediction before igniting the return engine."; return true; }
+            if (!completed(ShipTask.ENGINE)) { feedback = "The power engineer must verify return power before ignition."; return true; }
             if (burnRunning || fuel < 1) return false;
             burnUnits = 0;
             burnRunning = true;
@@ -668,7 +670,7 @@ public final class ShipMission {
     public boolean activeTask(final ShipTask task) {
         if (phase.ended()) return false;
         return switch (task) {
-            case ENGINE -> moon.stage() == MoonMission.Stage.PREPARATION || moon.stage() == MoonMission.Stage.ORBIT || moon.stage() == MoonMission.Stage.EMERGENCY || moon.stage() == MoonMission.Stage.RESTART;
+            case ENGINE -> moon.stage() == MoonMission.Stage.PREPARATION || moon.stage() == MoonMission.Stage.ORBIT || moon.stage() == MoonMission.Stage.EMERGENCY || moon.stage() == MoonMission.Stage.RESTART || moon.stage() == MoonMission.Stage.RETURN;
             case STORAGE -> moon.stage() == MoonMission.Stage.PREPARATION && !cargoSelected;
             case PILOT -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.NAVIGATION
                     || moon.stage() == MoonMission.Stage.ORBIT || moon.stage() == MoonMission.Stage.DESCENT
@@ -769,7 +771,7 @@ public final class ShipMission {
             case EMERGENCY -> "Power engineer: isolate science and comfort heating while keeping life support on.";
             case FILTER -> "Life-support engineer: assemble the CO2 adapter in order, pressure-test the seal and start filtered airflow.";
             case RESTART -> "Power engineer: fit cartridges to the new restart loads. Supplies: allocate heat to navigation and the air loop.";
-            case RETURN -> "Pilot: compare Earth-entry predictions, then execute the return burn. Communications: establish the recovery link.";
+            case RETURN -> "Power: check return power. Pilot: compare entry predictions and execute the burn. Communications: establish the recovery link.";
             case COMPLETE -> feedback;
             default -> throw new IllegalStateException("Unexpected rescue stage " + moon.stage());
         };
