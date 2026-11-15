@@ -242,7 +242,9 @@ public final class ScenarioMaps {
             put(plan, x, 66, 23, Blocks.MAGMA_BLOCK);
         }
         put(plan, 0, 70, 18, ScifiBlocks.STRIP_LIGHT);
-        put(plan, 0, 70, 21, Blocks.END_ROD);
+        put(plan, 0, 70, 21, ScifiBlocks.BEACON_MAST);
+        put(plan, -4, 65, 14, ScifiBlocks.SUPPLY_CRATE);
+        put(plan, 4, 65, 22, ScifiBlocks.SUPPLY_CRATE);
 
         if (id.equals("shelter")) {
             for (int step = 1; step <= 3; step++) {
@@ -266,10 +268,10 @@ public final class ScenarioMaps {
             mast(plan, 15, -3);
         } else if (id.equals("long_night")) {
             for (int z = -10; z <= -4; z += 2)
-                fill(plan, 17, 66, z, 21, 66, z, Blocks.DAYLIGHT_DETECTOR);
+                fill(plan, 17, 66, z, 21, 66, z, ScifiBlocks.SOLAR_PANEL);
             for (final int x : new int[] { 15, 21 })
                 put(plan, x, 71, 13, Blocks.END_ROD);
-            fill(plan, 19, 72, 13, 20, 73, 13, Blocks.CONCRETE.white());
+            put(plan, 19, 71, 13, ScifiBlocks.SATELLITE_DISH);
             for (final int x : new int[] { -4, 4 })
                 put(plan, x, 69, -2, ScifiBlocks.VENT);
             put(plan, 9, 65, 7, Blocks.BARREL);
@@ -314,19 +316,17 @@ public final class ScenarioMaps {
 
     private static void solar(final Map<BlockPos, BlockState> plan, final int x, final int z) {
         fill(plan, x, 64, z - 1, x + 4, 64, z + 1, Blocks.POLISHED_DEEPSLATE);
-        put(plan, x + 1, 65, z, ScifiBlocks.SUPPORT_BEAM);
-        put(plan, x + 3, 65, z, ScifiBlocks.SUPPORT_BEAM);
-        fill(plan, x, 66, z - 1, x + 4, 66, z + 1, Blocks.DAYLIGHT_DETECTOR);
+        fill(plan, x, 65, z - 1, x + 4, 65, z + 1, ScifiBlocks.SOLAR_PANEL);
     }
 
     private static void mast(final Map<BlockPos, BlockState> plan, final int x, final int z) {
         fill(plan, x - 1, 64, z - 1, x + 1, 64, z + 1, Blocks.POLISHED_DEEPSLATE);
         fill(plan, x, 65, z, x, 67, z, ScifiBlocks.SUPPORT_BEAM);
         fill(plan, x, 68, z, x, 75, z, Blocks.IRON_BARS);
-        put(plan, x, 76, z, Blocks.END_ROD);
-        fill(plan, x + 1, 73, z, x + 2, 74, z, Blocks.CONCRETE.white());
-        put(plan, x + 1, 72, z, Blocks.IRON_BARS);
-        put(plan, x, 68, z + 1, ScifiBlocks.FLOOR_LIGHT);
+        put(plan, x, 76, z, ScifiBlocks.BEACON_MAST);
+        put(plan, x + 1, 64, z + 2, Blocks.POLISHED_DEEPSLATE);
+        put(plan, x + 1, 65, z + 2, ScifiBlocks.SATELLITE_DISH);
+        put(plan, x - 1, 65, z + 1, ScifiBlocks.SUPPLY_CRATE);
     }
 
     private static void shelter(final Map<BlockPos, BlockState> plan) {

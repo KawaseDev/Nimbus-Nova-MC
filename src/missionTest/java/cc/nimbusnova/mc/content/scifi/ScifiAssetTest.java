@@ -17,7 +17,8 @@ public final class ScifiAssetTest {
         final Pattern modelReference = Pattern.compile("nimbus_nova:(block|item)/(scifi_[a-z_]+)");
         final Pattern textureReference = Pattern.compile("nimbus_nova:block/(scifi_[a-z_]+)");
         final String[] names = { "dome_glass", "hull_panel", "reinforced_hull", "floor_tile", "floor_light", "strip_light",
-                "support_beam", "cable_trunk", "vent", "battery_bank", "air_tank", "cryo_cabinet", "hydroponic_tray", "airlock_door" };
+                "support_beam", "cable_trunk", "vent", "battery_bank", "air_tank", "cryo_cabinet", "hydroponic_tray", "airlock_door",
+                "solar_panel", "satellite_dish", "beacon_mast", "supply_crate" };
         for (final String name : names) {
             for (final String directory : new String[] { "blockstates", "items", "models/item" }) {
                 final Path file = assets.resolve(directory + "/scifi_" + name + ".json");
@@ -53,6 +54,6 @@ public final class ScifiAssetTest {
         final var glass = ImageIO.read(assets.resolve("textures/block/scifi_dome_glass.png").toFile());
         assert glass != null && (glass.getRGB(16, 16) >>> 24) <= 24 : "Dome must remain clear";
         assert Files.readString(assets.resolve("models/block/scifi_dome_glass.json")).contains("\"force_translucent\": true") : "26.3 native translucent texture required";
-        System.out.println("Sci-fi assets passed: 14 item/model chains, door states, animated textures and clear dome glass.");
+        System.out.println("Sci-fi assets passed: 18 item/model chains, door states, animated textures and clear dome glass.");
     }
 }

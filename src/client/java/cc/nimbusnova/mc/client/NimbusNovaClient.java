@@ -9,6 +9,7 @@ import cc.nimbusnova.mc.client.npc.MissionNpcClient;
 import cc.nimbusnova.mc.client.effect.DustStormEffects;
 import cc.nimbusnova.mc.client.guidance.HologramGuidance;
 import cc.nimbusnova.mc.client.guidance.Minimap;
+import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.ship.ShipClient;
 import cc.nimbusnova.mc.client.hub.HubClient;
 import cc.nimbusnova.mc.client.learning.LearningClient;
@@ -117,6 +118,16 @@ public final class NimbusNovaClient implements ClientModInitializer {
                         HubClient.open();
                 }
             }
+        });
+        HudElementRegistry.attachElementBefore(VanillaHudElements.HOTBAR, Identifier.parse("nimbus_nova:suit_alarm"), (graphics, _) -> {
+            final var suit = SuitLifeSupportClient.state();
+            if (suit == null || suit.frozen() || suit.pressurized() || suit.air() > 30) return;
+
+            // Low suit air closes in from the edges of the visor so the warning is felt before the meter is read.
+            final int strength = Math.round((30 - (float) suit.air()) / 30 * 110 + NovaRenderer.pulse(6) * 60) << 24 | 0xC81E1E;
+            final int width = graphics.guiWidth(), height = graphics.guiHeight(), depth = height / 4;
+            graphics.fillGradient(0, 0, width, depth, strength, 0x00C81E1E);
+            graphics.fillGradient(0, height - depth, width, height, 0x00C81E1E, strength);
         });
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
                 Identifier.parse("nimbus_nova:mission_hud"), MissionHud::render);

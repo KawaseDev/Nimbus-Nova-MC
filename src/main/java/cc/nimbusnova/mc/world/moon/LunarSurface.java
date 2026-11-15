@@ -141,18 +141,16 @@ public final class LunarSurface {
         put(plan, -2, 65, -9, Blocks.WOOL.lightBlue());
 
         for (int panel = 0; panel < 2; panel++) {
-            put(plan, 6, 63, 1 + panel * 3, ScifiBlocks.SUPPORT_BEAM);
             for (int x = 5; x <= 7; x++)
-                put(plan, x, 64, 1 + panel * 3, Blocks.DAYLIGHT_DETECTOR);
+                put(plan, x, 63, 1 + panel * 3, ScifiBlocks.SOLAR_PANEL);
         }
         put(plan, -6, 63, -3, ScifiBlocks.BATTERY_BANK);
-        put(plan, -6, 63, -2, Blocks.BARREL);
+        put(plan, -6, 63, -2, ScifiBlocks.SUPPLY_CRATE);
         put(plan, -7, 63, -3, ScifiBlocks.AIR_TANK);
         for (int y = 63; y <= 69; y++)
             put(plan, -8, y, 2, y < 65 ? ScifiBlocks.SUPPORT_BEAM : Blocks.IRON_BARS);
-        put(plan, -8, 70, 2, Blocks.END_ROD);
-        put(plan, -7, 68, 2, Blocks.CONCRETE.white());
-        put(plan, -7, 69, 2, Blocks.CONCRETE.white());
+        put(plan, -8, 70, 2, ScifiBlocks.BEACON_MAST);
+        put(plan, -9, 63, 4, ScifiBlocks.SATELLITE_DISH);
         return plan;
     }
 
@@ -182,7 +180,7 @@ public final class LunarSurface {
             plan.put(position.immutable(), (position.getY() == 70 ? ScifiBlocks.REINFORCED_HULL : ScifiBlocks.HULL_PANEL).defaultBlockState());
 
         put(plan, 0, 67, 0, Blocks.SEA_LANTERN);
-        put(plan, 0, 71, 0, Blocks.END_ROD);
+        put(plan, 0, 71, 0, ScifiBlocks.BEACON_MAST);
         put(plan, 2, 71, 2, ScifiBlocks.FLOOR_LIGHT);
         put(plan, -1, 65, -4, ScifiBlocks.FLOOR_LIGHT);
         put(plan, 1, 65, -4, ScifiBlocks.FLOOR_LIGHT);

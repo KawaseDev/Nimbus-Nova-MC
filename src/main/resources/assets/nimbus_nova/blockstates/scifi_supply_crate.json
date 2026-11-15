@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "nimbus_nova:block/scifi_supply_crate"
+    }
+  }
+}

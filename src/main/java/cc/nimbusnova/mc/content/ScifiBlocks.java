@@ -4,6 +4,7 @@ import cc.nimbusnova.mc.content.scifi.AirlockDoorBlock;
 import cc.nimbusnova.mc.content.scifi.ScifiPropBlock;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.minecraft.core.Registry;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -33,11 +34,18 @@ public final class ScifiBlocks {
     public static final Block STRIP_LIGHT = register("strip_light", properties -> new ScifiPropBlock(properties, 0, 0, 0, 16, 3, 16), 13);
     public static final Block SUPPORT_BEAM = register("support_beam", Block::new, 0);
     public static final Block CABLE_TRUNK = register("cable_trunk", properties -> new ScifiPropBlock(properties, 0, 0, 0, 16, 7, 16), 0);
-    public static final Block VENT = register("vent", properties -> new ScifiPropBlock(properties, 0, 11, 0, 16, 16, 16), 0);
-    public static final Block BATTERY_BANK = register("battery_bank", properties -> new ScifiPropBlock(properties, 0, 0, 0, 16, 16, 16), 3);
+    public static final Block VENT = register("vent", properties -> new ScifiPropBlock(properties, 0, 11, 0, 16, 16, 16,
+            ParticleTypes.WHITE_SMOKE, 9), 0);
+    public static final Block BATTERY_BANK = register("battery_bank", properties -> new ScifiPropBlock(properties, 0, 0, 0, 16, 16, 16,
+            ParticleTypes.ELECTRIC_SPARK, 30), 3);
     public static final Block AIR_TANK = register("air_tank", properties -> new ScifiPropBlock(properties, 2, 0, 2, 14, 16, 14), 0);
     public static final Block CRYO_CABINET = register("cryo_cabinet", properties -> new ScifiPropBlock(properties, 0, 0, 0, 16, 16, 16), 4);
     public static final Block HYDROPONIC_TRAY = register("hydroponic_tray", properties -> new ScifiPropBlock(properties, 0, 0, 0, 16, 6, 16), 0);
+    public static final Block SOLAR_PANEL = register("solar_panel", properties -> new ScifiPropBlock(properties, 0, 0, 0, 16, 14, 16), 0);
+    public static final Block SATELLITE_DISH = register("satellite_dish", properties -> new ScifiPropBlock(properties, 1, 0, 1, 15, 16, 15), 0);
+    public static final Block BEACON_MAST = register("beacon_mast", properties -> new ScifiPropBlock(properties, 5, 0, 5, 11, 16, 11,
+            ParticleTypes.END_ROD, 24), 10);
+    public static final Block SUPPLY_CRATE = register("supply_crate", properties -> new ScifiPropBlock(properties, 0, 0, 0, 16, 15, 16), 0);
     public static final Block AIRLOCK_DOOR = register("airlock_door", AirlockDoorBlock::new, 0);
 
     private ScifiBlocks() {
@@ -60,6 +68,6 @@ public final class ScifiBlocks {
         CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(output ->
                 List.of(DOME_GLASS, HULL_PANEL, REINFORCED_HULL, FLOOR_TILE, FLOOR_LIGHT, STRIP_LIGHT,
                         SUPPORT_BEAM, CABLE_TRUNK, VENT, BATTERY_BANK, AIR_TANK, CRYO_CABINET,
-                        HYDROPONIC_TRAY, AIRLOCK_DOOR).forEach(output::accept));
+                        HYDROPONIC_TRAY, SOLAR_PANEL, SATELLITE_DISH, BEACON_MAST, SUPPLY_CRATE, AIRLOCK_DOOR).forEach(output::accept));
     }
 }
