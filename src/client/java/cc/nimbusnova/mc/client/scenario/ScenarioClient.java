@@ -50,31 +50,32 @@ public final class ScenarioClient {
             final var client = Minecraft.getInstance();
             if (state == null || client.level == null || client.player == null || client.gui.screen() != null || client.gui.hud.isHidden()
                     || !client.level.dimension().identifier().toString().startsWith("nimbus_nova:scenario_")) return;
-            final int width = Math.min(324, graphics.guiWidth() - 16);
+            final int width = Math.min(252, graphics.guiWidth() - 12);
             final var waypoint = waypoint();
             final String phase = state.get("phase").getAsString();
-            NovaRenderer.hud(graphics, 8, 8, width, waypoint == null ? 87 : 108, new Color(10, 23, 31, 220));
-            NovaRenderer.text(graphics, state.get("title").getAsString(), 17, 15, 11, new Color(112, 226, 232));
             final int left = Math.max(0, 150 - state.get("elapsed").getAsInt());
             final String progress = switch (state.get("id").getAsString()) {
-                case "shelter" -> " / live data " + (state.get("observation").getAsBoolean() ? "YES" : "NO") + " / dose " + state.get("dose").getAsInt();
-                case "long_night" -> " / lab " + state.get("labSeconds").getAsInt() + "/30s / air flow " + state.get("lifeFlow").getAsInt();
-                default -> " / extraction humidity " + state.get("cabinHumidity").getAsInt();
+                case "shelter" -> "Live data " + (state.get("observation").getAsBoolean() ? "YES" : "NO") + " / dose " + state.get("dose").getAsInt();
+                case "long_night" -> "Lab " + state.get("labSeconds").getAsInt() + "/30s / air " + state.get("lifeFlow").getAsInt();
+                default -> "Humidity " + state.get("cabinHumidity").getAsInt();
             };
-            final var accent = new Color(248, 193, 108);
-            final String clock = phase.equals("READY") ? "Prepare / no timer" : phase.equals("ACTIVE") ? left / 60 + ":" + String.format("%02d", left % 60) : phase;
-            NovaRenderer.text(graphics, clock + progress, 17, 30, 8, Color.LIGHT_GRAY);
+            final Color accent = new Color(255, 200, 87), cyan = new Color(95, 225, 240);
+            final String clock = phase.equals("READY") ? "PREPARE" : phase.equals("ACTIVE") ? left / 60 + ":" + String.format("%02d", left % 60) : phase;
+            NovaRenderer.hud(graphics, 6, 6, width, 21, new Color(16, 21, 34));
+            NovaRenderer.text(graphics, progress, 13, 13, 8, cyan);
+            NovaRenderer.chip(graphics, clock, 6 + width - 6 - NovaRenderer.chipWidth(clock), 11,
+                    phase.equals("ACTIVE") && left <= 30 ? NovaRenderer.mix(new Color(255, 107, 107), Color.WHITE, NovaRenderer.pulse(8) * 0.5F) : accent);
             if (waypoint == null) {
-                final String detail = state.get("role").getAsString().isEmpty() && (phase.equals("READY") || phase.equals("ACTIVE"))
-                        ? "Choose a role to see your objective." : phase.equals("PAUSED") ? "Wait for Mission Control to resume." : "Open the tablet for your crew's status.";
-                NovaRenderer.wrap(graphics, detail, 17, 45, width - 18, 9, 2, Color.WHITE);
-                NovaRenderer.text(graphics, "J  Open crew tablet", 17, 75, 8, accent);
+                final int footer = NovaRenderer.objective(graphics, 6, 30, width, state.get("title").getAsString(), "CREW",
+                        state.get("role").getAsString().isEmpty() && (phase.equals("READY") || phase.equals("ACTIVE"))
+                                ? "Choose a role to see your objective." : phase.equals("PAUSED") ? "Wait for Mission Control to resume."
+                                : "Open the tablet for your crew's status.", accent);
+                NovaRenderer.text(graphics, "J  Open crew tablet", 15, footer, 8, accent);
                 return;
             }
 
-            NovaRenderer.text(graphics, waypoint.title(), 17, 43, 9, Color.WHITE);
-            NovaRenderer.wrap(graphics, waypoint.instruction(), 17, 57, width - 18, 9, 3, Color.WHITE);
-            ObjectiveGuidance.waypointHint(graphics, new BlockPos(waypoint.targetX(), waypoint.targetY(), waypoint.targetZ()), 17, 100, accent);
+            final int footer = NovaRenderer.objective(graphics, 6, 30, width, waypoint.title(), "TASK", waypoint.instruction(), accent);
+            ObjectiveGuidance.waypointHint(graphics, new BlockPos(waypoint.targetX(), waypoint.targetY(), waypoint.targetZ()), 15, footer, accent);
         });
     }
 }

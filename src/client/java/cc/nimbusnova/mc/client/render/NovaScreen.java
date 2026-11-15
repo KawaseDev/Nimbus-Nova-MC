@@ -13,6 +13,12 @@ public abstract class NovaScreen extends Screen {
     }
 
     @Override
+    public void added() {
+        super.added();
+        NovaRenderer.opened();
+    }
+
+    @Override
     protected void rebuildWidgets() {
         final var focus = getFocused();
         super.rebuildWidgets();
@@ -31,6 +37,6 @@ public abstract class NovaScreen extends Screen {
 
     @Override
     public void extractBackground(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
-        graphics.fill(0, 0, width, height, 0x88090910);
+        graphics.fillGradient(0, 0, width, height, 0x9A050814, 0xC4020308);
     }
 }

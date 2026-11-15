@@ -75,15 +75,14 @@ public final class ObjectiveGuidance {
     }
 
     private static void drawArrow(final GuiGraphicsExtractor graphics, final double yaw, final float x, final float y, final Color color) {
+        NovaRenderer.chamfer(graphics, x - 7, y - 7, 15, 15, 4, new Color(5, 7, 13, 210));
+        NovaRenderer.stroke(graphics, x - 5, y - 7, 11, 1, 1, NovaRenderer.alpha(color, 90));
         graphics.pose().pushMatrix();
-        graphics.pose().translate(x, y);
+        graphics.pose().translate(x + 0.5F, y + 0.5F);
         graphics.pose().rotate((float) Math.toRadians(yaw));
-        NovaRenderer.rect(graphics, -0.8F, -5, 1.6F, 12, color);
-        graphics.pose().translate(0, -5);
-        graphics.pose().rotate((float) Math.PI / 4);
-        NovaRenderer.rect(graphics, -0.7F, 0, 1.4F, 6, color);
-        graphics.pose().rotate(-(float) Math.PI / 2);
-        NovaRenderer.rect(graphics, -0.7F, 0, 1.4F, 6, color);
+        NovaRenderer.rect(graphics, -1, -2, 2, 7, color);
+        for (int row = 0; row < 4; row++)
+            NovaRenderer.rect(graphics, -row - 1, -5 + row, row * 2 + 2, 1, color);
         graphics.pose().popMatrix();
     }
 }

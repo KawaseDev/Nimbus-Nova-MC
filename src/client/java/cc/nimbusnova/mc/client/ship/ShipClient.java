@@ -16,6 +16,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import org.jspecify.annotations.Nullable;
 
+import java.awt.Color;
+
 public final class ShipClient implements ShipPalette {
     private static @Nullable ShipPayload state;
 
@@ -49,38 +51,38 @@ public final class ShipClient implements ShipPalette {
         HudElementRegistry.attachElementBefore(VanillaHudElements.CROSSHAIR, Identifier.parse("nimbus_nova:ship_hud"), (graphics, _) -> {
             final Minecraft client = Minecraft.getInstance();
             if (state == null || client.level == null || client.player == null || client.gui.screen() != null || client.gui.hud.isHidden()) return;
+            final int width = Math.min(252, graphics.guiWidth() - 12);
             if (client.level.dimension().equals(LunarSurface.DIMENSION)) {
-                final int width = Math.min(324, graphics.guiWidth() - 16);
-                NovaRenderer.hud(graphics, 8, 8, width, 82, BACKGROUND);
-                NovaRenderer.text(graphics, "Moon surface", 18, 14, 10, ACCENT);
                 final var suit = SuitLifeSupportClient.state();
-                NovaRenderer.text(graphics, (suit == null ? "" : "Suit air " + (int) Math.ceil(suit.air()) + "% / ") + "J crew tablet", 18, 29, 8, MUTED);
-                NovaRenderer.wrap(graphics, state.instruction(), 18, 45, width - 20, 9, 2, TEXT);
+                final int footer = NovaRenderer.objective(graphics, 6, 6, width, "Moon surface",
+                        suit == null ? "EVA" : "SUIT AIR " + (int) Math.ceil(suit.air()) + "%", state.instruction(),
+                        suit != null && suit.air() <= 25 ? new Color(255, 107, 107) : ACCENT);
                 if (state.hasWaypoint())
-                    ObjectiveGuidance.waypointHint(graphics, state.target(), 18, 73, WARNING);
+                    ObjectiveGuidance.waypointHint(graphics, state.target(), 15, footer, WARNING);
+                else
+                    NovaRenderer.text(graphics, "J  Open crew tablet", 15, footer, 8, ACCENT);
                 return;
             }
             if (!client.level.dimension().equals(ShipMap.DIMENSION)) return;
 
-            final int panelWidth = Math.min(324, graphics.guiWidth() - 16);
-            NovaRenderer.hud(graphics, 8, 8, panelWidth, 34, BACKGROUND);
-            final String title = state.variant().equals("EXPLORATION") ? "Moon Expedition" : "Return Window";
-            NovaRenderer.text(graphics, title + " / " + label(state.role().isEmpty() ? "Choose a role" : state.role()), 18, 14, 10, ACCENT);
-            final String resource = telemetry(state);
-            NovaRenderer.text(graphics, resource, 18, 29, 8, MUTED);
             final String status = state.phase().equals("READY") ? "PREPARE" : state.phase().equals("ACTIVE")
                     ? state.seconds() / 60 + ":" + String.format("%02d", state.seconds() % 60) : state.phase();
-            NovaRenderer.text(graphics, status, 8 + panelWidth - NovaRenderer.width(status, 8) - 10, 29, 8, WARNING);
+            NovaRenderer.hud(graphics, 6, 6, width, 21, BACKGROUND);
+            NovaRenderer.chip(graphics, label(state.role().isEmpty() ? "Choose a role" : state.role()).toUpperCase(), 12, 11, ACCENT);
+            NovaRenderer.chip(graphics, status, 6 + width - 6 - NovaRenderer.chipWidth(status), 11, state.phase().equals("ACTIVE") ? TEXT : WARNING);
+            final String resource = telemetry(state);
+            if (NovaRenderer.width(resource, 8) < width - 24 - NovaRenderer.chipWidth(status)
+                    - NovaRenderer.chipWidth(label(state.role().isEmpty() ? "Choose a role" : state.role())))
+                NovaRenderer.text(graphics, resource, 18 + NovaRenderer.chipWidth(label(state.role().isEmpty() ? "Choose a role" : state.role()).toUpperCase()), 13, 8, MUTED);
 
-            NovaRenderer.hud(graphics, 8, 46, panelWidth, 72, BACKGROUND);
-            NovaRenderer.text(graphics, state.title(), 18, 54, 11, TEXT);
-            NovaRenderer.wrap(graphics, state.instruction(), 18, 72, panelWidth - 20, 9, 2, TEXT);
+            final int footer = NovaRenderer.objective(graphics, 6, 30, width, state.title(),
+                    state.variant().equals("EXPLORATION") ? "MOON" : "RESCUE", state.instruction(), WARNING);
             if (!state.hasWaypoint()) {
-                NovaRenderer.text(graphics, state.phase().equals("PAUSED") ? "J  Read the crew briefing" : "J  Open crew tablet", 18, 102, 8, ACCENT);
+                NovaRenderer.text(graphics, state.phase().equals("PAUSED") ? "J  Read the crew briefing" : "J  Open crew tablet", 15, footer, 8, ACCENT);
                 return;
             }
 
-            ObjectiveGuidance.waypointHint(graphics, state.target(), 18, 102, WARNING);
+            ObjectiveGuidance.waypointHint(graphics, state.target(), 15, footer, WARNING);
         });
     }
 
