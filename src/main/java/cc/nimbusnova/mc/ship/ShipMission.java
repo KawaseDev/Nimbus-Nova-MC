@@ -237,6 +237,7 @@ public final class ShipMission {
 
     private boolean surfaceSuit(final int action) {
         if (landing == null || action != 0 || landing.suitsChecked() || landing.phase() != LunarLanding.Phase.SURFACE) return false;
+        if (!completed(ShipTask.COMMS)) { feedback = "Maintenance must verify the surface communication link before the suit check."; return true; }
         if (oxygen < 5 || water < 5) { feedback = "The crew needs at least five oxygen and water units for this simulated surface check."; return true; }
         landing.checkSuits(true, true);
         complete(ShipTask.MEDICAL);
@@ -635,7 +636,7 @@ public final class ShipMission {
             case PILOT -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.NAVIGATION
                     || moon.stage() == MoonMission.Stage.ORBIT || moon.stage() == MoonMission.Stage.DESCENT
                     || moon.stage() == MoonMission.Stage.SURFACE || moon.stage() == MoonMission.Stage.RETURN;
-            case COMMS -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.NAVIGATION || moon.stage() == MoonMission.Stage.DESCENT || moon.stage() == MoonMission.Stage.RETURN;
+            case COMMS -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.NAVIGATION || moon.stage() == MoonMission.Stage.DESCENT || moon.stage() == MoonMission.Stage.SURFACE || moon.stage() == MoonMission.Stage.RETURN;
             case GALLEY -> moon.stage() == MoonMission.Stage.RESTART || (optionalComplete & 1 << task.ordinal()) == 0;
             case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER || moon.stage() == MoonMission.Stage.SURFACE && landing != null
                     && landing.phase() == LunarLanding.Phase.SURFACE || moon.stage() != MoonMission.Stage.SURFACE && (optionalComplete & 1 << task.ordinal()) == 0;
@@ -727,7 +728,7 @@ public final class ShipMission {
             case NAVIGATION -> "Pilot: verify the star fix. Maintenance: verify the navigation communication link.";
             case ORBIT -> "Power: verify capture power and the return reserve. Pilot: compare the burn predictions.";
             case DESCENT -> "Maintenance: verify the radar link. Pilot: check guidance, select the alternate site and control both landing speeds.";
-            case SURFACE -> "Life support: check suits. Science: secure a sample. Pilot: launch and verify rendezvous.";
+            case SURFACE -> "Maintenance: verify surface communications. Life support: check suits. Collect a sample, then launch and verify rendezvous.";
             case EMERGENCY -> "Power engineer: isolate science and comfort heating while keeping life support on.";
             case FILTER -> "Life-support engineer: assemble the CO2 adapter in order, pressure-test the seal and start filtered airflow.";
             case RESTART -> "Power engineer: fit cartridges to the new restart loads. Supplies: allocate heat to navigation and the air loop.";

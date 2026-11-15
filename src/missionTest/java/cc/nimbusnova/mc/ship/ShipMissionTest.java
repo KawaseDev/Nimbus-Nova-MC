@@ -154,6 +154,9 @@ public final class ShipMissionTest {
         verifyPaused(mission); resume(mission);
         if (mission.collectSurfaceSample() || mission.completed(ShipTask.SCIENCE)) throw new AssertionError("A sample requires a suit check");
         act(mission, ShipTask.MEDICAL, 0);
+        if (mission.canVisitSurface()) throw new AssertionError("Surface access requires a verified communication link");
+        tuneSignal(mission);
+        act(mission, ShipTask.MEDICAL, 0);
         if (!mission.collectSurfaceSample()) throw new AssertionError("A suited crew must be able to collect the surface sample");
         act(mission, ShipTask.PILOT, 5); act(mission, ShipTask.PILOT, 6);
         if (mission.snapshot().stage() != MoonMission.Stage.RETURN) throw new AssertionError("Rendezvous must lead to return");

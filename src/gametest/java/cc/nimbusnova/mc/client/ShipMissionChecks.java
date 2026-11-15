@@ -202,6 +202,10 @@ final class ShipMissionChecks {
         if (world.getServer().computeOnServer(server -> world.getConnection().getServerPlayer().level().dimension().equals(LunarSurface.DIMENSION)))
             throw new AssertionError("The surface must require a suit check and equipment");
         open(context, world, ShipTask.MEDICAL); action(context, 0);
+        if (world.getServer().computeOnServer(server -> ShipController.get(server).mission().canVisitSurface()))
+            throw new AssertionError("Surface access must wait for a verified communication link");
+        align(context, world, ShipTask.COMMS);
+        open(context, world, ShipTask.MEDICAL); action(context, 0);
         world.getServer().runCommand("execute as @p run ship suit");
         world.getServer().runCommand("execute as @p run ship surface");
         context.waitFor(client -> client.level != null && client.level.dimension().equals(LunarSurface.DIMENSION));
