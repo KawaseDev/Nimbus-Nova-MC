@@ -6,6 +6,8 @@ import cc.nimbusnova.mc.scenario.OutpostScenarioController;
 import cc.nimbusnova.mc.learning.LearningChecks;
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
+import cc.nimbusnova.mc.mission.GearClaims;
+import cc.nimbusnova.mc.NimbusNovaMod;
 import cc.nimbusnova.mc.moon.MoonController;
 import cc.nimbusnova.mc.moon.MoonMission;
 import cc.nimbusnova.mc.npc.MissionNpcs;
@@ -38,6 +40,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -46,7 +49,6 @@ import net.minecraft.world.phys.Vec3;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -59,7 +61,6 @@ public final class ShipController {
     private final Map<UUID, ReturnPoint> returns = new HashMap<>();
     private final Map<UUID, HeldAction> holds = new HashMap<>();
     private final Map<UUID, Integer> punchTicks = new HashMap<>();
-    private final Set<UUID> issuedSuits = new HashSet<>();
     private ShipMission mission;
     private int ticks;
     private boolean roomPowerEvent, roomBreachEvent;
@@ -249,7 +250,6 @@ public final class ShipController {
             mission = new ShipMission(action.equals("ship_explore") ? MoonMission.Variant.EXPLORATION : MoonMission.Variant.RESCUE);
             roles.clear();
             opened.clear();
-            issuedSuits.clear();
             for (final ServerPlayer player : server.getPlayerList().getPlayers()) join(player);
         } else {
             if (mission == null) throw new IllegalStateException("Select Return Window first with /ship select.");
@@ -278,7 +278,6 @@ public final class ShipController {
                     mission = new ShipMission(mission.underlying().variant());
                     roles.clear();
                     opened.clear();
-                    issuedSuits.clear();
                 }
                 case "ship_end" -> {
                     LearningChecks.clear(server, "ship");
@@ -289,7 +288,6 @@ public final class ShipController {
                     mission = null;
                     roles.clear();
                     opened.clear();
-                    issuedSuits.clear();
                 }
                 default -> throw new IllegalArgumentException("Unknown ship action.");
             }
@@ -346,8 +344,20 @@ public final class ShipController {
                 return;
             }
         }
-        if (!issuedSuits.add(player.getUUID())) {
-            player.sendSystemMessage(Component.literal("Your suit was already issued. Check your armor and inventory."));
+        try {
+            boolean existingSuit = true;
+            for (int i = 0; i < slots.length; i++) {
+                final Item piece = pieces[i];
+                existingSuit &= player.getItemBySlot(slots[i]).is(piece) || player.getInventory().contains(stack -> stack.is(piece));
+            }
+            final boolean first = GearClaims.claim(player.level().getServer().getWorldPath(LevelResource.ROOT), player.getUUID(), GearClaims.Kit.MOON);
+            if (!first || existingSuit) {
+                player.sendSystemMessage(Component.literal("Your suit was already issued. Check your armor and inventory."));
+                return;
+            }
+        } catch (final IOException error) {
+            NimbusNovaMod.LOGGER.error("Could not save the suit claim", error);
+            player.sendSystemMessage(Component.literal("Could not save your suit claim. Ask the teacher to check the server."));
             return;
         }
         for (int i = 0; i < slots.length; i++)

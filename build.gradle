@@ -62,6 +62,13 @@ tasks.register('missionSelfTest', JavaExec) {
 
 check.dependsOn missionSelfTest
 
+tasks.register('gearClaimsTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.mission.GearClaimsTest'
+}
+check.dependsOn gearClaimsTest
+
 tasks.register('contentAssetTest', JavaExec) {
     dependsOn missionTestClasses
     classpath = sourceSets.missionTest.runtimeClasspath

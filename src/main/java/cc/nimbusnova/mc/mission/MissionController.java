@@ -14,7 +14,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.util.Prediction;
 import net.minecraft.world.phys.Vec3;
-import java.util.HashSet;
 import java.util.Set;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -69,7 +68,6 @@ public final class MissionController {
     private final EducationPause education = new EducationPause();
     private MissionState mission = newPreparedMission();
     private final Map<UUID, MissionPreparation.TaskKind> openTasks = new HashMap<>();
-    private final Set<UUID> suppliedPlayers = new HashSet<>();
     private String progressFeedback = "Welcome, crew! Follow the mission marker to Commander Vega.";
     private final Map<UUID, CrewRole> roles = new HashMap<>();
     private final Map<GlobalPos, Station> stations = new HashMap<>();
@@ -372,8 +370,19 @@ public final class MissionController {
         }
 
         if (kind == MissionPreparation.TaskKind.SUPPLIES) {
-            if (!suppliedPlayers.add(player.getUUID())) {
-                player.sendSystemMessage(Component.literal("You already collected your crew kit. Check your inventory."));
+            try {
+                final Path world = player.level().getServer().getWorldPath(LevelResource.ROOT);
+                // shortcut: old claims can only be inferred from carried kit, unless a legacy claim record becomes available.
+                final boolean existingKit = player.getInventory().contains(stack -> stack.is(ModContent.MISSION_TABLET)
+                        || stack.is(ModContent.ENGINEERING_TOOL) || stack.is(ModContent.OXYGEN_CANISTER));
+                final boolean first = GearClaims.claim(world, player.getUUID(), GearClaims.Kit.MARS);
+                if (!first || existingKit) {
+                    player.sendSystemMessage(Component.literal("You already collected your crew kit. Check your inventory."));
+                    return false;
+                }
+            } catch (final IOException error) {
+                NimbusNovaMod.LOGGER.error("Could not save the crew kit claim", error);
+                player.sendSystemMessage(Component.literal("Could not save your kit claim. Ask the teacher to check the server."));
                 return false;
             }
 
@@ -586,7 +595,7 @@ public final class MissionController {
         if (!operator && role == CrewRole.OBSERVER)
             return taskProgress(MissionPreparation.TaskKind.BRIEFING, "ROLE", "Choose your crew role", "Open the crew panel and choose Power, Life support or Weather. Your own task marker will appear.", preparation.completed(), 5, false);
 
-        if (!suppliedPlayers.contains(player.getUUID()))
+        if (!hasCrewKitClaim(player))
             return taskProgress(MissionPreparation.TaskKind.SUPPLIES, "GEAR", "Collect your astronaut kit", "Visit the supply locker in the habitat. Right-click to collect tools and equip your empty suit slots.", preparation.completed(), 5, false);
 
         if (!preparation.checked(MissionPreparation.TaskKind.POWER) && (operator || role == CrewRole.POWER))
@@ -619,6 +628,14 @@ public final class MissionController {
                                            final BlockPos target, final int completed, final int total, final int step) {
         return new MissionProgressPayload(stage, title, instruction, action, target.getX(), target.getY(), target.getZ(),
                 completed, total, step, progressFeedback, preparation.ready());
+    }
+
+    private static boolean hasCrewKitClaim(final ServerPlayer player) {
+        try { return GearClaims.claimed(player.level().getServer().getWorldPath(LevelResource.ROOT), player.getUUID(), GearClaims.Kit.MARS); }
+        catch (final IOException error) {
+            NimbusNovaMod.LOGGER.error("Could not read the crew kit claim", error);
+            return true;
+        }
     }
 
     private int setEquipment(final CommandSourceStack source, final MissionState.Equipment system, final boolean online) {

@@ -4,6 +4,7 @@ import cc.nimbusnova.mc.hub.MissionHub;
 import cc.nimbusnova.mc.learning.LearningChecks;
 import cc.nimbusnova.mc.content.ModContent;
 import cc.nimbusnova.mc.mission.MissionController;
+import cc.nimbusnova.mc.mission.MissionPreparation;
 import cc.nimbusnova.mc.vehicle.MarsRover;
 import cc.nimbusnova.mc.vehicle.RoverContent;
 import cc.nimbusnova.mc.scenario.OutpostScenarioController;
@@ -87,6 +88,15 @@ public final class MissionServerGameTests {
         context.assertFalse(engineer.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)
                 || lifeSupport.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER), "Role checks require ordinary crew actors");
         if (mars == null) throw new AssertionError("The Mars dimension was not loaded");
+        move(lifeSupport, mars, MarsTrainingMap.SUPPLY_LOCKER.south());
+        context.assertTrue(MissionController.get(server).interaction(lifeSupport, MissionPreparation.TaskKind.SUPPLIES), "The first kit was not issued");
+        lifeSupport.getInventory().clearContent();
+        for (final var slot : new net.minecraft.world.entity.EquipmentSlot[] { net.minecraft.world.entity.EquipmentSlot.HEAD,
+                net.minecraft.world.entity.EquipmentSlot.CHEST, net.minecraft.world.entity.EquipmentSlot.LEGS, net.minecraft.world.entity.EquipmentSlot.FEET })
+            lifeSupport.setItemSlot(slot, ItemStack.EMPTY);
+        context.assertFalse(new MissionController().interaction(lifeSupport, MissionPreparation.TaskKind.SUPPLIES),
+                "Reloading the controller issued a second kit after the player put their gear away");
+        context.assertTrue(count(lifeSupport, ModContent.ENGINEERING_TOOL) == 0, "A duplicate kit was added");
         roverResources(context, engineer, mars);
         final ShipController controller = ShipController.get(server);
         controller.teacherAction(server, "ship_select");

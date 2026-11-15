@@ -27,6 +27,7 @@ Use the same Nimbus Nova pack as your teacher/server: Minecraft 26.3, Fabric, Ja
 - When an incident pauses the clock, open **Crew check**, compare its actual readings and make a supported prediction. A wrong prediction explains why and lets you try again. Your teacher then resumes.
 - Ship emergencies: open **Room control**. Sneak-right-click storage for the crew's repair supplies, share the real items, repair the marked cable or place a plate into the hull hole. A door crank gives brief emergency access.
 - Cabin light switches work in the world. A power fault can leave dim emergency lighting rather than normal lights.
+- Mars crew kits and Moon suits are issued once per player per world. Server or mission restarts do not refill them; a reinstalled world starts new claims.
 - Rover: movement keys drive, jump brakes, sneak exits. Right-click with a training sample to load it (three max), or sneak-right-click to unload. At the workshop, sneak-use the engineering tool to charge; an active charge uses base power.
 
 Success means keeping the crew safe **and** completing the mission's useful work. The report explains what your choices changed. These are teaching models; game pressure, timing and resource units are not real astronaut survival instructions.
