@@ -183,6 +183,11 @@
       shipButtons[6].hidden = !shipSelected;
       shipButtons[6].disabled = missionBusy;
       document.getElementById('ship-status').textContent = shipSelected ? `${ship.title || 'Return Window'} · ${ship.phase} · ${ship.stage} · Power ${Math.round(ship.battery)} · Oxygen ${Math.round(ship.oxygen)} · CO2 ${Math.round(ship.co2)}` : 'Select the ship to prepare your crew.';
+      if (shipSelected && ship.phase === 'READY') {
+        const roles = ['Power', 'Life support', 'Supplies', 'Maintenance', 'Pilot'];
+        const reported = roles.filter((_, index) => (ship.preflightReports & (1 << index)) !== 0);
+        document.getElementById('ship-status').textContent += ` · Preflight ${reported.length}/5${reported.length ? ': ' + reported.join(', ') : ''}`;
+      }
       document.getElementById('ship-feedback').textContent = shipSelected ? ship.feedback : '';
       document.getElementById('ship-debrief').hidden = !shipSelected || shipRunning;
       if (shipSelected && !shipRunning) {

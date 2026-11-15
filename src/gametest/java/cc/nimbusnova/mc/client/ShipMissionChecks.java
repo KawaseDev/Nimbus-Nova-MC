@@ -192,6 +192,13 @@ final class ShipMissionChecks {
         world.getServer().runCommand("ship explore");
         context.waitFor(client -> client.level != null && client.level.dimension().equals(ShipMap.DIMENSION)
                 && ShipClient.state() != null && ShipClient.state().variant().equals("EXPLORATION"));
+        context.waitForScreen(ShipScreen.class);
+        context.clickScreenButton("pilot");
+        context.waitFor(client -> ShipClient.state() != null && ShipClient.state().role().equals("PILOT"));
+        context.clickScreenButton("Report preflight check");
+        context.waitFor(client -> ShipClient.state() != null && ShipClient.state().feedback().contains("PILOT"));
+        if (world.getServer().computeOnServer(server -> ShipController.get(server).mission().preflightReports()) != 1 << MoonMission.Role.PILOT.ordinal())
+            throw new AssertionError("The selected role's preflight report must reach the server");
         world.getServer().runOnServer(server -> {
             final var moon = server.getLevel(LunarSurface.DIMENSION);
             final BlockPos playerBuild = new BlockPos(20, 63, 20);
@@ -325,6 +332,7 @@ final class ShipMissionChecks {
             GuidedMissionChecks.capture(context, "ship-constellation-fix");
             action(context, 6);
         } else {
+            action(context, 3);
             action(context, 0);
             context.waitFor(client -> client.gui.screen() instanceof ShipScreen screen && (screen.state().board() & 255) >= 6);
             GuidedMissionChecks.capture(context, "ship-return-burn-window");

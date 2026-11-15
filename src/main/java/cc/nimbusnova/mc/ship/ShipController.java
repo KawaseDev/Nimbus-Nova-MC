@@ -440,6 +440,8 @@ public final class ShipController {
                 final MoonMission.Role role = MoonMission.Role.values()[packet.value()];
                 if (roles.containsValue(role) && roles.get(player.getUUID()) != role) throw new IllegalStateException("That crew role is already occupied.");
                 roles.put(player.getUUID(), role);
+            } else if (packet.action().equals("preflight")) {
+                mission.reportPreflight(roles.get(player.getUUID()));
             } else if (packet.action().equals("task") || packet.action().equals("hold_begin") || packet.action().equals("hold_finish")) {
                 stationAction(player, packet);
             } else {
@@ -580,6 +582,7 @@ public final class ShipController {
         result.addProperty("feedback", state.feedback());
         result.addProperty("incident", state.incident() == null ? "" : state.incident().name());
         result.addProperty("acknowledged", mission.underlying().acknowledged());
+        result.addProperty("preflightReports", mission.preflightReports());
         final JsonArray journal = new JsonArray();
         for (final String decision : mission.debrief()) journal.add(decision);
         result.add("decisions", journal);

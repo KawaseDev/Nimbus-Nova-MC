@@ -9,6 +9,11 @@ public final class ShipMissionTest {
 
     public static void main(final String[] arguments) {
         activities();
+        final ShipMission reports = new ShipMission();
+        reports.reportPreflight(MoonMission.Role.PILOT);
+        if (reports.preflightReports() != 1 << MoonMission.Role.PILOT.ordinal()) throw new AssertionError("The pilot report must be recorded");
+        try { reports.reportPreflight(MoonMission.Role.PILOT); throw new AssertionError("A role cannot report twice"); }
+        catch (IllegalStateException expected) { }
         final ShipMission cartridges = new ShipMission();
         act(cartridges, ShipTask.ENGINE, 1);
         act(cartridges, ShipTask.ENGINE, 5);
@@ -64,6 +69,11 @@ public final class ShipMissionTest {
         act(complete, ShipTask.GALLEY, 0);
         act(complete, ShipTask.GALLEY, 1);
         act(complete, ShipTask.GALLEY, 3);
+        act(complete, ShipTask.PILOT, 2); act(complete, ShipTask.PILOT, 0);
+        if ((complete.board(ShipTask.PILOT) & 256) != 0) throw new AssertionError("A shallow entry cannot start the burn");
+        act(complete, ShipTask.PILOT, 4); act(complete, ShipTask.PILOT, 0);
+        if ((complete.board(ShipTask.PILOT) & 256) != 0) throw new AssertionError("A steep entry cannot start the burn");
+        act(complete, ShipTask.PILOT, 3);
         act(complete, ShipTask.PILOT, 0);
         for (int second = 0; second < 3; second++)
             complete.tickSecond();
@@ -161,6 +171,7 @@ public final class ShipMissionTest {
         if (!mission.collectSurfaceSample()) throw new AssertionError("A suited crew must be able to collect the surface sample");
         act(mission, ShipTask.PILOT, 5); act(mission, ShipTask.PILOT, 6);
         if (mission.snapshot().stage() != MoonMission.Stage.RETURN) throw new AssertionError("Rendezvous must lead to return");
+        act(mission, ShipTask.PILOT, 3);
         act(mission, ShipTask.PILOT, 0);
         for (int i = 0; i < 6; i++) mission.tickSecond();
         act(mission, ShipTask.PILOT, 1); tuneSignal(mission);
@@ -181,6 +192,7 @@ public final class ShipMissionTest {
         act(mission, ShipTask.PILOT, 6);
         if (mission.snapshot().stage() != MoonMission.Stage.RETURN || mission.snapshot().fuel() != fuel - 5)
             throw new AssertionError("A canceled landing must spend abort fuel and move to return");
+        act(mission, ShipTask.PILOT, 3);
         act(mission, ShipTask.PILOT, 0);
         for (int i = 0; i < 6; i++) mission.tickSecond();
         act(mission, ShipTask.PILOT, 1); tuneSignal(mission);
