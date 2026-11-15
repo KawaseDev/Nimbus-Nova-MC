@@ -7,6 +7,8 @@ import cc.nimbusnova.mc.moon.MoonMission;
 import cc.nimbusnova.mc.scenario.OutpostScenarioController;
 import cc.nimbusnova.mc.ship.ShipController;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
+import cc.nimbusnova.mc.world.scenario.ScenarioMaps;
+import cc.nimbusnova.mc.world.ship.ShipMap;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -154,14 +156,21 @@ public final class MissionHub {
         if (action.equals("select")) {
             if (!validMission(missionId)) throw new IllegalArgumentException("Unknown mission. Choose a mission in /nimbus.");
             if (current.equals(missionId)) return;
+            // Prepare the destination first so an occupied or unavailable map cannot discard an attempt.
+            try {
+                if (missionId.equals("mars")) {
+                    if (MarsTrainingMap.create(server.createCommandSourceStack()) == 0)
+                        throw new IllegalStateException("The Mars map could not be prepared. Existing blocks were preserved.");
+                } else if (missionId.equals("ship") || missionId.equals("moon"))
+                    ShipMap.create(server);
+                else
+                    ScenarioMaps.create(server, missionId);
+            } catch (final IOException error) {
+                throw new IllegalStateException(error.getMessage(), error);
+            }
             endCurrent(server, current);
             if (MoonController.get(server).mission() != null) MoonController.get(server).teacherAction(server, "moon_end");
             if (missionId.equals("mars")) {
-                try {
-                    MarsTrainingMap.create(server.createCommandSourceStack());
-                } catch (final IOException error) {
-                    throw new IllegalStateException(error.getMessage(), error);
-                }
                 MissionController.get(server).control(server.createCommandSourceStack(), "reset");
                 selected = "mars";
                 for (final ServerPlayer player : server.getPlayerList().getPlayers()) fixedCommand(player, "mars join");

@@ -252,3 +252,18 @@ Java 25 `build runClientGameTest` passed. Native checks completed all five secon
 Native door and repair checks passed, followed by rescue success and the merged exploration prototype checks. The dashboard/repair captures were inspected. Room pressure is authored, not fluid simulation; real multiplayer/classroom testing remains open.
 
 Final integration note: compartment door/repair/recovery and rescue checks passed in native Minecraft before the latest lunar-surface updates. All teammate changes were preserved, and the final merged `build compileGametestJava` plus model checks passed. The fresh post-merge client rerun twice stalled before world creation in native `SDL_GL_SwapWindow`; it was stopped. No multiplayer or final post-merge graphics certification is claimed.
+
+## Six-mission delivery goal
+
+- [x] Add the `/nimbus` library and unify teacher selection while retaining legacy commands.
+- [x] Gate launch on authoritative preparation readiness and make repeats harmless.
+- [x] Build the shelter, night and greenhouse worlds and their distinct mission loops; preserve Mars, Moon and spacecraft rescue.
+- [x] Add applied crew checks in place of skipping through incident text, including a live supply/demand prediction.
+- [x] Add ship windows, orbital sky, switchable room lights, bounded fault flicker and audible state cues.
+- [x] Add actual two-layer hull breaches and rover cargo/energy/charging.
+- [x] Obtain independent gameplay and education reviews; address paused repair item loss, misplacement, role routing and missing observation trade-offs.
+- [x] Verify merged build, server gameplay and saved report retrieval.
+- [x] Generate the importable classroom pack and verify its archive contents.
+- [ ] Inspect rendered windowed/fullscreen playthroughs and test desktop input on the unlocked Mac.
+
+See [gameplay review](docs/OVERNIGHT_GAMEPLAY_REVIEW.md) and [education review](docs/OVERNIGHT_EDUCATION_REVIEW.md) for findings at the beginning of the polish pass. A locked desktop can stall the Mac OpenGL startup before the client creates a world. Headless tests exercise actual Minecraft worlds and multiple embedded server actors; they do not verify GPU rendering, real classroom devices or educational outcomes. Organizer decisions, a real learner observation, and public submission remain separate.

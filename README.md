@@ -1,10 +1,17 @@
 # Nimbus-Nova-MC
 
-A cooperative Minecraft Mars mission trainer for NASA Space Apps 2026's **Build a Junior Astronaut Mission Trainer** challenge.
+A cooperative Minecraft mission trainer for NASA Space Apps' **Build a Junior Astronaut Mission Trainer** challenge. Open **`/nimbus`** for the six-mission library in-game, or select a mission from the teacher panel's **Mission control** card.
 
-The mod includes an authored Mars outpost, a shared power/oxygen simulation, three crew roles, a custom HUD/console with an end-of-mission debrief, interactive equipment blocks, a driveable six-wheel rover, two astronaut NPCs, and original space items with custom textures. The dust storm's solar supply follows real Opportunity dust-storm records; battery, oxygen, and energy rates are authored game balance. See [CREDITS.md](CREDITS.md) for sources and [TODO.md](TODO.md) for remaining work such as two-client testing.
+| Mission | Setting and crew decision |
+| --- | --- |
+| The Darkening Sky | Mars outpost; preserve oxygen and research as dust cuts sunlight. |
+| Moon Expedition | Spacecraft and lunar surface; guide descent, compare samples and return with the full crew. |
+| Return Window | Orbital ship; isolate faults, restore CO2 removal, patch a hull breach and time the return burn. |
+| Shelter Before the Event | Survey site and shielded shelter; choose whether to risk gathering a live observation. |
+| The Long Night | Night outpost; repair a power failure and balance heat, air and laboratory output. |
+| Greenhouse Emergency | Grow module; repair the feed pipe and maintain viable moisture, aeration, light and ventilation. |
 
-The teacher backend and admin panel belong to another teammate. Local mod development uses operator commands and does not depend on that platform being available.
+See the [crew guide](PLAYER_GUIDE.md), [teacher guide](TEACHER_GUIDE.md) and [sources](CREDITS.md). The teacher backend remains separate; local operator play does not require it.
 
 ## Build and run
 
@@ -19,13 +26,13 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ./gradlew runClient
 ```
 
-`build` includes mission, content, terrain, imported-format, dust-profile, and NPC-dialogue self-checks. Run `./gradlew runClientGameTest` for the isolated single-client runtime test and render captures. It creates its own disposable test world and writes screenshots under `build/run/clientGameTest/screenshots`; it does not use your normal saves. The client test uses the version-pinned experimental Fabric test API and requires a graphical environment.
+`build` includes pure Java checks and headless Minecraft server tests with the real mission dimensions. Run `./gradlew runClientGameTest` for the isolated single-client runtime test and render captures. It creates its own disposable test world and writes screenshots under `build/run/clientGameTest/screenshots`; it does not use your normal saves. The client test uses the version-pinned experimental Fabric test API and requires a graphical environment.
 
 Elsewhere, set `JAVA_HOME` to your JDK 25 installation. Windows uses `gradlew.bat build` and `gradlew.bat runClient`. In IntelliJ, open this folder as a Gradle project and select JDK 25 for both the project and Gradle JVM.
 
 On Linux, if JDK 25 is installed in `~/.local/share/nimbus-nova/jdk-25`, set `JAVA_HOME` to that path before starting Gradle or the teacher panel.
 
-The distributable is `build/libs/nimbus-nova-mc-0.1.0.jar`; the `-sources.jar` is for developers. Install Fabric Loader for Minecraft 26.3, then place our mod and Fabric API for 26.3 in your instance's `mods` folder. Obtain Minecraft separately.
+The distributable is `build/libs/nimbus-nova-mc-0.1.0.jar`; `tools/package_release.py --jar <mod-jar> --fabric-api <matching-api-jar>` creates `build/release/NimbusNova.mrpack`. The pack includes the mod, Fabric API, guides and license notices; it excludes saves, secrets, client settings and the optional local MarsCraft crop. See the [Modrinth pack format](https://support.modrinth.com/en/articles/8802351-modrinth-modpack-format-mrpack). The `-sources.jar` is for developers. Install Fabric Loader for Minecraft 26.3, then place our mod and Fabric API for 26.3 in your instance's `mods` folder. Obtain Minecraft separately.
 
 `./gradlew runServer` starts a development server. Read and accept Minecraft's EULA yourself in `run/eula.txt` before running it.
 
@@ -93,7 +100,7 @@ Items appear in the **Tools & Utilities** creative tab, or operators can use `/g
 | `mars_sample` | Collect at the marked exterior deposit and deliver to the analyzer during preparation |
 | `space_helmet`, `space_chestplate`, `space_leggings`, `space_boots` | Wear all four pieces outside to seal personal life support. Air drains outside and refills in authored habitat zones. Suits do not replace the storm shelter. |
 
-The greenhouse has decorative hydroponic trays; crop growth remains planned. The reinforced crew shelter is the protected zone during the authored solar-particle event. Its protection uses a fixed game zone, not calibrated radiation transport. The new rover is driveable: right-click to board, use movement keys to steer/drive, jump to brake, and sneak to exit. It stops when unoccupied. There is no fuel, energy, cargo, or expedition-objective simulation for the rover yet.
+The greenhouse has decorative hydroponic trays; crop growth remains planned. The reinforced crew shelter is the protected zone during the authored solar-particle event. Its protection uses a fixed game zone, not calibrated radiation transport. The new rover is driveable: right-click to board, use movement keys to steer/drive, jump to brake, and sneak to exit. It stops when unoccupied. The rover uses persistent battery power and carries up to three common training samples. Load by right-clicking with a sample, sneak-right-click to unload, and use the engineering tool while sneaking at the workshop to recharge. Moving cargo takes extra energy. During an active mission, a workshop charge transfers shared base power.
 
 Commander Vega and Engineer Sol are original astronaut NPCs with idle/head-look behavior and paginated, mission-state-aware conversation. Right-click to talk. Their briefing and hints support the guided preparation, physical tasks, and active mission.
 
@@ -227,7 +234,7 @@ This is an Apollo-13-inspired engineering lesson, not a reconstruction of its sp
 - The Mars base counts a fixed shared crew demand; personal EVA air is a separate authored reserve.
 - Equipment uses normalized game units. Only the dust storm's sunlight curve comes from NASA data. There is no claim of a calibrated habitat or radiation model.
 - Solar supply and dust effects are implemented. Habitat-air zones, shielding, docking and burn windows are authored teaching models rather than calibrated physical simulations.
-- Task minigames, suit air, the spacecraft rescue, NPC dialogue and basic rover driving are implemented. Persistent reports, rover resource costs, multiple isolated crews and free spacecraft flight remain roadmap work.
+- Task minigames, suit air, the spacecraft rescue, NPC dialogue and basic rover driving are implemented. Anonymous JSON debriefs persist under `<world>/nimbus-nova/reports` (up to 100, no automatic deletion); use the teacher’s **Crew debriefs** download card. Active-attempt restart recovery, multiple isolated crews and free spacecraft flight remain roadmap work.
 - Minecraft's proprietary dependency remains an organizer eligibility question. Public mod source alone does not resolve it.
 
 ## Project documents

@@ -27,5 +27,5 @@ Compare a cautious survival-only attempt with a safe attempt that also gathers o
 - `/nimbus` is the unified mission entry point. Legacy commands remain for development.
 - Ship **Room control** exposes doors, pressure, power and basic drills. Repair stores are finite and shared.
 - Maps persist. Use fresh disposable worlds to test a changed schematic; reset does not erase builds.
-- Mission progress/report recovery across a full server restart remains limited; consult README for the actual current limits.
+- Active attempts are transient. Saved anonymous debriefs survive restart under `<world>/nimbus-nova/reports`; download recent reports from **Crew debriefs**. The archive stops at 100 and does not delete older files. Move finished reports out for long-term storage when it reaches capacity.
 - Keep an adult/operator present for the first classroom test. Installation, school hardware, event eligibility and third-party terrain permission require their own confirmation.

@@ -6,6 +6,7 @@ import cc.nimbusnova.mc.content.ShipContent;
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.moon.MoonController;
+import cc.nimbusnova.mc.report.ReportStore;
 import cc.nimbusnova.mc.ship.ShipController;
 import cc.nimbusnova.mc.moon.MoonMission;
 import cc.nimbusnova.mc.world.scenario.ScenarioMaps;
@@ -66,7 +67,12 @@ public final class OutpostScenarioController {
         return mission;
     }
 
+    public Set<MoonMission.Role> assignedRoles() {
+        return Set.copyOf(roles.values());
+    }
+
     public void select(final MinecraftServer server, final String id) {
+        ReportStore.capture(server);
         if (mission != null && !mission.ended()) throw new IllegalStateException("End the current outpost attempt first.");
         final MissionState.Phase mars = MissionController.get(server).snapshot().phase();
         if (ShipController.get(server).selected() || MoonController.get(server).active()
@@ -87,6 +93,7 @@ public final class OutpostScenarioController {
     }
 
     public void action(final MinecraftServer server, final String action) {
+        ReportStore.capture(server);
         if (mission == null) throw new IllegalStateException("Select an outpost scenario first.");
         switch (action) {
             case "start" -> { requireParticipant(server); mission.start(); }
@@ -105,6 +112,7 @@ public final class OutpostScenarioController {
             case "end" -> { end(server); return; }
             default -> throw new IllegalArgumentException("Unknown scenario control.");
         }
+        ReportStore.capture(server);
         broadcast(server, true);
     }
 
@@ -122,6 +130,7 @@ public final class OutpostScenarioController {
     }
 
     public void end(final MinecraftServer server) {
+        ReportStore.capture(server);
         if (mission == null) return;
         restoreTaskBlocks(server);
         removeSupplies(server);

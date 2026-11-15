@@ -2,6 +2,7 @@ package cc.nimbusnova.mc.moon;
 
 import cc.nimbusnova.mc.ship.ShipController;
 import cc.nimbusnova.mc.learning.LearningChecks;
+import cc.nimbusnova.mc.report.ReportStore;
 import cc.nimbusnova.mc.scenario.OutpostScenarioController;
 
 import cc.nimbusnova.mc.mission.MissionController;
@@ -18,6 +19,7 @@ import net.minecraft.server.level.ServerPlayer;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /** One classroom mission per server; actions are applied on the server thread. */
@@ -53,7 +55,12 @@ public final class MoonController {
                 })));
     }
 
-    public void teacherAction(MinecraftServer server, String action) {
+    public Set<MoonMission.Role> assignedRoles() {
+        return Set.copyOf(roles.values());
+    }
+
+    public void teacherAction(final MinecraftServer server, final String action) {
+        ReportStore.capture(server);
         switch (action) {
             case "moon_exploration", "moon_rescue" -> {
                 if (active() || ShipController.get(server).selected() || OutpostScenarioController.get(server).selected()) throw new IllegalStateException("Finish or end the current Moon/ship mission first.");
@@ -72,6 +79,7 @@ public final class MoonController {
             case "moon_end" -> { LearningChecks.clear(server, "moon"); if (mission == null) throw new IllegalStateException("No Moon mission."); mission = null; roles.clear(); }
             default -> throw new IllegalArgumentException("Unknown action.");
         }
+        ReportStore.capture(server);
         broadcast(server, action.equals("moon_exploration") || action.equals("moon_rescue") || action.equals("moon_advance"));
     }
 

@@ -4,6 +4,7 @@ import cc.nimbusnova.mc.NimbusNovaMod;
 import cc.nimbusnova.mc.hub.MissionHub;
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
+import cc.nimbusnova.mc.report.ReportStore;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
 import cc.nimbusnova.mc.ship.ShipController;
 import com.google.gson.JsonArray;
@@ -231,6 +232,53 @@ public final class TeacherBridge {
                     NimbusNovaMod.LOGGER.warn("Teacher mission request failed", error);
                     try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
                 } finally { exchange.close(); }
+            });
+            bridge.createContext("/reports", exchange -> {
+                try {
+                    final String authorization = exchange.getRequestHeaders().getFirst("Authorization");
+                    if (!MessageDigest.isEqual(("Bearer " + token).getBytes(StandardCharsets.UTF_8),
+                            authorization == null ? new byte[0] : authorization.getBytes(StandardCharsets.UTF_8))) {
+                        exchange.sendResponseHeaders(401, -1);
+                        return;
+                    }
+
+                    if (!exchange.getRequestURI().getPath().equals("/reports")) {
+                        exchange.sendResponseHeaders(404, -1);
+                        return;
+                    }
+
+                    if (!exchange.getRequestMethod().equals("GET")) {
+                        exchange.sendResponseHeaders(405, -1);
+                        return;
+                    }
+
+                    final String query = exchange.getRequestURI().getRawQuery();
+                    if (query != null && (!query.startsWith("id=") || !ReportStore.validId(query.substring(3)))) {
+                        exchange.sendResponseHeaders(400, -1);
+                        return;
+                    }
+
+                    final JsonObject data = query == null ? ReportStore.list(server) : ReportStore.read(server, query.substring(3));
+                    if (data == null) {
+                        exchange.sendResponseHeaders(404, -1);
+                        return;
+                    }
+
+                    final byte[] body = data.toString().getBytes(StandardCharsets.UTF_8);
+                    exchange.getResponseHeaders().set("Content-Type", "application/json");
+                    exchange.getResponseHeaders().set("Cache-Control", "no-store");
+                    exchange.sendResponseHeaders(200, body.length);
+                    exchange.getResponseBody().write(body);
+                } catch (final IOException error) {
+                    NimbusNovaMod.LOGGER.warn("Teacher report request failed", error);
+                    try {
+                        exchange.sendResponseHeaders(503, -1);
+                    } catch (final IOException ignored) {
+                        /* w */
+                    }
+                } finally {
+                    exchange.close();
+                }
             });
             bridge.createContext("/mission-action", exchange -> {
                 try {

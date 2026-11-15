@@ -2,6 +2,10 @@ package cc.nimbusnova.mc.server;
 
 import cc.nimbusnova.mc.hub.MissionHub;
 import cc.nimbusnova.mc.learning.LearningChecks;
+import cc.nimbusnova.mc.content.ModContent;
+import cc.nimbusnova.mc.mission.MissionController;
+import cc.nimbusnova.mc.vehicle.MarsRover;
+import cc.nimbusnova.mc.vehicle.RoverContent;
 import cc.nimbusnova.mc.scenario.OutpostScenarioController;
 import cc.nimbusnova.mc.scenario.ScenarioActionPayload;
 import cc.nimbusnova.mc.scenario.ScenarioContent;
@@ -9,6 +13,7 @@ import cc.nimbusnova.mc.world.scenario.ScenarioMaps;
 import cc.nimbusnova.mc.content.RepairContent;
 import cc.nimbusnova.mc.content.OutpostContent;
 import cc.nimbusnova.mc.content.ShipContent;
+import cc.nimbusnova.mc.report.ReportStore;
 import cc.nimbusnova.mc.moon.MoonMission;
 import cc.nimbusnova.mc.ship.ShipActionPayload;
 import cc.nimbusnova.mc.ship.ShipController;
@@ -29,6 +34,8 @@ import net.minecraft.server.players.NameAndId;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.player.Input;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -79,6 +86,8 @@ public final class MissionServerGameTests {
         context.assertFalse(engineer.getUUID().equals(lifeSupport.getUUID()), "Cooperative actors must have different identities");
         context.assertFalse(engineer.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)
                 || lifeSupport.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER), "Role checks require ordinary crew actors");
+        if (mars == null) throw new AssertionError("The Mars dimension was not loaded");
+        roverResources(context, engineer, mars);
         final ShipController controller = ShipController.get(server);
         controller.teacherAction(server, "ship_select");
         controller.action(engineer, new ShipActionPayload("role", BlockPos.ZERO, controller.mission().revision(), MoonMission.Role.POWER.ordinal()));
@@ -194,6 +203,17 @@ public final class MissionServerGameTests {
             controller.teacherAction(server, "ship_start");
             context.assertTrue(controller.mission().snapshot().equals(active), "Repeated active launch reset the mission");
             controller.teacherAction(server, "ship_end");
+            ReportStore.capture(server);
+            try {
+                final var recent = ReportStore.list(server).getAsJsonArray("reports");
+                final var row = recent.asList().stream().map(element -> element.getAsJsonObject())
+                        .filter(item -> item.get("mission").getAsString().equals("ship")).findFirst().orElseThrow();
+                final var report = ReportStore.read(server, row.get("id").getAsString());
+                context.assertTrue(report != null && report.has("timeline") && !report.toString().contains(engineer.getUUID().toString())
+                        && !report.toString().contains(engineer.getName().getString()), "Saved debrief was missing or contained a crew identity");
+            } catch (final IOException error) {
+                throw new AssertionError("Could not reopen the saved ship debrief", error);
+            }
 
             final Map<MoonMission.Role, ServerPlayer> crew = new EnumMap<>(MoonMission.Role.class);
             crew.put(MoonMission.Role.POWER, engineer);
@@ -229,6 +249,39 @@ public final class MissionServerGameTests {
             System.out.println("Headless world checks passed: six map selections, five role-bound server actors, physical repairs, windows/lights, timed cargo and idempotent launch.");
             context.succeed();
         });
+    }
+
+    private static void roverResources(final GameTestHelper context, final ServerPlayer driver, final ServerLevel level) {
+        final var server = level.getServer();
+        final MarsRover rover = RoverContent.ROVER.create(level, EntitySpawnReason.COMMAND);
+        if (rover == null) throw new AssertionError("The registered rover could not be created");
+        rover.snapTo(29.5, 66, 20.5, 0, 0);
+        if (!level.addFreshEntity(rover)) throw new AssertionError("The real rover could not be placed in the workshop");
+        move(driver, level, rover.blockPosition().north());
+        server.getCommands().performPrefixedCommand(driver.createCommandSourceStack(), "mission role power");
+        driver.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModContent.MARS_SAMPLE, 4));
+        for (int sample = 0; sample < 4; sample++) rover.interact(driver, InteractionHand.MAIN_HAND, Vec3.ZERO);
+        context.assertTrue(rover.cargoCount() == 3 && count(driver, ModContent.MARS_SAMPLE) == 1, "The real rover cargo bay did not enforce three samples");
+        context.assertTrue(driver.startRiding(rover), "Could not board the rover in the workshop");
+        driver.setLastClientInput(new Input(true, false, false, false, false, false, false));
+        final float initialCharge = rover.battery();
+        for (int tick = 0; tick < 6; tick++) rover.tick();
+        context.assertTrue(rover.battery() < initialCharge && rover.distanceToSqr(28.5, 66, 25.5) < 64, "Driven distance did not spend rover power inside the workshop range");
+        driver.setLastClientInput(Input.EMPTY);
+        driver.stopRiding();
+        move(driver, level, rover.blockPosition().north());
+        driver.setShiftKeyDown(true);
+        rover.interact(driver, InteractionHand.MAIN_HAND, Vec3.ZERO);
+        context.assertTrue(rover.cargoCount() == 0 && count(driver, ModContent.MARS_SAMPLE) == 4, "Unloading the real rover lost or duplicated cargo");
+        driver.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModContent.ENGINEERING_TOOL));
+        final MissionController mars = MissionController.get(server);
+        mars.control(server.createCommandSourceStack(), "debug_start");
+        final double baseCharge = mars.snapshot().battery();
+        rover.interact(driver, InteractionHand.MAIN_HAND, Vec3.ZERO);
+        context.assertTrue(rover.battery() == 100 && mars.snapshot().battery() == baseCharge - 5, "Workshop charging did not use the shared battery");
+        mars.control(server.createCommandSourceStack(), "reset");
+        driver.setShiftKeyDown(false);
+        rover.discard();
     }
 
     private static void scenarioRoles(final GameTestHelper context, final Map<MoonMission.Role, ServerPlayer> crew, final String id) {

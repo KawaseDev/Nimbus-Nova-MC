@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.ship;
 
 import cc.nimbusnova.mc.ship.rooms.ShipRooms;
+import cc.nimbusnova.mc.report.ReportStore;
 import cc.nimbusnova.mc.scenario.OutpostScenarioController;
 import cc.nimbusnova.mc.learning.LearningChecks;
 import cc.nimbusnova.mc.mission.MissionController;
@@ -216,7 +217,12 @@ public final class ShipController {
         });
     }
 
+    public Set<MoonMission.Role> assignedRoles() {
+        return Set.copyOf(roles.values());
+    }
+
     public void teacherAction(final MinecraftServer server, final String action) {
+        ReportStore.capture(server);
         if (action.equals("ship_select") || action.equals("ship_explore")) {
             if (mission != null && !mission.snapshot().phase().ended()) {
                 final MoonMission.Variant requested = action.equals("ship_explore") ? MoonMission.Variant.EXPLORATION : MoonMission.Variant.RESCUE;
@@ -290,6 +296,7 @@ public final class ShipController {
         }
         holds.clear();
         punchTicks.clear();
+        ReportStore.capture(server);
         broadcast(server, true);
     }
 

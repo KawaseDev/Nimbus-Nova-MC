@@ -48,6 +48,13 @@
       <div class="actions"><button id="hub-start" disabled>Start</button><button id="hub-pause" disabled>Pause</button><button id="hub-reset" disabled>Reset attempt</button><button id="hub-end" disabled>End mission</button></div>
       <p>Selecting a different mission ends the current attempt. Existing maps and builds are preserved.</p><p id="hub-error" role="alert"></p>
     </section>
+    <section class="card wide" aria-labelledby="reports-title">
+      <h2 id="reports-title">Crew debriefs</h2>
+      <p>Review the five latest attempts. Reports include resources and crew decisions without student names.</p>
+      <p id="reports-status" role="status">Checking for completed attempts…</p>
+      <ul id="reports-list" hidden></ul>
+      <div class="actions"><button id="reports-refresh" type="button">Refresh reports</button></div>
+    </section>
     <details class="card wide" id="advanced-mission-controls"><summary>Mission details and compatibility controls</summary>
     <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p id="mission-status" role="status">Mission unavailable.</p><div class="actions"><button id="mission-start" disabled aria-label="Start mission" title="Start mission">▶</button><button id="mission-pause" disabled aria-label="Pause mission" title="Pause mission">❚❚</button><button id="mission-end" disabled aria-label="End mission" title="End mission">■</button><button id="mission-reset" disabled>Reset</button></div><div id="education" hidden><h3 id="education-title"></h3><p id="education-observation"></p><p id="education-explanation"></p><p id="education-hazard"></p><p id="education-question"></p><p id="education-evidence"></p><p><a id="education-source" target="_blank" rel="noopener noreferrer">NASA source</a></p><button id="education-confirm" disabled>Confirm understanding</button></div><p id="mission-error" role="alert"></p></section>
     <section class="card wide" aria-labelledby="ship-title"><h2 id="ship-title">Spacecraft missions</h2><p id="ship-status" role="status">Select a mission to prepare your crew.</p><p id="ship-feedback"></p><div id="ship-debrief" hidden><h3>Mission debrief</h3><p id="ship-outcome"></p><p id="ship-resources"></p><ul id="ship-decisions"></ul><h4>Discuss with the crew</h4><ul><li>What information justified continuing or stopping?</li><li>Which resources affected the return?</li><li>Why are CO₂, oxygen and pressure different?</li><li>Why can't a parachute land a spacecraft on the Moon?</li></ul></div><div class="actions"><button id="ship-select" disabled>Select rescue</button><button id="ship-explore" disabled>Select Moon exploration prototype</button><button id="ship-start" hidden>Start ship mission</button><button id="ship-pause" hidden>Pause</button><button id="ship-confirm" hidden>Confirm understanding</button><button id="ship-abort" hidden>Abort attempt</button><button id="ship-reset" hidden>Reset attempt</button><button id="ship-end" hidden>Leave ship mission</button></div></section>
@@ -127,6 +134,36 @@
   }
   refreshSession();
   setInterval(refreshSession, 5000);
+  async function refreshReports() {
+    const status = document.getElementById('reports-status');
+    const list = document.getElementById('reports-list');
+    const refresh = document.getElementById('reports-refresh');
+    if (refresh.disabled) return;
+    refresh.disabled = true;
+    try {
+      const response = await fetch('/api/reports', { cache: 'no-store' });
+      if (!response.ok) throw new Error();
+      const archive = await response.json();
+      list.replaceChildren(...archive.reports.map((report, index) => {
+        const entry = document.createElement('li');
+        const download = document.createElement('a');
+        download.href = `/api/reports?id=${report.id}`;
+        download.textContent = index === 0 ? 'Download latest JSON' : 'Download JSON';
+        download.setAttribute('aria-label', `${download.textContent}: ${report.title}`);
+        entry.append(`${report.title} · ${report.outcome} · ${new Date(report.endedAt).toLocaleString()} — `, download);
+        return entry;
+      }));
+      list.hidden = !archive.reports.length;
+      status.textContent = archive.capacityReached ? 'Archive full. Move old reports out of the world’s nimbus-nova/reports folder to save new attempts.' :
+        archive.reports.length ? '' : 'No completed attempts yet.';
+    } catch {
+      list.hidden = true;
+      list.replaceChildren();
+      status.textContent = 'Debriefs unavailable. Start the Minecraft server and refresh.';
+    } finally { refresh.disabled = false; }
+  }
+  document.getElementById('reports-refresh').addEventListener('click', refreshReports);
+  refreshReports();
   let missionBusy = false;
   let missionPhase = '';
   const hubButtons = ['select', 'start', 'pause', 'reset', 'end'].map(name => document.getElementById(`hub-${name}`));
@@ -162,7 +199,10 @@
       if (!response.ok) throw new Error();
       const state = await response.json();
       missionPhase = state.phase;
+      const priorPhase = hubState?.phase;
       refreshHub(state);
+      if (hubState?.phase !== priorPhase && ['SUCCESS', 'PARTIAL', 'FAILED', 'ABORTED'].includes(hubState?.phase))
+        refreshReports();
       const ship = state.ship;
       const shipSelected = !!ship && !!ship.phase;
       const shipRunning = shipSelected && !['SUCCESS', 'PARTIAL', 'FAILED', 'ABORTED'].includes(ship.phase);

@@ -99,6 +99,35 @@ function createServer(options = {}) {
       } catch { response.writeHead(503).end(); }
       return;
     }
+    if (request.url === '/api/reports' || request.url.startsWith('/api/reports?')) {
+      if (!teacher) { response.writeHead(401).end(); return; }
+      if (request.method !== 'GET') { response.writeHead(405, { Allow: 'GET' }).end(); return; }
+      const reportId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+      const query = request.url.slice('/api/reports'.length);
+      const id = query.slice(4);
+      if (query && (!query.startsWith('?id=') || !reportId.test(id))) { response.writeHead(400).end(); return; }
+      const bridge = bridgeAddress(options.bridgeUrl);
+      if (!bridge || !options.bridgeToken || options.bridgeToken.length < 32) { response.writeHead(503).end(); return; }
+      try {
+        const result = await fetch(new URL(query ? `/reports?id=${id}` : '/reports', bridge), {
+          headers: { Authorization: `Bearer ${options.bridgeToken}` }, signal: AbortSignal.timeout(4000), redirect: 'error'
+        });
+        if (query && result.status === 404) { response.writeHead(404).end(); return; }
+        if (!result.ok) throw new Error();
+        const data = await result.json();
+        const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
+        if (query) {
+          if (data.id !== id) throw new Error();
+          headers['Content-Disposition'] = `attachment; filename="nimbus-debrief-${id}.json"`;
+        } else if (!Array.isArray(data.reports) || data.reports.length > 5 || typeof data.capacityReached !== 'boolean' ||
+                   data.reports.some(item => !item || typeof item.id !== 'string' || !reportId.test(item.id) ||
+                     typeof item.title !== 'string' || typeof item.outcome !== 'string' || !Number.isFinite(Date.parse(item.endedAt)))) {
+          throw new Error();
+        }
+        response.writeHead(200, headers).end(JSON.stringify(data));
+      } catch { response.writeHead(503).end(); }
+      return;
+    }
     if (request.url.startsWith('/api/view?')) {
       if (!accounts.current(request)) { response.writeHead(401).end(); return; }
       if (request.method !== 'GET') { response.writeHead(405).end(); return; }

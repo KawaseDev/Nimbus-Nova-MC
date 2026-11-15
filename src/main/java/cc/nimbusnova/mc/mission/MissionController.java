@@ -1,5 +1,6 @@
 package cc.nimbusnova.mc.mission;
 
+import cc.nimbusnova.mc.report.ReportStore;
 import cc.nimbusnova.mc.ship.ShipController;
 import cc.nimbusnova.mc.learning.LearningChecks;
 import cc.nimbusnova.mc.scenario.OutpostScenarioController;
@@ -302,6 +303,14 @@ public final class MissionController {
     }
 
     public EducationPause education() { return education; }
+
+    public MissionState mission() {
+        return mission;
+    }
+
+    public Set<CrewRole> assignedRoles() {
+        return Set.copyOf(roles.values());
+    }
 
     public MissionState.Snapshot snapshot() {
         return mission.snapshot();
@@ -709,6 +718,7 @@ public final class MissionController {
             return 0;
         }
 
+        ReportStore.capture(source.getServer());
         try {
             switch (action) {
                 case "start" -> {
@@ -752,6 +762,7 @@ public final class MissionController {
 
             ticks = 0;
             broadcast(source.getServer());
+            ReportStore.capture(source.getServer());
             source.sendSuccess(() -> Component.literal("Mission: " + action), false);
             return 1;
         } catch (final IllegalStateException exception) {
