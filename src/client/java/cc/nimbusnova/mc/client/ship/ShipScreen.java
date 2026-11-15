@@ -109,8 +109,8 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
             final MoonMission.Incident incident = MoonMission.Incident.valueOf(state.incident());
             addRenderableWidget(new MissionButton(left + 88, top + panelHeight - 29, 81, 20, "NASA source",
                     () -> ConfirmLinkScreen.confirmLinkNow(this, URI.create(incident.source))));
-            addRenderableWidget(new MissionButton(left + 175, top + panelHeight - 29, 53, 20, lessonPage == 0 ? "Next" : "Back",
-                    () -> { lessonPage = 1 - lessonPage; rebuildWidgets(); }));
+            addRenderableWidget(new MissionButton(left + 175, top + panelHeight - 29, 53, 20, lessonPage == 2 ? "Back" : "Next",
+                    () -> { lessonPage = (lessonPage + 1) % 3; rebuildWidgets(); }));
             if (state.operator()) {
                 control("acknowledge", "Confirm understanding", left + 14, top + panelHeight - 60, 160);
                 control("resume", "Resume mission", left + 180, top + panelHeight - 60, 130);
@@ -160,6 +160,23 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
                 addRenderableWidget(new StarButton(left + 14 + (int) (ShipPuzzleGraphics.STAR_X[star] * chartWidth) - 7,
                         top + 58 + (int) (ShipPuzzleGraphics.STAR_Y[star] * chartHeight) - 7, star));
             taskButton(left + chartWidth + 24, top + 143, bodyWidth - chartWidth - 10, "Fix heading", 6);
+        } else if (state.task().equals("PILOT") && state.stage().equals("ORBIT")) {
+            final int w = (bodyWidth - 10) / 3;
+            taskButton(left + 14, top + 116, w, "Insufficient", 0);
+            taskButton(left + 19 + w, top + 116, w, "Planned", 1);
+            taskButton(left + 24 + 2 * w, top + 116, w, "Excessive", 2);
+            taskButton(left + 14, top + 145, bodyWidth, "Commit capture burn", 3);
+        } else if (state.task().equals("PILOT") && state.stage().equals("DESCENT")) {
+            final int w = (bodyWidth - 10) / 3;
+            taskButton(left + 14, top + 103, w, "Check guidance", 0);
+            taskButton(left + 19 + w, top + 103, w, "Primary site", 5);
+            taskButton(left + 24 + 2 * w, top + 103, w, "Alternate site", 1);
+            taskButton(left + 14, top + 130, w, "Brake lateral", 2);
+            taskButton(left + 19 + w, top + 130, w, "Brake vertical", 3);
+            taskButton(left + 24 + 2 * w, top + 130, w, "Confirm contact", 4);
+        } else if (state.task().equals("PILOT") && state.stage().equals("SURFACE")) {
+            taskButton(left + 14, top + 145, (bodyWidth - 5) / 2, "Launch lander", 5);
+            taskButton(left + 19 + (bodyWidth - 5) / 2, top + 145, (bodyWidth - 5) / 2, "Confirm rendezvous", 6);
         } else if (state.task().equals("PILOT") && state.stage().equals("RETURN")) {
             taskButton(left + 14, top + 145, 95, "Ignite engine", 0);
             taskButton(left + 115, top + 145, 95, "Cut off engine", 1);
@@ -169,6 +186,8 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
             taskButton(left + 183, top + 145, 27, "G-", 3);
             taskButton(left + 213, top + 145, 27, "G+", 2);
             taskButton(left + bodyWidth - 73, top + 145, 87, "Transmit", 4);
+        } else if (state.stage().equals("SURFACE") && (state.task().equals("MEDICAL") || state.task().equals("SCIENCE"))) {
+            taskButton(left + 14, top + 145, bodyWidth, state.task().equals("MEDICAL") ? "Check crew suits" : "Secure nearby sample", 0);
         } else if (filter()) {
             final String[] parts = { "Housing", "Fan", "Seal", "Cartridge" };
             final int partWidth = (bodyWidth - 15) / 4;
@@ -258,14 +277,14 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
     @Override
     public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
         NovaRenderer.rect(graphics, left, top, panelWidth, panelHeight, 10, BACKGROUND);
-        NovaRenderer.text(graphics, "Return Window / " + (tablet ? "Crew tablet" : ShipClient.label(state.task())), left + 14, top + 12, 14, TEXT);
+        NovaRenderer.text(graphics, (state.variant().equals("EXPLORATION") ? "Moon exploration" : "Return Window") + " / " + (tablet ? "Crew tablet" : ShipClient.label(state.task())), left + 14, top + 12, 14, TEXT);
         NovaRenderer.text(graphics, ShipClient.label(state.stage()) + " / " + ShipClient.label(state.role().isEmpty() ? "No role assigned" : state.role())
                 + " / " + ShipClient.telemetry(state), left + 14, top + 33, 8, ACCENT);
         if (!state.incident().isEmpty()) {
             final MoonMission.Incident incident = MoonMission.Incident.valueOf(state.incident());
             NovaRenderer.text(graphics, incident.title, left + 14, top + 56, 12, WARNING);
             NovaRenderer.wrap(graphics, lessonPage == 0 ? incident.observation + " " + incident.explanation
-                            : incident.hazard + " " + incident.question,
+                            : lessonPage == 1 ? incident.hazard + " " + incident.question : incident.evidence,
                     left + 14, top + 78, panelWidth - 28, 10, Math.max(3, (panelHeight - 149) / 12), TEXT);
         } else if (tablet || ended()) {
             NovaRenderer.wrap(graphics, state.title() + ". " + state.instruction(), left + 14, top + 55, panelWidth - 28, 10,
@@ -302,6 +321,16 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
             ShipPuzzleGraphics.stars(graphics, state, left + 14, top + 58, chartWidth, chartHeight);
             ShipPuzzleGraphics.referenceStars(graphics, state.aux(), left + chartWidth + 24, top + 58, bodyWidth - chartWidth - 10, 53);
             NovaRenderer.text(graphics, "Match the reference triangle", left + 20, top + 159, 7, MUTED);
+        } else if (state.task().equals("PILOT") && state.stage().equals("ORBIT")) {
+            NovaRenderer.wrap(graphics, "Compare the predicted orbit for each burn. An insufficient burn passes the Moon; an excessive burn approaches the surface too closely.", left + 14, top + 57, bodyWidth, 9, 4, MUTED);
+            NovaRenderer.text(graphics, "Prediction: " + new String[] { "INSUFFICIENT", "PLANNED", "EXCESSIVE" }[Math.clamp(state.board(), 0, 2)] + " / orbital fuel " + state.aux(), left + 14, top + 100, 9, ACCENT);
+        } else if (state.task().equals("PILOT") && state.stage().equals("DESCENT")) {
+            NovaRenderer.text(graphics, "Vertical " + (state.board() & 15) + " / lateral " + (state.board() >> 4 & 15) + " / descent fuel " + state.aux() + " (model units)", left + 14, top + 58, 10, ACCENT);
+            NovaRenderer.wrap(graphics, "Both speeds must be at most 1. Lateral braking tilts thrust away from vertical and increases descent speed in this model.", left + 14, top + 76, bodyWidth, 8, 3, MUTED);
+        } else if (state.task().equals("PILOT") && state.stage().equals("SURFACE")) {
+            NovaRenderer.wrap(graphics, (state.board() == 0 ? "After the crew and suit check, launch using the dedicated ascent reserve." : "Verify alignment and the mechanical lock before transferring to the command module.") + " Ascent reserve: " + state.aux() + ".", left + 14, top + 65, bodyWidth, 10, 4, MUTED);
+        } else if (state.stage().equals("SURFACE") && (state.task().equals("MEDICAL") || state.task().equals("SCIENCE"))) {
+            NovaRenderer.wrap(graphics, state.task().equals("MEDICAL") ? "Confirm suit communications and the surface reserve before an excursion." : "After the suit check, secure a nearby simulated lunar sample.", left + 14, top + 65, bodyWidth, 10, 4, MUTED);
         } else if (state.task().equals("PILOT") && state.stage().equals("RETURN")) {
             ShipPuzzleGraphics.burn(graphics, state, left + 14, top + 57, bodyWidth, 78);
             NovaRenderer.text(graphics, "Burn " + (state.board() & 255) + " / cut off at 6-8", left + 219, top + 151, 9,

@@ -7,7 +7,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 import org.jspecify.annotations.NonNull;
 
-public record ShipPayload(String phase, String stage, String role, int revision, int seconds,
+public record ShipPayload(String phase, String stage, String role, String variant, int revision, int seconds,
                           int battery, int oxygen, int water, int fuel, int parts, int co2,
                           String title, String instruction, String feedback, String incident,
                           String task, int board, int aux, boolean complete,
@@ -16,7 +16,7 @@ public record ShipPayload(String phase, String stage, String role, int revision,
     public static final StreamCodec<RegistryFriendlyByteBuf, ShipPayload> CODEC = CustomPacketPayload.codec(ShipPayload::write, ShipPayload::new);
 
     private ShipPayload(final RegistryFriendlyByteBuf buffer) {
-        this(buffer.readUtf(32), buffer.readUtf(32), buffer.readUtf(32), buffer.readVarInt(), buffer.readVarInt(),
+        this(buffer.readUtf(32), buffer.readUtf(32), buffer.readUtf(32), buffer.readUtf(32), buffer.readVarInt(), buffer.readVarInt(),
                 buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(),
                 buffer.readUtf(128), buffer.readUtf(512), buffer.readUtf(512), buffer.readUtf(32), buffer.readUtf(32),
                 buffer.readVarInt(), buffer.readVarInt(), buffer.readBoolean(), buffer.readBlockPos(), buffer.readBlockPos(), buffer.readBoolean(), buffer.readBoolean());
@@ -26,6 +26,7 @@ public record ShipPayload(String phase, String stage, String role, int revision,
         buffer.writeUtf(phase, 32);
         buffer.writeUtf(stage, 32);
         buffer.writeUtf(role, 32);
+        buffer.writeUtf(variant, 32);
         buffer.writeVarInt(revision);
         buffer.writeVarInt(seconds);
         buffer.writeVarInt(battery);

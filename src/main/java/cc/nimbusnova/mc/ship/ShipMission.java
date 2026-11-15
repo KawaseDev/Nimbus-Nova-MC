@@ -1,11 +1,12 @@
 package cc.nimbusnova.mc.ship;
 
 import cc.nimbusnova.mc.moon.MoonMission;
+import cc.nimbusnova.mc.moon.LunarLanding;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/** Physical tasks wrap the shared Moon rescue sequence; reserves and timing are authored teaching values. */
+/** Physical tasks wrap the shared Moon sequence; reserves and timing are authored teaching values. */
 public final class ShipMission {
     public static final int DURATION_SECONDS = 360;
 
@@ -17,7 +18,8 @@ public final class ShipMission {
         }
     }
 
-    private final MoonMission moon = new MoonMission(MoonMission.Variant.RESCUE);
+    private final MoonMission moon;
+    private final LunarLanding landing;
     private final List<String> journal = new ArrayList<>();
     private final ShipActivities activities = new ShipActivities();
     private Phase phase = Phase.READY;
@@ -27,9 +29,16 @@ public final class ShipMission {
     private int dockingX = 1, dockingY = 1;
     private int dockingVelocityX, dockingVelocityY, burnUnits;
     private int loadMask = 7, parts = 6;
+    private int orbitProfile;
     private double battery = 100, oxygen = 100, water = 100, fuel = 100, co2 = 12, readiness = 70;
     private boolean cargoSelected, extraInstrument, filterOnline, heaterCommitted, filterTesting, burnRunning;
     private String feedback = "Assemble the rated power cartridges and choose cargo before Mission Control starts the clock.";
+
+    public ShipMission() { this(MoonMission.Variant.RESCUE); }
+    public ShipMission(MoonMission.Variant variant) {
+        moon = new MoonMission(variant);
+        landing = variant == MoonMission.Variant.EXPLORATION ? new LunarLanding() : null;
+    }
 
     public MoonMission underlying() {
         return moon;
@@ -97,11 +106,13 @@ public final class ShipMission {
             case ENGINE -> engine(action);
             case PILOT -> pilot(action);
             case COMMS -> comms(action);
-            case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER ? filter(action) : optional(task, action);
+            case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER ? filter(action)
+                    : moon.stage() == MoonMission.Stage.SURFACE ? surfaceSuit(action) : optional(task, action);
             case GALLEY -> moon.stage() == MoonMission.Stage.RESTART ? heating(action) : optional(task, action);
             case STORAGE -> cargo(action);
             case MEETING -> meeting(action);
-            case SCIENCE, PLANTS, EXERCISE -> optional(task, action);
+            case SCIENCE -> moon.stage() == MoonMission.Stage.SURFACE ? surfaceSample(action) : optional(task, action);
+            case PLANTS, EXERCISE -> optional(task, action);
         };
         if (!accepted) return false;
 
@@ -153,9 +164,99 @@ public final class ShipMission {
         return switch (moon.stage()) {
             case DOCKING -> docking(action);
             case NAVIGATION -> starFix(action);
+            case ORBIT -> orbitalCapture(action);
+            case DESCENT -> lunarDescent(action);
+            case SURFACE -> lunarAscent(action);
             case RETURN -> returnBurn(action);
             default -> false;
         };
+    }
+
+    private boolean orbitalCapture(final int action) {
+        if (landing == null || action < 0 || action > 3) return false;
+        if (action < 3) {
+            orbitProfile = action;
+            feedback = landing.preview(LunarLanding.Burn.values()[action]);
+            return true;
+        }
+        if (orbitProfile != LunarLanding.Burn.PLANNED.ordinal()) {
+            feedback = "The prediction misses the planned orbit. Review speed and orientation before committing.";
+            return true;
+        }
+        landing.capture(LunarLanding.Burn.PLANNED);
+        record("Validated the planned lunar-orbit capture after comparing three predictions.");
+        advance(true);
+        return true;
+    }
+
+    private boolean lunarDescent(final int action) {
+        if (landing == null || action < 0 || action > 5) return false;
+        if (action == 0) {
+            if (!completed(ShipTask.COMMS)) {
+                feedback = "Maintenance must verify the radar link before the pilot can validate guidance.";
+                return true;
+            }
+            landing.checkGuidance(true, true);
+            feedback = "Guidance and radar readings agree. Compare the primary and alternate landing sites.";
+        } else if (action == 1) {
+            if (!landing.guidanceChecked()) { feedback = "Verify guidance before selecting the alternate site."; return true; }
+            landing.chooseSite(LunarLanding.Site.ALTERNATE);
+            feedback = "Alternate site selected. Reduce lateral and vertical speeds before contact.";
+        } else if (action == 2 || action == 3) {
+            if (!landing.siteSelected()) { feedback = "Verify guidance and select a safe site before braking."; return true; }
+            if (fuel < 1) { feedback = "Insufficient propellant for this correction."; return true; }
+            if (action == 2 && landing.lateralSpeed() == 0 || action == 3 && landing.verticalSpeed() == 0) return false;
+            if (action == 2) landing.brakeLateral(); else landing.brakeVertical();
+            fuel--;
+            feedback = action == 2 ? "Lateral braking tilted thrust away from vertical; the modeled descent speed increased."
+                    : "Vertical braking reduced the modeled descent speed.";
+        } else if (action == 4) {
+            if (!landing.siteSelected() || landing.verticalSpeed() > 1 || landing.lateralSpeed() > 1) {
+                feedback = "A safe site and both landing speeds within the model limits are required before contact.";
+                return true;
+            }
+            landing.land();
+            record("Landed at the alternate site after verifying guidance and both velocity components.");
+            advance(true);
+        } else {
+            feedback = "The primary site contains boulders. Select the reachable alternate site.";
+        }
+        return true;
+    }
+
+    private boolean surfaceSuit(final int action) {
+        if (landing == null || action != 0 || landing.suitsChecked() || landing.phase() != LunarLanding.Phase.SURFACE) return false;
+        if (oxygen < 5 || water < 5) { feedback = "The crew needs at least five oxygen and water units for this simulated surface check."; return true; }
+        landing.checkSuits(true, true);
+        complete(ShipTask.MEDICAL);
+        feedback = "Suit communications and the remaining surface reserve are checked.";
+        return true;
+    }
+
+    private boolean surfaceSample(final int action) {
+        if (landing == null || action != 0 || landing.sampleCollected() || landing.phase() != LunarLanding.Phase.SURFACE) return false;
+        if (!landing.suitsChecked()) { feedback = "Life support must check suits before collecting a sample."; return true; }
+        landing.collectSample();
+        complete(ShipTask.SCIENCE);
+        record("Collected a nearby simulated lunar sample after the suit check.");
+        feedback = "Nearby sample secured. Prepare for ascent and rendezvous.";
+        return true;
+    }
+
+    private boolean lunarAscent(final int action) {
+        if (landing == null || action < 5 || action > 6) return false;
+        if (action == 5) {
+            if (!landing.suitsChecked()) { feedback = "Complete the crew and suit check before ascent."; return true; }
+            if (landing.phase() != LunarLanding.Phase.SURFACE) return false;
+            landing.launch();
+            feedback = "Ascent complete. Verify alignment and mechanical lock before transferring to the command module.";
+            return true;
+        }
+        if (landing.phase() != LunarLanding.Phase.RENDEZVOUS) { feedback = "Launch the lunar module before rendezvous."; return true; }
+        landing.rendezvous(true, true);
+        record("Used the separate ascent reserve and verified the rendezvous lock.");
+        advance(true);
+        return true;
     }
 
     private boolean docking(final int action) {
@@ -423,7 +524,7 @@ public final class ShipMission {
 
     private void advance(final boolean safe) {
         final MoonMission.Stage stage = moon.stage();
-        final int fuelCost = switch (stage) { case DOCKING, NAVIGATION -> 5; case RETURN -> 10; default -> 0; };
+        final int fuelCost = switch (stage) { case DOCKING, NAVIGATION -> 5; case ORBIT, RETURN -> 10; case DESCENT, SURFACE -> 15; default -> 0; };
         final int batteryCost = switch (stage) { case EMERGENCY -> 20; case FILTER -> 5; case RESTART -> 10; default -> 0; };
         if (battery < batteryCost || fuel < fuelCost || stage == MoonMission.Stage.EMERGENCY && oxygen <= 10
                 || stage == MoonMission.Stage.FILTER && parts < 1 || stage == MoonMission.Stage.RESTART && water < 5) {
@@ -507,17 +608,26 @@ public final class ShipMission {
         return switch (task) {
             case ENGINE -> moon.stage() == MoonMission.Stage.PREPARATION || moon.stage() == MoonMission.Stage.EMERGENCY || moon.stage() == MoonMission.Stage.RESTART;
             case STORAGE -> moon.stage() == MoonMission.Stage.PREPARATION && !cargoSelected;
-            case PILOT -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.NAVIGATION || moon.stage() == MoonMission.Stage.RETURN;
-            case COMMS -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.RETURN;
+            case PILOT -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.NAVIGATION
+                    || moon.stage() == MoonMission.Stage.ORBIT || moon.stage() == MoonMission.Stage.DESCENT
+                    || moon.stage() == MoonMission.Stage.SURFACE || moon.stage() == MoonMission.Stage.RETURN;
+            case COMMS -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.DESCENT || moon.stage() == MoonMission.Stage.RETURN;
             case GALLEY -> moon.stage() == MoonMission.Stage.RESTART || (optionalComplete & 1 << task.ordinal()) == 0;
-            case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER || (optionalComplete & 1 << task.ordinal()) == 0;
+            case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER || moon.stage() == MoonMission.Stage.SURFACE && landing != null
+                    && landing.phase() == LunarLanding.Phase.SURFACE || moon.stage() != MoonMission.Stage.SURFACE && (optionalComplete & 1 << task.ordinal()) == 0;
             case MEETING -> true;
-            case SCIENCE, PLANTS, EXERCISE -> (optionalComplete & 1 << task.ordinal()) == 0;
+            case SCIENCE -> moon.stage() == MoonMission.Stage.SURFACE && landing != null && landing.phase() == LunarLanding.Phase.SURFACE
+                    || moon.stage() != MoonMission.Stage.SURFACE && (optionalComplete & 1 << task.ordinal()) == 0;
+            case PLANTS, EXERCISE -> (optionalComplete & 1 << task.ordinal()) == 0;
         };
     }
 
     public boolean completed(final ShipTask task) {
         if (task == ShipTask.STORAGE) return cargoSelected;
+        if (moon.stage() == MoonMission.Stage.SURFACE && landing != null) {
+            if (task == ShipTask.MEDICAL) return landing.suitsChecked();
+            if (task == ShipTask.SCIENCE) return landing.sampleCollected();
+        }
         if (task == ShipTask.GALLEY && moon.stage() == MoonMission.Stage.RESTART) return heaterCommitted;
         if (task == ShipTask.MEDICAL && moon.stage() == MoonMission.Stage.FILTER) return filterOnline;
         return (stageComplete & 1 << task.ordinal()) != 0 || (optionalComplete & 1 << task.ordinal()) != 0;
@@ -528,6 +638,10 @@ public final class ShipMission {
             case ENGINE -> moon.stage() == MoonMission.Stage.EMERGENCY ? loadMask : engineBoard;
             case PILOT -> switch (moon.stage()) {
                 case DOCKING -> dockingX | dockingY << 4 | (dockingVelocityX + 2) << 8 | (dockingVelocityY + 2) << 11;
+                case ORBIT -> orbitProfile;
+                case DESCENT -> landing == null ? 0 : landing.verticalSpeed() | landing.lateralSpeed() << 4
+                        | (landing.guidanceChecked() ? 1 << 8 : 0) | (landing.siteSelected() ? 1 << 9 : 0);
+                case SURFACE -> landing != null && landing.phase() == LunarLanding.Phase.RENDEZVOUS ? 1 : 0;
                 case RETURN -> burnUnits | (burnRunning ? 1 << 8 : 0);
                 default -> pilotBoard;
             };
@@ -543,7 +657,9 @@ public final class ShipMission {
     public int aux(final ShipTask task) {
         return switch (task) {
             case ENGINE -> moon.stage() == MoonMission.Stage.EMERGENCY ? 1 : target(task);
-            case PILOT -> target(task);
+            case PILOT -> landing != null && moon.stage() == MoonMission.Stage.ORBIT ? landing.orbitalFuel()
+                    : landing != null && moon.stage() == MoonMission.Stage.DESCENT ? landing.descentFuel()
+                    : landing != null && moon.stage() == MoonMission.Stage.SURFACE ? landing.ascentFuel() : target(task);
             case COMMS -> signalQuality() | ((commsBoard >> 4 & 15) > 3 ? 1 << 8 : 0);
             case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER ? stableSeconds : activities.aux(task);
             case GALLEY -> moon.stage() == MoonMission.Stage.RESTART ? 0 : activities.aux(task);
@@ -556,7 +672,7 @@ public final class ShipMission {
         if (task == ShipTask.ENGINE)
             return moon.stage() == MoonMission.Stage.RESTART ? 3 | 4 << 4 | 2 << 8 | 1 << 12 : 2 | 1 << 4 | 3 << 8 | 4 << 12;
         if (task == ShipTask.COMMS)
-            return moon.stage() == MoonMission.Stage.RETURN ? 5 : 3;
+            return moon.stage() == MoonMission.Stage.RETURN ? 5 : moon.stage() == MoonMission.Stage.DESCENT ? 4 : 3;
         return switch (moon.stage()) {
             case NAVIGATION -> 0b101010;
             case RETURN -> 6 | 8 << 8;
@@ -572,7 +688,7 @@ public final class ShipMission {
         if (role == null) return ShipTask.MEETING;
         final ShipTask owned = switch (role) {
             case POWER -> ShipTask.ENGINE;
-            case LIFE_SUPPORT -> moon.stage() == MoonMission.Stage.FILTER ? ShipTask.MEDICAL : ShipTask.PLANTS;
+            case LIFE_SUPPORT -> moon.stage() == MoonMission.Stage.FILTER || moon.stage() == MoonMission.Stage.SURFACE ? ShipTask.MEDICAL : ShipTask.PLANTS;
             case SUPPLIES -> moon.stage() == MoonMission.Stage.PREPARATION ? ShipTask.STORAGE : ShipTask.GALLEY;
             case MAINTENANCE -> activeTask(ShipTask.COMMS) ? ShipTask.COMMS : ShipTask.SCIENCE;
             case PILOT -> ShipTask.PILOT;
@@ -585,6 +701,9 @@ public final class ShipMission {
             case PREPARATION -> "Match four rated power cartridges at the engines and choose cargo at storage. Preparation has no timer.";
             case DOCKING -> "Pilot: cancel drift inside the docking capture box. Communications: tune the carrier without clipping the receiver.";
             case NAVIGATION -> "Pilot: select three reliable guide stars from the detector readings to verify the return route.";
+            case ORBIT -> "Pilot: compare three burn predictions before committing to lunar-orbit capture.";
+            case DESCENT -> "Maintenance: verify the radar link. Pilot: check guidance, select the alternate site and control both landing speeds.";
+            case SURFACE -> "Life support: check suits. Science: secure a sample. Pilot: launch and verify rendezvous.";
             case EMERGENCY -> "Power engineer: isolate science and comfort heating while keeping life support on.";
             case FILTER -> "Life-support engineer: assemble the CO2 adapter in order, pressure-test the seal and start filtered airflow.";
             case RESTART -> "Power engineer: fit cartridges to the new restart loads. Supplies: allocate heat to navigation and the air loop.";

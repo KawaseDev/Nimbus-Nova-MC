@@ -49,7 +49,7 @@ function createServer(options = {}) {
           const data = JSON.parse(raw);
           if (request.url === '/api/mission-action') {
             if (!data || typeof data.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.id) ||
-                !['start', 'pause', 'resume', 'acknowledge', 'abort', 'reset', 'moon_exploration', 'moon_rescue', 'moon_pause', 'moon_resume', 'moon_acknowledge', 'moon_advance', 'moon_end', 'ship_select', 'ship_start', 'ship_pause', 'ship_acknowledge', 'ship_resume', 'ship_abort', 'ship_reset', 'ship_end'].includes(data.action)) throw new Error();
+                !['start', 'pause', 'resume', 'acknowledge', 'abort', 'reset', 'moon_exploration', 'moon_rescue', 'moon_pause', 'moon_resume', 'moon_acknowledge', 'moon_advance', 'moon_end', 'ship_select', 'ship_explore', 'ship_start', 'ship_pause', 'ship_acknowledge', 'ship_resume', 'ship_abort', 'ship_reset', 'ship_end'].includes(data.action)) throw new Error();
             body = `${data.id} ${data.action}`;
           } else {
             if (!data || typeof data.message !== 'string' || !data.message.trim() || data.message.trim().length > 200 || /[\x00-\x1f\x7f-\x9f]/.test(data.message)) throw new Error();

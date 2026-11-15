@@ -149,7 +149,49 @@ final class ShipMissionChecks {
         GuidedMissionChecks.capture(context, "ship-success-report");
         world.getServer().runCommand("ship end");
         context.waitFor(client -> client.level != null && !client.level.dimension().equals(ShipMap.DIMENSION));
+        exploration(context, world);
         System.out.println("Ship runtime checks passed: schematic import, custom stations, cartridge assembly, momentum docking, star navigation, signal tuning, CO2 adapter, timed burn, heat budget and full rescue success.");
+    }
+
+    static void exploration(final ClientGameTestContext context, final TestSingleplayerContext world) {
+        world.getServer().runOnServer(server -> server.getPlayerList().op(new NameAndId(world.getConnection().getServerPlayer().getGameProfile())));
+        world.getServer().runCommand("gamemode survival @p");
+        world.getServer().runCommand("ship explore");
+        context.waitFor(client -> client.level != null && client.level.dimension().equals(ShipMap.DIMENSION)
+                && ShipClient.state() != null && ShipClient.state().variant().equals("EXPLORATION"));
+        open(context, world, ShipTask.ENGINE); circuit(context);
+        open(context, world, ShipTask.STORAGE); action(context, 0); action(context, 2); action(context, 3);
+        world.getServer().runCommand("ship start");
+        resume(context, world);
+        align(context, world, ShipTask.PILOT);
+        align(context, world, ShipTask.COMMS);
+        align(context, world, ShipTask.PILOT);
+        context.waitFor(client -> ShipClient.state() != null && ShipClient.state().stage().equals("ORBIT"));
+        open(context, world, ShipTask.PILOT);
+        GuidedMissionChecks.capture(context, "moon-orbit-capture");
+        action(context, 0); action(context, 3);
+        if (!state(context).stage().equals("ORBIT")) throw new AssertionError("An insufficient burn was accepted");
+        action(context, 1); action(context, 3);
+        resume(context, world);
+        open(context, world, ShipTask.PILOT);
+        action(context, 0);
+        if ((state(context).board() & 256) != 0) throw new AssertionError("Guidance must wait for maintenance");
+        align(context, world, ShipTask.COMMS);
+        open(context, world, ShipTask.PILOT);
+        GuidedMissionChecks.capture(context, "moon-descent-controls");
+        for (final int operation : new int[] { 0, 5, 1, 2, 3, 3, 3, 4 }) action(context, operation);
+        resume(context, world);
+        open(context, world, ShipTask.MEDICAL); action(context, 0);
+        open(context, world, ShipTask.SCIENCE); action(context, 0);
+        open(context, world, ShipTask.PILOT);
+        GuidedMissionChecks.capture(context, "moon-ascent-controls");
+        action(context, 5); action(context, 6);
+        align(context, world, ShipTask.PILOT);
+        align(context, world, ShipTask.COMMS);
+        context.waitFor(client -> ShipClient.state() != null && ShipClient.state().phase().equals("SUCCESS"));
+        world.getServer().runCommand("ship end");
+        context.waitFor(client -> client.level != null && !client.level.dimension().equals(ShipMap.DIMENSION));
+        System.out.println("Moon exploration prototype checks passed: capture, guidance, safe descent, suit, sample, ascent and return.");
     }
 
     private static void resume(final ClientGameTestContext context, final TestSingleplayerContext world) {
@@ -171,7 +213,7 @@ final class ShipMissionChecks {
     private static void align(final ClientGameTestContext context, final TestSingleplayerContext world, final ShipTask task) {
         open(context, world, task);
         if (task == ShipTask.COMMS) {
-            final int carrier = state(context).stage().equals("RETURN") ? 5 : 3;
+            final int carrier = state(context).stage().equals("RETURN") ? 5 : state(context).stage().equals("DESCENT") ? 4 : 3;
             for (int step = 0; step < 8 && (state(context).board() & 15) != carrier; step++)
                 action(context, (state(context).board() & 15) < carrier ? 0 : 1);
             for (int step = 0; step < 4 && (state(context).board() >> 4 & 7) != 2; step++)
