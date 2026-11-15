@@ -133,7 +133,8 @@ final class ShipActivityGraphics implements ShipPalette {
             NovaRenderer.text(graphics, "Controlled repetitions " + state.board() + " / 5", x, y + 65, 9, ACCENT);
             return;
         }
-        NovaRenderer.wrap(graphics, "Call a short crew discussion. Ship reserves freeze while you compare readings.", x, y, width, 10, 3, TEXT);
+        NovaRenderer.wrap(graphics, state.phase().equals("READY") ? "Test the intercom. Crew discussions become available after launch."
+                : "Call a short crew discussion. Ship reserves freeze while you compare readings.", x, y, width, 10, 3, TEXT);
         for (int bar = 0; bar < 22; bar++) {
             final float height = 3 + (float) Math.abs(Math.sin(System.nanoTime() / 500_000_000.0 + bar * 0.6)) * 17;
             NovaRenderer.rect(graphics, x + 5 + bar * 6, y + 45 - height / 2, 3, height, 1, ACCENT);

@@ -273,8 +273,8 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
             for (int sample = 0; sample < 3; sample++)
                 addRenderableWidget(new SampleCard(left + 14 + sample * (classWidth + 6), top + 85, classWidth, sample));
             taskButton(left + 14, top + 145, bodyWidth, "Archive verified specimens", 9);
-        } else if (!state.task().equals("EXERCISE"))
-            taskButton(left + 14, top + 119, bodyWidth, "Call crew meeting", 0);
+        } else if (state.task().equals("MEETING"))
+            taskButton(left + 14, top + 119, bodyWidth, state.phase().equals("READY") ? "Check intercom" : "Call crew meeting", 0);
     }
 
     private boolean fuses() {

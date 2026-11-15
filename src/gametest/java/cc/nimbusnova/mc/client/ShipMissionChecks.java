@@ -224,8 +224,15 @@ final class ShipMissionChecks {
         });
         open(context, world, ShipTask.ENGINE); circuit(context);
         open(context, world, ShipTask.STORAGE); action(context, 0); action(context, 2); action(context, 3);
+        if (!cancelLanding)
+            verifyMouseMeeting(context, world, true);
         world.getServer().runCommand("ship start");
         resume(context, world);
+        if (!cancelLanding) {
+            verifyMouseMeeting(context, world, false);
+            world.getServer().runCommand("ship resume");
+            context.waitFor(_ -> ShipClient.state() != null && ShipClient.state().phase().equals("ACTIVE"));
+        }
         align(context, world, ShipTask.PILOT);
         align(context, world, ShipTask.COMMS);
         align(context, world, ShipTask.PILOT);
@@ -417,6 +424,38 @@ final class ShipMissionChecks {
             screen.setFocused(button);
             button.setFocused(true);
         });
+    }
+
+    private static void verifyMouseMeeting(final ClientGameTestContext context, final TestSingleplayerContext world, final boolean preflight) {
+        open(context, world, ShipTask.MEETING);
+        final var cursor = context.computeOnClient(client -> {
+            if (!(client.gui.screen() instanceof ShipScreen screen)) throw new AssertionError("Intercom screen closed before the mouse hold");
+            final var button = screen.children().stream().filter(HoldTaskButton.class::isInstance)
+                    .map(HoldTaskButton.class::cast).findFirst().orElseThrow();
+            final var window = client.getWindow();
+            return new double[] {
+                    (button.getX() + button.getWidth() / 2.0) * window.getScreenWidth() / window.getGuiScaledWidth(),
+                    (button.getY() + button.getHeight() / 2.0) * window.getScreenHeight() / window.getGuiScaledHeight()
+            };
+        });
+        final var input = context.getInput();
+        input.setCursorPos(cursor[0], cursor[1]);
+        if (preflight) {
+            final int revision = state(context).revision();
+            input.holdMouseFor(InputConstants.MOUSE_BUTTON_LEFT, 5);
+            context.waitTicks(27);
+            if (state(context).revision() != revision)
+                throw new AssertionError("Releasing the intercom mouse hold early committed the action");
+        }
+
+        input.holdMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        try {
+            context.waitFor(client -> client.gui.screen() instanceof ShipScreen screen
+                    && screen.state().phase().equals(preflight ? "READY" : "PAUSED")
+                    && screen.state().feedback().startsWith(preflight ? "Intercom ready" : "Crew meeting requested"));
+        } finally {
+            input.releaseMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        }
     }
 
     private static void open(final ClientGameTestContext context, final TestSingleplayerContext world, final ShipTask task) {
