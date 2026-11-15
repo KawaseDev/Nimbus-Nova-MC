@@ -32,6 +32,12 @@ public final class MoonMission {
                 "How can the crew connect the available filter and verify that it works?",
                 "Apollo 13 used an improvised adapter for incompatible cartridges. The repair in this game is simplified.",
                 "https://www.nasa.gov/ochmo-tb-004-carbon-dioxide-2/"),
+        SURFACE("Working on the Moon", "The lander has reached the surface.",
+                "Lunar gravity is about one sixth of Earth's. The Moon's extremely thin exosphere cannot provide useful parachute braking.",
+                "The crew still needs suits, communication and enough reserves to return to the lander.",
+                "What should the crew check before leaving the lander, and why could a parachute not slow its descent?",
+                "NASA describes the Moon's gravity and exosphere. This landing site and its resource values are simulated.",
+                "https://science.nasa.gov/moon/facts/"),
         RESTART("Cold cabin and condensation", "The cabin has cooled and moisture has condensed before restart.",
                 "Cooling can cause moisture to condense on surfaces. Essential heating also needs electrical power.",
                 "Condensation can threaten equipment, while excessive heating can consume the re-entry reserve.",
@@ -86,7 +92,7 @@ public final class MoonMission {
             case DOCKING -> { fuel -= 5; stage = Stage.NAVIGATION; }
             case NAVIGATION -> { fuel -= 5; stage = variant == Variant.EXPLORATION ? Stage.ORBIT : Stage.EMERGENCY; if (stage == Stage.EMERGENCY) announce(Incident.EMERGENCY); }
             case ORBIT -> { fuel -= 10; stage = Stage.DESCENT; announce(Incident.DESCENT); }
-            case DESCENT -> { fuel -= 15; stage = Stage.SURFACE; }
+            case DESCENT -> { fuel -= 15; stage = Stage.SURFACE; announce(Incident.SURFACE); }
             case SURFACE -> { fuel -= 15; stage = Stage.RETURN; }
             case EMERGENCY -> { battery -= 20; oxygen -= 10; stage = Stage.FILTER; announce(Incident.FILTER); }
             case FILTER -> { parts--; battery -= 5; stage = Stage.RESTART; announce(Incident.RESTART); }

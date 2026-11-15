@@ -166,7 +166,7 @@ public final class ShipController {
                 get(context.getSource().getServer()).leave(context.getSource().getPlayerOrException());
                 return 1;
             }));
-            for (final String action : new String[] { "select", "start", "pause", "acknowledge", "resume", "abort", "reset", "end" }) {
+            for (final String action : new String[] { "select", "explore", "start", "pause", "acknowledge", "resume", "abort", "reset", "end" }) {
                 command.then(Commands.literal(action).requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS)).executes(context -> {
                     try {
                         get(context.getSource().getServer()).teacherAction(context.getSource().getServer(), "ship_" + action);
@@ -193,7 +193,7 @@ public final class ShipController {
     }
 
     public void teacherAction(final MinecraftServer server, final String action) {
-        if (action.equals("ship_select")) {
+        if (action.equals("ship_select") || action.equals("ship_explore")) {
             if (mission != null && !mission.snapshot().phase().ended()) throw new IllegalStateException("End the selected ship attempt before selecting another.");
             final MissionState.Phase mars = MissionController.get(server).snapshot().phase();
             if (mars == MissionState.Phase.ACTIVE || mars == MissionState.Phase.PAUSED || MoonController.get(server).active())
@@ -206,7 +206,7 @@ public final class ShipController {
             ShipRooms.clear(server);
             roomPowerEvent = false;
             roomBreachEvent = false;
-            mission = new ShipMission();
+            mission = new ShipMission(action.equals("ship_explore") ? MoonMission.Variant.EXPLORATION : MoonMission.Variant.RESCUE);
             roles.clear();
             opened.clear();
             for (final ServerPlayer player : server.getPlayerList().getPlayers()) join(player);
@@ -222,7 +222,7 @@ public final class ShipController {
                     ShipRooms.clear(server);
                     roomPowerEvent = false;
                     roomBreachEvent = false;
-                    mission = new ShipMission();
+                    mission = new ShipMission(mission.underlying().variant());
                     roles.clear();
                     opened.clear();
                 }
@@ -409,7 +409,7 @@ public final class ShipController {
         if (!ServerPlayNetworking.canSend(player, ShipPayload.TYPE)) return;
         final boolean operator = player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER);
         if (mission == null) {
-            ServerPlayNetworking.send(player, new ShipPayload("", "", "", 0, 0, -1, -1, -1, -1, -1, -1, "", "", "", "", "", 0, 0, false, BlockPos.ZERO, BlockPos.ZERO, open, operator));
+            ServerPlayNetworking.send(player, new ShipPayload("", "", "", "", 0, 0, -1, -1, -1, -1, -1, -1, "", "", "", "", "", 0, 0, false, BlockPos.ZERO, BlockPos.ZERO, open, operator));
             return;
         }
         final ShipMission.Snapshot state = mission.snapshot();
@@ -426,7 +426,7 @@ public final class ShipController {
                     + ", fuel " + (int) state.fuel() + ". " + choices;
         } else
             summary = mission.instruction();
-        ServerPlayNetworking.send(player, new ShipPayload(state.phase().name(), state.stage().name(), role == null ? "" : role.name(), state.revision(), state.remaining(),
+        ServerPlayNetworking.send(player, new ShipPayload(state.phase().name(), state.stage().name(), role == null ? "" : role.name(), mission.underlying().variant().name(), state.revision(), state.remaining(),
                 operator || role == MoonMission.Role.POWER ? (int) state.battery() : -1,
                 operator || role == MoonMission.Role.LIFE_SUPPORT ? (int) state.oxygen() : -1,
                 operator || role == MoonMission.Role.SUPPLIES ? (int) state.water() : -1,
@@ -442,7 +442,7 @@ public final class ShipController {
         if (mission == null) return null;
         final ShipMission.Snapshot state = mission.snapshot();
         final JsonObject result = new JsonObject();
-        result.addProperty("title", "Return Window / spacecraft rescue");
+        result.addProperty("title", mission.underlying().variant() == MoonMission.Variant.EXPLORATION ? "Moon exploration / prototype" : "Return Window / spacecraft rescue");
         result.addProperty("phase", state.phase().name());
         result.addProperty("stage", state.stage().name());
         result.addProperty("battery", state.battery());

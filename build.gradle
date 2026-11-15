@@ -227,3 +227,10 @@ tasks.register('shipRoomStateTest', JavaExec) {
     enableAssertions = true
 }
 check.dependsOn shipRoomStateTest
+tasks.register('lunarLandingTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.moon.LunarLandingTest'
+    enableAssertions = true
+}
+check.dependsOn lunarLandingTest

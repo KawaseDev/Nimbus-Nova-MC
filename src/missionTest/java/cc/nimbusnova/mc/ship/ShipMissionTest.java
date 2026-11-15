@@ -122,7 +122,41 @@ public final class ShipMissionTest {
         final double waterAfterSet = meeting.snapshot().water();
         if (meeting.action(ShipTask.EXERCISE, meeting.revision(), 0) || meeting.snapshot().water() != waterAfterSet)
             throw new AssertionError("Exercise must not provide unlimited rewards");
+        exploration();
         System.out.println("Ship mission checks passed: five station activities, bounded benefits, unique flight tasks, pauses and failures.");
+    }
+
+    private static void exploration() {
+        final ShipMission mission = prepared(false, MoonMission.Variant.EXPLORATION);
+        mission.start(); resume(mission);
+        for (final int input : new int[] { 1, 1, 0, 0, 3, 3, 2, 2, 5 }) act(mission, ShipTask.PILOT, input);
+        tuneSignal(mission);
+        for (final int star : new int[] { 1, 3, 5, 6 }) act(mission, ShipTask.PILOT, star);
+        if (mission.snapshot().stage() != MoonMission.Stage.ORBIT) throw new AssertionError("Exploration must approach lunar orbit");
+        act(mission, ShipTask.PILOT, 0); act(mission, ShipTask.PILOT, 3);
+        if (mission.snapshot().stage() != MoonMission.Stage.ORBIT) throw new AssertionError("An invalid orbit prediction cannot be committed");
+        act(mission, ShipTask.PILOT, 1); act(mission, ShipTask.PILOT, 3);
+        verifyPaused(mission); resume(mission);
+        act(mission, ShipTask.PILOT, 0);
+        if ((mission.board(ShipTask.PILOT) & 256) != 0) throw new AssertionError("Guidance requires a verified radar link");
+        tuneSignal(mission);
+        act(mission, ShipTask.PILOT, 0); act(mission, ShipTask.PILOT, 1);
+        act(mission, ShipTask.PILOT, 4);
+        if (mission.snapshot().stage() != MoonMission.Stage.DESCENT) throw new AssertionError("Unsafe contact must not land");
+        act(mission, ShipTask.PILOT, 2);
+        for (int i = 0; i < 3; i++) act(mission, ShipTask.PILOT, 3);
+        act(mission, ShipTask.PILOT, 4);
+        if (mission.snapshot().stage() != MoonMission.Stage.SURFACE) throw new AssertionError("Safe speeds must permit landing");
+        verifyPaused(mission); resume(mission);
+        act(mission, ShipTask.SCIENCE, 0);
+        if (mission.completed(ShipTask.SCIENCE)) throw new AssertionError("A sample requires a suit check");
+        act(mission, ShipTask.MEDICAL, 0); act(mission, ShipTask.SCIENCE, 0);
+        act(mission, ShipTask.PILOT, 5); act(mission, ShipTask.PILOT, 6);
+        if (mission.snapshot().stage() != MoonMission.Stage.RETURN) throw new AssertionError("Rendezvous must lead to return");
+        act(mission, ShipTask.PILOT, 0);
+        for (int i = 0; i < 6; i++) mission.tickSecond();
+        act(mission, ShipTask.PILOT, 1); tuneSignal(mission);
+        if (mission.snapshot().phase() != ShipMission.Phase.SUCCESS) throw new AssertionError("Exploration must support a safe return");
     }
 
     private static void activities() {
@@ -204,7 +238,11 @@ public final class ShipMissionTest {
     }
 
     private static ShipMission prepared(final boolean extraParts) {
-        final ShipMission mission = new ShipMission();
+        return prepared(extraParts, MoonMission.Variant.RESCUE);
+    }
+
+    private static ShipMission prepared(final boolean extraParts, final MoonMission.Variant variant) {
+        final ShipMission mission = new ShipMission(variant);
         if (mission.action(ShipTask.PILOT, mission.revision(), 0))
             throw new AssertionError("Flight controls are not available before launch");
         mission.tickSecond();

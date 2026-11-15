@@ -23,6 +23,8 @@ export PATH="$JAVA_HOME/bin:$PATH"
 
 Elsewhere, set `JAVA_HOME` to your JDK 25 installation. Windows uses `gradlew.bat build` and `gradlew.bat runClient`. In IntelliJ, open this folder as a Gradle project and select JDK 25 for both the project and Gradle JVM.
 
+On Linux, if JDK 25 is installed in `~/.local/share/nimbus-nova/jdk-25`, set `JAVA_HOME` to that path before starting Gradle or the teacher panel.
+
 The distributable is `build/libs/nimbus-nova-mc-0.1.0.jar`; the `-sources.jar` is for developers. Install Fabric Loader for Minecraft 26.3, then place our mod and Fabric API for 26.3 in your instance's `mods` folder. Obtain Minecraft separately.
 
 `./gradlew runServer` starts a development server. Read and accept Minecraft's EULA yourself in `run/eula.txt` before running it.
@@ -46,7 +48,7 @@ The world uses holographic labels, marker effects, colored routes, automatic doo
 
 NASA observations determine the selected Opportunity storm profile. The relay fault, pressure puzzle, radiation counter, mission timing, and resource capacities are teaching/gameplay assumptions, not calibrated astronaut procedures.
 
-The solar warning, dust warning, and relay fault pause the simulation for an explanation and discussion. Mission Control confirms understanding before resuming. The Earth–Moon mission has a teacher-controlled sequencing prototype with five roles, incident explanations, and decisions. It does not yet have the spacecraft map, equipment tasks, or complete classroom mission. Earth–Mars transit and ISS remain planned.
+The solar warning, dust warning, and relay fault pause the simulation for an explanation and discussion. Mission Control confirms understanding before resuming. Earth–Mars transit and ISS remain planned.
 
 ### Commands
 
@@ -149,6 +151,8 @@ The Mars dimension uses **38% of normal Minecraft gravity** for living entities,
 This applies the Mars/Earth gravity ratio to Minecraft physics; it is a gameplay approximation, not a calibrated astronaut or atmosphere simulation. Native drag, creative flight, and no-gravity behavior remain intact. Runtime checks measured jumps of about 1.25 blocks/12 ticks on the Overworld and 2.69 blocks/27 ticks on Mars, verified client/server agreement, and checked restoration on return.
 
 ## Play Return Window: spacecraft rescue
+
+The teacher panel also offers **Select Moon exploration prototype**, or an operator can use `/ship explore`. It reuses the spacecraft and adds simulated orbit capture, descent checks, landing, a suit check, sample selection, ascent and rendezvous. The lunar surface is currently represented at ship stations; it is not yet a walkable Moon environment or the complete classroom mission. The legacy Earth–Moon tablet remains a separate sequencing prototype.
 
 Select **Return Window** in the teacher menu, or run `/ship select` as an operator. This creates the separate `nimbus_nova:return_window` dimension and brings the connected crew aboard. `/ship join` admits students who arrive later; J opens the ship tablet. End the current Mars/Moon attempt before selecting it, and use `/ship end` when switching to another mission.
 
