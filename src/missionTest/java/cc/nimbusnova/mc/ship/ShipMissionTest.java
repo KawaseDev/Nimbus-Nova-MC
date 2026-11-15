@@ -9,6 +9,11 @@ public final class ShipMissionTest {
 
     public static void main(final String[] arguments) {
         activities();
+        final ShipMission reports = new ShipMission();
+        reports.reportPreflight(MoonMission.Role.PILOT);
+        if (reports.preflightReports() != 1 << MoonMission.Role.PILOT.ordinal()) throw new AssertionError("The pilot report must be recorded");
+        try { reports.reportPreflight(MoonMission.Role.PILOT); throw new AssertionError("A role cannot report twice"); }
+        catch (IllegalStateException expected) { }
         final ShipMission cartridges = new ShipMission();
         act(cartridges, ShipTask.ENGINE, 1);
         act(cartridges, ShipTask.ENGINE, 5);

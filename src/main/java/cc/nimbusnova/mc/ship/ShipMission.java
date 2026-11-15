@@ -23,7 +23,7 @@ public final class ShipMission {
     private final List<String> journal = new ArrayList<>();
     private final ShipActivities activities = new ShipActivities();
     private Phase phase = Phase.READY;
-    private int revision, elapsed, stageComplete, optionalComplete, completedTasks, decisions, meetings;
+    private int revision, elapsed, stageComplete, optionalComplete, completedTasks, decisions, meetings, preflightReports;
     private int engineBoard;
     private int pilotBoard, commsBoard, medicalAssembly, stableSeconds, heaterMask, exerciseRepetitions;
     private int dockingX = 1, dockingY = 1;
@@ -50,6 +50,18 @@ public final class ShipMission {
 
     public boolean ready() {
         return completed(ShipTask.ENGINE) && cargoSelected;
+    }
+
+    public int preflightReports() { return preflightReports; }
+
+    public void reportPreflight(final MoonMission.Role role) {
+        if (phase != Phase.READY || role == null) throw new IllegalStateException("Choose a crew role before reporting.");
+        final int bit = 1 << role.ordinal();
+        if ((preflightReports & bit) != 0) throw new IllegalStateException("That role has already reported.");
+        preflightReports |= bit;
+        record(role.name().replace('_', ' ') + " reported preflight readiness.");
+        feedback = "Preflight report received: " + role.name().replace('_', ' ') + ".";
+        revision++;
     }
 
     public void start() {
