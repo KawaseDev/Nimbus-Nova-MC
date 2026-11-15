@@ -161,7 +161,7 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
         nextLesson.active = lessonPage < 2;
         reset.active = operator && phase != MissionState.Phase.ACTIVE;
         powerRole.visible = lifeRole.visible = weatherRole.visible = oxygen.visible = research.visible = forecast.visible = tab == 1 && connected;
-        powerRole.active = lifeRole.active = weatherRole.active = connected && phase == MissionState.Phase.READY;
+        powerRole.active = lifeRole.active = weatherRole.active = connected && packet.role().canChoose(phase, operator);
         powerRole.selected = connected && packet.role() == CrewRole.POWER;
         lifeRole.selected = connected && packet.role() == CrewRole.LIFE_SUPPORT;
         weatherRole.selected = connected && packet.role() == CrewRole.WEATHER;
@@ -291,8 +291,12 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
                     }
                 }
                 case 1 -> {
-                    MissionUi.text(graphics, "Choose your crew responsibility", contentX, contentY, TEXT);
-                    NovaRenderer.wrap(graphics, MissionTutorial.job(packet.role()), contentX, contentY + 45, contentWidth, 10, 2, ACCENT);
+                    final boolean canChoose = packet.role().canChoose(state.phase(), packet.operator());
+                    MissionUi.text(graphics, canChoose ? "Choose your crew responsibility" : "Crew roles are locked", contentX, contentY, TEXT);
+                    final String roleHint = state.phase().ended() ? "Choose a role when the next attempt is ready."
+                            : !canChoose && packet.role() == CrewRole.OBSERVER ? "Choose a role after Mission Control resumes the mission."
+                            : MissionTutorial.job(packet.role());
+                    NovaRenderer.wrap(graphics, roleHint, contentX, contentY + 45, contentWidth, 10, 2, ACCENT);
                     if (panelHeight >= 290) {
                         NovaRenderer.wrap(graphics, "Repairs happen at the marked equipment in the world. During the timed mission, "
                                         + "these switches let each specialist manage their system. Talk before changing the shared power budget.",

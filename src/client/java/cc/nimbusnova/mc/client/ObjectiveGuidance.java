@@ -5,10 +5,12 @@ import cc.nimbusnova.mc.mission.MissionProgressPayload;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 
 import java.awt.Color;
 
-final class ObjectiveGuidance {
+public final class ObjectiveGuidance {
     private ObjectiveGuidance() {
         /* w */
     }
@@ -22,9 +24,9 @@ final class ObjectiveGuidance {
         if (!onMars()) return "Enter the Mars outpost first";
         if (Minecraft.getInstance().player == null || objective == null) return "Waiting for mission guidance";
 
-        if (objective.stage().equals("SHELTER_SAFE") || objective.stage().equals("TEAM")) return objective.actionHint();
         if (objective.stage().equals("ROLE"))
             return NimbusNovaClient.consoleKey.getTranslatedKeyMessage().getString() + " / Crew / choose a role";
+        if (!objective.hasWorldTarget()) return objective.actionHint();
 
         final double deltaX = objective.targetX() + 0.5 - Minecraft.getInstance().player.getX();
         final double deltaY = objective.targetY() - Minecraft.getInstance().player.getY();
@@ -41,23 +43,41 @@ final class ObjectiveGuidance {
     }
 
     static double relativeYaw(final MissionProgressPayload objective) {
+        return relativeYaw(objective.targetX() + 0.5, objective.targetZ() + 0.5);
+    }
+
+    private static double relativeYaw(final double x, final double z) {
         final Minecraft client = Minecraft.getInstance();
         if (client.player == null) return 0;
 
-        final double deltaX = objective.targetX() + 0.5 - client.player.getX();
-        final double deltaZ = objective.targetZ() + 0.5 - client.player.getZ();
+        final double deltaX = x - client.player.getX(), deltaZ = z - client.player.getZ();
         final double targetYaw = Math.toDegrees(Math.atan2(-deltaX, deltaZ));
         return Math.IEEEremainder(targetYaw - client.player.getYRot(), 360);
     }
 
     static void arrow(final GuiGraphicsExtractor graphics, final MissionProgressPayload objective,
                       final float x, final float y, final Color color) {
-        if (objective == null || !onMars() || Minecraft.getInstance().player == null) return;
-        if (objective.stage().equals("SHELTER_SAFE") || objective.stage().equals("ROLE") || objective.stage().equals("TEAM")) return;
+        if (objective == null || !objective.hasWorldTarget() || !onMars() || Minecraft.getInstance().player == null) return;
 
+        drawArrow(graphics, relativeYaw(objective), x, y, color);
+    }
+
+    public static void waypointHint(final GuiGraphicsExtractor graphics, final BlockPos target, final float x, final float y, final Color color) {
+        final Minecraft client = Minecraft.getInstance();
+        if (client.player == null) return;
+
+        final int distance = (int) Math.ceil(client.player.position().distanceTo(Vec3.atCenterOf(target)));
+        final int vertical = target.getY() - client.player.blockPosition().getY();
+        final String level = vertical > 2 ? " / above" : vertical < -2 ? " / below" : "";
+        final double yaw = relativeYaw(target.getX() + 0.5, target.getZ() + 0.5);
+        drawArrow(graphics, yaw, x + 5, y + 5, color);
+        NovaRenderer.text(graphics, turnLabel(yaw) + " / " + distance + " blocks" + level, x + 17, y, 8, color);
+    }
+
+    private static void drawArrow(final GuiGraphicsExtractor graphics, final double yaw, final float x, final float y, final Color color) {
         graphics.pose().pushMatrix();
         graphics.pose().translate(x, y);
-        graphics.pose().rotate((float) Math.toRadians(relativeYaw(objective)));
+        graphics.pose().rotate((float) Math.toRadians(yaw));
         NovaRenderer.rect(graphics, -0.8F, -5, 1.6F, 12, 0.7F, color);
         graphics.pose().translate(0, -5);
         graphics.pose().rotate((float) Math.PI / 4);

@@ -442,7 +442,9 @@ public final class ShipController {
                 return;
             }
             if (packet.action().equals("role")) {
-                if (mission.snapshot().phase() != ShipMission.Phase.READY) throw new IllegalStateException("Assign roles before launch.");
+                final ShipMission.Phase phase = mission.snapshot().phase();
+                if (phase != ShipMission.Phase.READY && (phase != ShipMission.Phase.ACTIVE || roles.containsKey(player.getUUID())))
+                    throw new IllegalStateException("Choose a role before launch or when joining an active mission without one.");
                 if (packet.value() < 0 || packet.value() >= MoonMission.Role.values().length) throw new IllegalArgumentException("Invalid crew role.");
                 final MoonMission.Role role = MoonMission.Role.values()[packet.value()];
                 if (roles.containsValue(role) && roles.get(player.getUUID()) != role) throw new IllegalStateException("That crew role is already occupied.");
@@ -547,18 +549,46 @@ public final class ShipController {
         }
         final ShipMission.Snapshot state = mission.snapshot();
         final MoonMission.Role role = roles.get(player.getUUID());
-        final ShipTask objective = mission.objectiveTask(role);
         final BlockPos station = opened.getOrDefault(player.getUUID(), BlockPos.ZERO);
         final ShipTask task = ShipMap.task(player.level().getBlockState(station).getBlock());
-        final String summary;
+        final ShipTask objective = mission.objectiveTask(role, operator);
+        final var repair = state.phase() == ShipMission.Phase.READY || state.phase() == ShipMission.Phase.ACTIVE ? ShipRooms.repairWaypoint(player, role) : null;
+        final String title, summary;
+        BlockPos target = BlockPos.ZERO;
         if (state.phase().ended()) {
+            title = state.phase().name();
             final String choices = String.join(" ", mission.debrief().stream()
                     .filter(line -> line.contains("CO2 removal") || line.contains("energy units"))
                     .limit(2).toList());
             summary = state.outcome() + " Battery " + (int) state.battery() + ", oxygen " + (int) state.oxygen()
                     + ", fuel " + (int) state.fuel() + ". " + choices;
-        } else
+        } else if (repair != null) {
+            title = repair.title();
+            summary = repair.instruction();
+            target = repair.position();
+        } else if (state.phase() == ShipMission.Phase.PAUSED) {
+            title = "Crew briefing";
+            summary = state.feedback();
+        } else if (player.level().dimension().equals(LunarSurface.DIMENSION)) {
+            final boolean collected = mission.completed(ShipTask.SCIENCE);
+            title = collected ? "Return to the ship" : "Lunar basalt sample";
+            summary = collected ? "Open the crew tablet and choose Return to ship."
+                    : "Reach the marked basalt. The maintenance specialist right-clicks it to collect the sample.";
+            target = collected ? BlockPos.ZERO : LunarSurface.SAMPLE;
+        } else if (objective != null) {
+            title = objective.label;
+            target = ShipMap.target(objective, player.blockPosition());
+            summary = state.phase() == ShipMission.Phase.READY ? objective == ShipTask.ENGINE
+                    ? "Match four rated power cartridges at the marked engine."
+                    : "Choose and secure cargo at the marked locker." : mission.instruction();
+        } else if (state.phase() == ShipMission.Phase.READY || role == null) {
+            title = role == null ? "Choose a crew role" : mission.ready() ? "Ready to launch" : "Crew preparation";
+            summary = role == null ? "Open the crew tablet to choose your assignment."
+                    : mission.ready() ? "Mission Control can launch from the crew tablet." : mission.instruction();
+        } else {
+            title = "Crew status";
             summary = mission.instruction();
+        }
         ServerPlayNetworking.send(player, new ShipPayload(state.phase().name(), state.stage().name(), role == null ? "" : role.name(), mission.underlying().variant().name(), state.revision(), state.remaining(),
                 operator || role == MoonMission.Role.POWER ? (int) state.battery() : -1,
                 operator || role == MoonMission.Role.LIFE_SUPPORT ? (int) state.oxygen() : -1,
@@ -566,9 +596,9 @@ public final class ShipController {
                 operator || role == MoonMission.Role.PILOT ? (int) state.fuel() : -1,
                 operator || role == MoonMission.Role.MAINTENANCE ? state.parts() : -1,
                 operator || role == MoonMission.Role.LIFE_SUPPORT ? (int) state.co2() : -1,
-                state.phase().ended() ? state.phase().name() : objective.label, summary, state.feedback(), state.incident() == null ? "" : state.incident().name(),
+                title, summary, state.feedback(), state.incident() == null ? "" : state.incident().name(),
                 task == null ? "" : task.name(), task == null ? 0 : mission.board(task), task == null ? 0 : mission.aux(task),
-                task != null && mission.completed(task), station, ShipMap.target(objective, player.blockPosition()), open, operator, mission.ready()));
+                task != null && mission.completed(task), station, target, open, operator, mission.ready()));
     }
 
     public JsonObject teacherState() {

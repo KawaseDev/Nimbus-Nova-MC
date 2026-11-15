@@ -365,7 +365,16 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
                     + (MarsTerrain.surfaceHeight(211, -155) + 35) + " -155 90 5");
             world.getConnection().waitForChunksRender();
             GuidedMissionChecks.capture(context, "mars-terrain");
+            world.getServer().runCommand("execute as @p run mission role observer");
             world.getServer().runCommand("mission debug_start");
+            context.waitFor(_ -> NimbusNovaClient.snapshot.role() == CrewRole.OBSERVER && NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.ACTIVE);
+            context.setScreen(MissionConsoleScreen::new);
+            context.clickScreenButton("Crew");
+            context.clickScreenButton("Power engineer");
+            context.waitFor(_ -> NimbusNovaClient.snapshot.role() == CrewRole.POWER);
+            world.getServer().runCommand("execute as @p run mission role weather");
+            if (world.getServer().computeOnServer(server -> MissionController.get(server).role(world.getConnection().getServerPlayer().getUUID())) != CrewRole.POWER)
+                throw new AssertionError("An astronaut could switch roles while Mars was running");
             world.getServer().runCommand("mission abort");
             context.waitForScreen(MissionConsoleScreen.class);
             GuidedMissionChecks.capture(context, "mission-debrief");

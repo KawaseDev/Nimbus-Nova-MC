@@ -46,6 +46,11 @@ final class ShipMissionChecks {
         context.waitFor(client -> client.level != null && client.level.dimension().equals(ShipMap.DIMENSION) && ShipClient.state() != null);
         context.waitForScreen(ShipScreen.class);
         GuidedMissionChecks.capture(context, "ship-bridge-arrival");
+        context.clickScreenButton("power");
+        context.waitFor(_ -> ShipClient.state() != null && ShipClient.state().title().equals(ShipTask.ENGINE.label)
+                && ShipClient.state().target().equals(ShipMap.target(ShipTask.ENGINE, ShipMap.SPAWN)));
+        context.setScreen(() -> null);
+        GuidedMissionChecks.capture(context, "ship-engine-waypoint-behind");
         world.getServer().runCommand("execute as @p run nimbus");
         context.waitForScreen(HubScreen.class);
         FullscreenChecks.capture(context, "mission-hub");
@@ -96,6 +101,7 @@ final class ShipMissionChecks {
         });
         open(context, world, ShipTask.ENGINE);
         circuit(context);
+        context.waitFor(_ -> ShipClient.state() != null && ShipClient.state().title().equals(ShipTask.STORAGE.label));
         open(context, world, ShipTask.STORAGE);
         action(context, 0);
         action(context, 2);
@@ -121,7 +127,6 @@ final class ShipMissionChecks {
         GuidedMissionChecks.capture(context, "ship-specimen-classification");
         action(context, 9);
         RoomLightingChecks.run(context, world);
-        RoomEmergencyChecks.collect(context, world);
         RoomEmergencyChecks.doors(context, world);
         world.getServer().runCommand("ship start");
         resume(context, world);
@@ -294,12 +299,14 @@ final class ShipMissionChecks {
         context.waitFor(client -> ShipClient.state() != null && ShipClient.state().phase().equals("ACTIVE"));
         context.setScreen(() -> null);
         world.getConnection().waitForChunksRender();
+        context.waitFor(_ -> ShipClient.state() != null && ShipClient.state().hasWaypoint() && ShipClient.state().target().equals(LunarSurface.SAMPLE));
         GuidedMissionChecks.capture(context, "moon-surface");
         FullscreenChecks.capture(context, "moon-surface");
         world.getServer().runCommand("execute in nimbus_nova:lunar_surface run tp @p 9.5 63 -8.5");
         GuidedMissionChecks.use(world, LunarSurface.SAMPLE);
         if (!world.getServer().computeOnServer(server -> ShipController.get(server).mission().completed(ShipTask.SCIENCE)))
             throw new AssertionError("Right-clicking the lunar sample must complete the sample task");
+        context.waitFor(_ -> ShipClient.state() != null && !ShipClient.state().hasWaypoint() && ShipClient.state().title().equals("Return to the ship"));
         world.getServer().runCommand("execute as @p run ship join");
         context.waitFor(client -> client.level != null && client.level.dimension().equals(ShipMap.DIMENSION));
         open(context, world, ShipTask.SCIENCE);

@@ -562,6 +562,10 @@ public final class MissionController {
                         sheltered ? "Stay here until all-clear" : "Walk through the shelter door", new BlockPos(0, 66, 25), state.elapsedSeconds(), 240, 0);
             }
 
+            if (role == CrewRole.OBSERVER && !operator)
+                return progress("ROLE", "Choose a crew role", "Open the Crew tab to pick a role and see your task.",
+                        "Open the crew tablet", player.blockPosition(), state.elapsedSeconds(), 240, 0);
+
             if (mission.relayFault() && (operator || role == CrewRole.POWER))
                 return taskProgress(MissionPreparation.TaskKind.POWER, "RELAY", "Repair the damaged power relay", "A relay has failed. At the marked console, reroute the circuit to make research available again.", state.elapsedSeconds(), 240, true);
 
@@ -772,14 +776,10 @@ public final class MissionController {
     }
 
     private int assign(final CommandSourceStack source, final ServerPlayer player, final CrewRole role) {
-        if (mission.snapshot().phase() != MissionState.Phase.READY && mission.snapshot().phase() != MissionState.Phase.PAUSED) {
-            source.sendFailure(Component.literal("Choose roles before starting, or ask Mission Control to pause first."));
-            return 0;
-        }
-
-        if (mission.snapshot().phase() == MissionState.Phase.PAUSED
-                && !source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)) {
-            source.sendFailure(Component.literal("Only Mission Control can reassign roles during a paused mission."));
+        final MissionState.Phase phase = mission.snapshot().phase();
+        if (!role(player.getUUID()).canChoose(phase, source.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))) {
+            source.sendFailure(Component.literal(phase.ended() ? "Choose a role when the next attempt is ready."
+                    : "Your role is locked during flight. Mission Control can reassign it while paused."));
             return 0;
         }
 

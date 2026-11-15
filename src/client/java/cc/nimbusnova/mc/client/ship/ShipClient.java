@@ -1,9 +1,11 @@
 package cc.nimbusnova.mc.client.ship;
 
+import cc.nimbusnova.mc.client.ObjectiveGuidance;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.ship.ShipActionPayload;
 import cc.nimbusnova.mc.ship.ShipPayload;
 import cc.nimbusnova.mc.world.moon.LunarSurface;
+import cc.nimbusnova.mc.world.ship.ShipMap;
 import cc.nimbusnova.mc.client.suit.SuitLifeSupportClient;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -12,8 +14,6 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.Mth;
-import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
 public final class ShipClient implements ShipPalette {
@@ -51,18 +51,21 @@ public final class ShipClient implements ShipPalette {
             if (state == null || client.level == null || client.player == null || client.gui.screen() != null || client.gui.hud.isHidden()) return;
             if (client.level.dimension().equals(LunarSurface.DIMENSION)) {
                 final int width = Math.min(324, graphics.guiWidth() - 16);
-                NovaRenderer.rect(graphics, 8, 8, width, 49, 7, BACKGROUND);
+                NovaRenderer.rect(graphics, 8, 8, width, 82, 7, BACKGROUND);
                 NovaRenderer.text(graphics, "Moon surface", 18, 14, 10, ACCENT);
-                NovaRenderer.text(graphics, "Sample: x 10, z -8 / right-click", 18, 29, 8, MUTED);
                 final var suit = SuitLifeSupportClient.state();
-                NovaRenderer.text(graphics, (suit == null ? "" : "Suit air " + (int) Math.ceil(suit.air()) + "% / ") + "J tablet to return", 18, 43, 8, MUTED);
+                NovaRenderer.text(graphics, (suit == null ? "" : "Suit air " + (int) Math.ceil(suit.air()) + "% / ") + "J crew tablet", 18, 29, 8, MUTED);
+                NovaRenderer.wrap(graphics, state.instruction(), 18, 45, width - 20, 9, 2, TEXT);
+                if (state.hasWaypoint())
+                    ObjectiveGuidance.waypointHint(graphics, state.target(), 18, 73, WARNING);
                 return;
             }
-            if (!client.level.dimension().identifier().toString().equals("nimbus_nova:return_window")) return;
+            if (!client.level.dimension().equals(ShipMap.DIMENSION)) return;
 
             final int panelWidth = Math.min(324, graphics.guiWidth() - 16);
             NovaRenderer.rect(graphics, 8, 8, panelWidth, 34, 7, BACKGROUND);
-            NovaRenderer.text(graphics, "Return Window / " + label(state.role().isEmpty() ? "Choose a role" : state.role()), 18, 14, 10, ACCENT);
+            final String title = state.variant().equals("EXPLORATION") ? "Moon Expedition" : "Return Window";
+            NovaRenderer.text(graphics, title + " / " + label(state.role().isEmpty() ? "Choose a role" : state.role()), 18, 14, 10, ACCENT);
             final String resource = telemetry(state);
             NovaRenderer.text(graphics, resource, 18, 29, 8, MUTED);
             final String status = state.phase().equals("READY") ? "PREPARE" : state.phase().equals("ACTIVE")
@@ -72,15 +75,12 @@ public final class ShipClient implements ShipPalette {
             NovaRenderer.rect(graphics, 8, 46, panelWidth, 72, 7, BACKGROUND);
             NovaRenderer.text(graphics, state.title(), 18, 54, 11, TEXT);
             NovaRenderer.wrap(graphics, state.instruction(), 18, 72, panelWidth - 20, 9, 2, TEXT);
-            final double distance = client.player.position().distanceTo(Vec3.atCenterOf(state.target()));
-            final int vertical = state.target().getY() - client.player.blockPosition().getY();
-            final String deck = vertical > 2 ? " / deck above" : vertical < -2 ? " / deck below" : "";
-            final double deltaX = state.target().getX() + 0.5 - client.player.getX(), deltaZ = state.target().getZ() + 0.5 - client.player.getZ();
-            final double turn = Mth.wrapDegrees(Math.toDegrees(Math.atan2(-deltaX, deltaZ)) - client.player.getYRot());
-            final String direction = Math.abs(turn) < 25 ? "Ahead" : Math.abs(turn) > 150 ? "Behind you" : turn < 0 ? "To your left" : "To your right";
-            final String hint = state.phase().equals("PAUSED") ? "J  Read the crew briefing"
-                    : direction + " / " + (int) Math.ceil(distance) + " blocks" + deck + " / J tablet";
-            NovaRenderer.text(graphics, hint, 18, 102, 8, ACCENT);
+            if (!state.hasWaypoint()) {
+                NovaRenderer.text(graphics, state.phase().equals("PAUSED") ? "J  Read the crew briefing" : "J  Open crew tablet", 18, 102, 8, ACCENT);
+                return;
+            }
+
+            ObjectiveGuidance.waypointHint(graphics, state.target(), 18, 102, WARNING);
         });
     }
 

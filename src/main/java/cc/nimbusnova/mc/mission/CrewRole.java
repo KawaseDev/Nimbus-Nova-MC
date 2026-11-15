@@ -21,4 +21,9 @@ public enum CrewRole {
     public boolean canControl(final MissionState.Equipment equipment) {
         return equipment == MissionState.Equipment.OXYGEN ? this == LIFE_SUPPORT : this == POWER;
     }
+
+    public boolean canChoose(final MissionState.Phase phase, final boolean operator) {
+        return phase == MissionState.Phase.READY || phase == MissionState.Phase.PAUSED && operator
+                || phase == MissionState.Phase.ACTIVE && this == OBSERVER;
+    }
 }

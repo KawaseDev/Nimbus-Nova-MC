@@ -5,8 +5,10 @@ import cc.nimbusnova.mc.client.ship.ShipClient;
 import cc.nimbusnova.mc.world.ship.ShipMap;
 import cc.nimbusnova.mc.client.airlock.EntranceAirlockClient;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
+import cc.nimbusnova.mc.client.scenario.ScenarioClient;
 import cc.nimbusnova.mc.mission.MissionProgressPayload;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
+import cc.nimbusnova.mc.world.moon.LunarSurface;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
@@ -70,7 +72,7 @@ public final class HologramGuidance {
             if (unavailable(client) || client.player == null || client.level == null || ++particleTick % 4 != 0 || client.options.particles().get() == ParticleStatus.MINIMAL) return;
 
             final MissionProgressPayload objective = objective(client);
-            if (objective == null || !hasWorldTarget(objective)) return;
+            if (objective == null || !objective.hasWorldTarget()) return;
 
             final Vec3 target = new Vec3(objective.targetX() + 0.5, objective.targetY() + 0.15, objective.targetZ() + 0.5);
             if (client.player.distanceToSqr(target) > 48 * 48) return;
@@ -87,29 +89,25 @@ public final class HologramGuidance {
     }
 
     private static boolean unavailable(final Minecraft client) {
-        return client.level == null || client.player == null || client.gui.screen() != null || client.gui.hud.isHidden()
-                || !client.level.dimension().equals(MarsTrainingMap.DIMENSION) && !client.level.dimension().equals(ShipMap.DIMENSION)
-                || client.level.dimension().equals(MarsTrainingMap.DIMENSION)
-                && EntranceAirlockClient.scan() != null && EntranceAirlockClient.scan().visible();
+        if (client.level == null || client.player == null || client.gui.screen() != null || client.gui.hud.isHidden()) return true;
+
+        final var dimension = client.level.dimension();
+        if (dimension.equals(MarsTrainingMap.DIMENSION))
+            return EntranceAirlockClient.scan() != null && EntranceAirlockClient.scan().visible();
+        return !dimension.equals(ShipMap.DIMENSION) && !dimension.equals(LunarSurface.DIMENSION)
+                && !dimension.identifier().toString().startsWith("nimbus_nova:scenario_");
     }
 
     private static @Nullable MissionProgressPayload objective(final Minecraft client) {
-        if (client.level != null && client.level.dimension().equals(ShipMap.DIMENSION)) {
+        if (client.level == null) return null;
+        final var dimension = client.level.dimension();
+        if (dimension.equals(ShipMap.DIMENSION) || dimension.equals(LunarSurface.DIMENSION)) {
             final var ship = ShipClient.state();
-            if (ship == null) return null;
-            final String stage = ship.phase().equals("PAUSED") ? "PAUSED"
-                    : ship.phase().equals("ACTIVE") || ship.phase().equals("READY") ? "SHIP" : "COMPLETE";
-            return new MissionProgressPayload(stage, ship.title(), ship.instruction(), "Right-click this station",
+            if (ship == null || !ship.hasWaypoint()) return null;
+            return new MissionProgressPayload("SHIP", ship.title(), ship.instruction(), "Follow the HUD instructions",
                     ship.target().getX(), ship.target().getY(), ship.target().getZ(), 0, 0, 0, ship.feedback(), false);
         }
-        return GuidedMissionClient.progress();
-    }
-
-    private static boolean hasWorldTarget(final MissionProgressPayload objective) {
-        return switch (objective.stage()) {
-            case "ARRIVAL", "ROLE", "TEAM", "PAUSED", "COMPLETE", "SHELTER_SAFE" -> false;
-            default -> true;
-        };
+        return dimension.equals(MarsTrainingMap.DIMENSION) ? GuidedMissionClient.progress() : ScenarioClient.waypoint();
     }
 
     private static void render(final GuiGraphicsExtractor graphics, final DeltaTracker deltaTracker) {
@@ -122,18 +120,20 @@ public final class HologramGuidance {
         final double time = client.level.getGameTime() + deltaTracker.getGameTimeDeltaPartialTick(false);
         final float motion = client.options.screenEffectScale().get().floatValue();
         final MissionProgressPayload objective = objective(client);
+        final boolean ship = client.level.dimension().equals(ShipMap.DIMENSION);
+        final boolean mars = client.level.dimension().equals(MarsTrainingMap.DIMENSION);
+        final List<Anchor> anchors = ship ? SHIP_ANCHORS : mars ? ANCHORS : List.of();
         final List<LabelBounds> occupied = new ArrayList<>();
         Anchor active = null;
-        if (objective != null && hasWorldTarget(objective)) {
-            final Vec3 point = new Vec3(objective.targetX() + 0.5, objective.targetY() + 1.4, objective.targetZ() + 0.5);
-            active = (client.level.dimension().equals(ShipMap.DIMENSION) ? SHIP_ANCHORS : ANCHORS).stream().min(Comparator.comparingDouble(anchor -> anchor.position().distanceToSqr(point)))
-                    .filter(anchor -> anchor.position().distanceToSqr(point) < 40).orElse(null);
-            final Anchor marker = active == null ? new Anchor(objective.title(), point.x, point.y, point.z) : active;
+        if (objective != null && objective.hasWorldTarget()) {
+            final Vec3 point = new Vec3(objective.targetX() + 0.5, objective.targetY() + (ship ? 1.5 : 1.4), objective.targetZ() + 0.5);
+            active = anchors.stream().min(Comparator.comparingDouble(anchor -> anchor.position().distanceToSqr(point)))
+                    .filter(anchor -> anchor.position().distanceToSqr(point) < (ship ? 0.01 : 40)).orElse(null);
+            final Anchor marker = active == null || ship ? new Anchor(objective.title(), point.x, point.y, point.z) : active;
             draw(graphics, viewProjection, eye, marker, true, objective.actionHint(), time, motion, occupied);
         }
 
         final Anchor activeAnchor = active;
-        final List<Anchor> anchors = client.level.dimension().equals(ShipMap.DIMENSION) ? SHIP_ANCHORS : ANCHORS;
         anchors.stream().filter(anchor -> anchor != activeAnchor && anchor.position().distanceToSqr(eye) < 20 * 20)
                 .sorted(Comparator.comparingDouble(anchor -> anchor.position().distanceToSqr(eye))).limit(3)
                 .forEach(anchor -> draw(graphics, viewProjection, eye, anchor, false, "", time, motion, occupied));
@@ -170,7 +170,8 @@ public final class HologramGuidance {
             }
         }
 
-        final String detail = active ? occluded ? "Follow the route to this marker" : distance <= 6 ? action : (int) Math.ceil(distance) + " blocks away" : "";
+        final String detail = active ? occluded ? "Behind cover / " + (int) Math.ceil(distance) + " blocks"
+                : distance <= 6 ? action : (int) Math.ceil(distance) + " blocks away" : "";
         final float fontSize = active ? 10 : 8.5F;
         final float width = Math.min(graphics.guiWidth() - 24, Math.max(NovaRenderer.width(anchor.name, fontSize), NovaRenderer.width(detail, 8)) + 20);
         final float height = active ? 34 : 22;

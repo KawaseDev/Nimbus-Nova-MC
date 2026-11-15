@@ -15,6 +15,14 @@ public record ShipPayload(String phase, String stage, String role, String varian
     public static final Type<ShipPayload> TYPE = new Type<>(Identifier.parse("nimbus_nova:ship_state"));
     public static final StreamCodec<RegistryFriendlyByteBuf, ShipPayload> CODEC = CustomPacketPayload.codec(ShipPayload::write, ShipPayload::new);
 
+    public boolean hasWaypoint() {
+        return !target.equals(BlockPos.ZERO) && (phase.equals("READY") || phase.equals("ACTIVE"));
+    }
+
+    public boolean canChooseRole() {
+        return phase.equals("READY") || phase.equals("ACTIVE") && role.isEmpty();
+    }
+
     private ShipPayload(final RegistryFriendlyByteBuf buffer) {
         this(buffer.readUtf(32), buffer.readUtf(32), buffer.readUtf(32), buffer.readUtf(32), buffer.readVarInt(), buffer.readVarInt(),
                 buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(), buffer.readVarInt(),

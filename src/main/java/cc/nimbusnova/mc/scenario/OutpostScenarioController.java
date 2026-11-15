@@ -176,8 +176,8 @@ public final class OutpostScenarioController {
                 if (!player.level().dimension().equals(ScenarioMaps.dimension(controller.mission.id))) throw new IllegalStateException("Join the scenario before operating equipment.");
                 if (packet.action().equals("open")) { controller.open(player); return; }
                 if (packet.action().equals("role")) {
-                    if (controller.mission.phase != ScenarioMission.Phase.READY || packet.value() < 0 || packet.value() >= MoonMission.Role.values().length)
-                        throw new IllegalStateException("Assign roles before launch.");
+                    if (!canChooseRole(player) || packet.value() < 0 || packet.value() >= MoonMission.Role.values().length)
+                        throw new IllegalStateException("Choose a role before launch or when joining an active mission without one.");
                     final MoonMission.Role role = MoonMission.Role.values()[packet.value()];
                     if (controller.roles.containsValue(role) && controller.roles.get(player.getUUID()) != role) throw new IllegalStateException("This crew role is already occupied.");
                     controller.roles.put(player.getUUID(), role);
@@ -407,6 +407,9 @@ public final class OutpostScenarioController {
         final MoonMission.Role role = roles.get(player.getUUID());
         if (role == null) return ScenarioMaps.station(3);
         if (mission.id.equals("shelter")) {
+            if (role == MoonMission.Role.POWER && (mission.observation || mission.elapsed >= 90)
+                    || role == MoonMission.Role.SUPPLIES && issued)
+                return new BlockPos(0, 65, -10);
             if (role == MoonMission.Role.MAINTENANCE) {
                 for (final BlockPos slot : ScenarioMaps.shieldSlots())
                     if (!player.level().getBlockState(slot).is(ScenarioContent.SHIELD)) return slot;
@@ -425,15 +428,17 @@ public final class OutpostScenarioController {
     private String roleObjective(final MoonMission.Role role) {
         if (role == null) return "Choose a crew role on the tablet. " + mission.objective();
         if (mission.id.equals("shelter")) return switch (role) {
-            case POWER -> mission.observation ? "Live radiation data secured. Return to the covered shelter." : mission.elapsed < 45
+            case POWER -> mission.observation ? "Live radiation data secured. Return to the covered shelter."
+                    : mission.elapsed >= 90 ? "The live scan window has closed. Return to the covered shelter." : mission.elapsed < 45
                     ? "Survey the three bearings before launch; during seconds 45-90 make a three-second live outside scan, then return." : "Live event: remain by the sensor for three seconds to gather valuable data, then return before exposure reaches 100.";
             case LIFE_SUPPORT -> "Set breathing-loop flow to the crew demand of two units. Monitor air and the power cost of extra flow.";
-            case SUPPLIES -> "Collect shield stores at this locker and hand the three modules to maintenance. Then enter the covered shelter.";
+            case SUPPLIES -> issued ? "Share the shield modules with maintenance, then enter the covered shelter."
+                    : "Collect the three shield modules and give them to maintenance.";
             case MAINTENANCE -> "Take the modules from supplies and place them into the three marked shield slots. Enter the sheltered room behind them.";
             case PILOT -> "Transmit SOS before rescue. The Earth acknowledgement takes five active seconds; protect the crew while waiting.";
         };
         if (mission.id.equals("long_night")) return switch (role) {
-            case POWER -> "Keep heat and air powered. Supply the lab for30 observation seconds, then shed it; power the beacon only as needed.";
+            case POWER -> "Keep heat and air powered. Supply the lab for 30 observation seconds, then shed it; power the beacon only as needed.";
             case LIFE_SUPPORT -> "Set air-loop flow to at least two units before launch. More flow draws extra battery power.";
             case SUPPLIES -> "Collect the two wire kits and physically share one with maintenance. Watch the remaining repair stores.";
             case MAINTENANCE -> mission.cableBroken ? "Use a real wire kit on the failed power junction." : "Arm the laboratory recorder. Coordinate 30 powered observation seconds with the power specialist.";
@@ -448,6 +453,24 @@ public final class OutpostScenarioController {
         };
     }
 
+    private String waypointName(final BlockPos point) {
+        if (point.equals(PIPE)) return "Feed pipe gap";
+        if (ScenarioMaps.shieldSlots().contains(point)) return "Shield module slot";
+        if (point.equals(ScenarioMaps.station(3))) return "Supply locker";
+        if (point.equals(ScenarioMaps.station(0))) return switch (mission.id) {
+            case "shelter" -> "Radiation survey station";
+            case "long_night" -> mission.cableBroken ? "Failed power junction" : "Power distribution panel";
+            default -> "Pump and grow lights";
+        };
+        if (point.equals(ScenarioMaps.station(1))) return switch (mission.id) {
+            case "shelter" -> "Breathing loop";
+            case "long_night" -> "Air loop and lab recorder";
+            default -> "Irrigation controls";
+        };
+        if (point.equals(ScenarioMaps.station(2))) return mission.id.equals("greenhouse") ? "Extraction console" : "SOS beacon";
+        return "Covered shelter";
+    }
+
     public JsonObject playerState(final ServerPlayer player) {
         final JsonObject data = teacherState();
         if (data == null) return new JsonObject();
@@ -455,11 +478,19 @@ public final class OutpostScenarioController {
             final MoonMission.Role role = roles.get(player.getUUID());
             final BlockPos point = roleTarget(player);
             data.addProperty("roleObjective", roleObjective(role));
-            data.addProperty("targetX", point.getX()); data.addProperty("targetZ", point.getZ());
+            data.addProperty("targetX", point.getX()); data.addProperty("targetY", point.getY()); data.addProperty("targetZ", point.getZ());
+            data.addProperty("targetTitle", role != null && (mission.phase == ScenarioMission.Phase.READY || mission.phase == ScenarioMission.Phase.ACTIVE)
+                    ? waypointName(point) : "");
             data.addProperty("station", opened.getOrDefault(player.getUUID(), -1));
             data.addProperty("operator", operator(player)); data.addProperty("role", role == null ? "" : role.name());
+            data.addProperty("canChooseRole", canChooseRole(player));
             return data;
         }
+    }
+
+    private boolean canChooseRole(final ServerPlayer player) {
+        return mission.phase == ScenarioMission.Phase.READY
+                || mission.phase == ScenarioMission.Phase.ACTIVE && !roles.containsKey(player.getUUID());
     }
 
     private void send(final ServerPlayer player, final boolean open) {

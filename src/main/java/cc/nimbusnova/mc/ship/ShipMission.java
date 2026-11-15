@@ -2,6 +2,7 @@ package cc.nimbusnova.mc.ship;
 
 import cc.nimbusnova.mc.moon.MoonMission;
 import cc.nimbusnova.mc.moon.LunarLanding;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -748,16 +749,38 @@ public final class ShipMission {
         return axis < 0 || axis > 2 ? 0 : board >> axis * 3 & 7;
     }
 
-    public ShipTask objectiveTask(final MoonMission.Role role) {
-        if (role == null) return ShipTask.MEETING;
+    public @Nullable ShipTask objectiveTask(final MoonMission.@Nullable Role role, final boolean operator) {
+        if (role == null || phase == Phase.PAUSED || phase.ended()) return null;
+        if (phase == Phase.READY) {
+            if (role == MoonMission.Role.POWER && !completed(ShipTask.ENGINE)) return ShipTask.ENGINE;
+            if (role == MoonMission.Role.SUPPLIES && !completed(ShipTask.STORAGE)) return ShipTask.STORAGE;
+            if (operator && !completed(ShipTask.ENGINE)) return ShipTask.ENGINE;
+            if (operator && !completed(ShipTask.STORAGE)) return ShipTask.STORAGE;
+            return null;
+        }
+
         final ShipTask owned = switch (role) {
             case POWER -> ShipTask.ENGINE;
             case LIFE_SUPPORT -> moon.stage() == MoonMission.Stage.FILTER || moon.stage() == MoonMission.Stage.SURFACE ? ShipTask.MEDICAL : ShipTask.PLANTS;
-            case SUPPLIES -> moon.stage() == MoonMission.Stage.PREPARATION ? ShipTask.STORAGE : ShipTask.GALLEY;
+            case SUPPLIES -> ShipTask.GALLEY;
             case MAINTENANCE -> activeTask(ShipTask.COMMS) ? ShipTask.COMMS : ShipTask.SCIENCE;
             case PILOT -> ShipTask.PILOT;
         };
-        return activeTask(owned) && !completed(owned) ? owned : ShipTask.MEETING;
+        if (activeTask(owned) && !completed(owned)) return owned;
+        if (!operator) return null;
+
+        final List<ShipTask> required = switch (moon.stage()) {
+            case DOCKING, NAVIGATION, DESCENT -> List.of(ShipTask.PILOT, ShipTask.COMMS);
+            case ORBIT -> List.of(ShipTask.ENGINE, ShipTask.PILOT);
+            case EMERGENCY -> List.of(ShipTask.ENGINE);
+            case FILTER -> List.of(ShipTask.MEDICAL);
+            case RESTART -> List.of(ShipTask.ENGINE, ShipTask.GALLEY);
+            case RETURN -> List.of(ShipTask.ENGINE, ShipTask.PILOT, ShipTask.COMMS);
+            default -> List.of();
+        };
+        for (final ShipTask task : required)
+            if (activeTask(task) && !completed(task)) return task;
+        return null;
     }
 
     public String instruction() {

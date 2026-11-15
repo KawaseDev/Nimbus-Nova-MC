@@ -30,6 +30,7 @@ public final class OutpostScenarioChecks {
         world.getServer().runOnServer(server -> server.getPlayerList().op(new NameAndId(world.getConnection().getServerPlayer().getGameProfile())));
         world.getServer().runCommand("gamemode survival @p");
         select(context, world, "shelter");
+        verifyWaypoint(context, "POWER", "Radiation survey station", ScenarioMaps.station(0));
         station(context, world, "shelter", 3);
         station(context, world, "shelter", 0);
         for (int bearing = 0; bearing < 3; bearing++) act(context, 0, bearing);
@@ -56,13 +57,14 @@ public final class OutpostScenarioChecks {
         act(context, 0, 3);
         final int liveStart = world.getServer().computeOnServer(server -> OutpostScenarioController.get(server).mission().elapsed);
         advance(world, liveStart + 3);
-        context.waitFor(client -> ScenarioClient.state() != null && ScenarioClient.state().get("observation").getAsBoolean());
+        context.waitFor(_ -> ScenarioClient.waypoint() != null && ScenarioClient.waypoint().title().equals("Covered shelter"));
         GuidedMissionChecks.capture(context, "scenario-shelter-live-event-scan");
         context.setScreen(() -> null);
         world.getServer().runCommand("execute in nimbus_nova:scenario_shelter run tp @p 0.5 65 -10.5 0 -5");
         advance(world, 150);
         success(context, world, "shelter");
         select(context, world, "long_night");
+        verifyWaypoint(context, "MAINTENANCE", "Air loop and lab recorder", ScenarioMaps.station(1));
         station(context, world, "long_night", 3);
         station(context, world, "long_night", 1);
         act(context, 1, 0); act(context, 1, 2); act(context, 1, 2);
@@ -71,6 +73,7 @@ public final class OutpostScenarioChecks {
         station(context, world, "long_night", 0);
         act(context, 0, 2);
         advance(world, 45);
+        context.waitFor(_ -> ScenarioClient.waypoint() != null && ScenarioClient.waypoint().title().equals("Failed power junction"));
         context.setScreen(() -> null);
         moveToStation(world, "long_night", 0);
         world.getServer().runOnServer(server -> {
@@ -101,6 +104,11 @@ public final class OutpostScenarioChecks {
         station(context, world, "greenhouse", 2);
         act(context, 2, 3);
         world.getServer().runOnServer(server -> OutpostScenarioController.get(server).action(server, "start"));
+        context.runOnClient(_ -> ScenarioClient.open());
+        context.waitFor(_ -> ScenarioClient.state() != null && ScenarioClient.state().get("phase").getAsString().equals("ACTIVE")
+                && ScenarioClient.state().get("station").getAsInt() < 0);
+        context.waitForScreen(ScenarioScreen.class);
+        verifyWaypoint(context, "MAINTENANCE", "Pump and grow lights", ScenarioMaps.station(0));
         station(context, world, "greenhouse", 1);
         for (int second = 0; second < 150; second++) {
             final int current = world.getServer().computeOnServer(server -> OutpostScenarioController.get(server).mission().elapsed);
@@ -121,6 +129,7 @@ public final class OutpostScenarioChecks {
             advance(world, current + 1);
             context.waitFor(client -> ScenarioClient.state() != null && ScenarioClient.state().get("elapsed").getAsInt() >= current + 1);
             if (ScenarioClient.state().get("pipeBroken").getAsBoolean()) {
+                context.waitFor(_ -> ScenarioClient.waypoint() != null && ScenarioClient.waypoint().title().equals("Feed pipe gap"));
                 context.setScreen(() -> null);
                 world.getServer().runCommand("execute in nimbus_nova:scenario_greenhouse run tp @p -4.5 65 1.5 0 15");
                 world.getServer().runOnServer(server -> {
@@ -160,6 +169,18 @@ public final class OutpostScenarioChecks {
         success(context, world, "greenhouse");
         System.out.println("Outpost scenario runtime checks passed: shelter construction/event, polar power repair/beacon and greenhouse irrigation/physical pipe repair.");
     }
+
+    private static void verifyWaypoint(final ClientGameTestContext context, final String role, final String title, final BlockPos target) {
+        context.clickScreenButton(role);
+        context.waitFor(_ -> {
+            final var waypoint = ScenarioClient.waypoint();
+            return waypoint != null && waypoint.title().equals(title) && waypoint.targetX() == target.getX()
+                    && waypoint.targetY() == target.getY() && waypoint.targetZ() == target.getZ();
+        });
+        context.setScreen(() -> null);
+        GuidedMissionChecks.capture(context, "waypoint-" + ScenarioClient.state().get("id").getAsString());
+    }
+
     private static void select(final ClientGameTestContext context, final TestSingleplayerContext world, final String id) {
         context.setScreen(() -> null);
         world.getServer().runOnServer(server -> OutpostScenarioController.get(server).select(server, id));

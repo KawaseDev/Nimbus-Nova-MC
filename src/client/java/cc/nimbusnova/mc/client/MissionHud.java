@@ -96,6 +96,7 @@ final class MissionHud implements MissionPalette {
         NovaRenderer.text(graphics, badge, x + width - 10 - NovaRenderer.width(badge, 8), y + 10, 8, accent);
         NovaRenderer.wrap(graphics, instruction, x + 12, y + 29, width - 24, 9.5F, 2, TEXT);
         ObjectiveGuidance.arrow(graphics, objective, x + 17, y + 61, accent);
-        NovaRenderer.wrap(graphics, action, x + (objective == null ? 12 : 31), y + 55, width - (objective == null ? 24 : 43), 9, 1, accent);
+        final int hintMargin = objective != null && objective.hasWorldTarget() ? 31 : 12;
+        NovaRenderer.wrap(graphics, action, x + hintMargin, y + 55, width - hintMargin - 12, 9, 1, accent);
     }
 }

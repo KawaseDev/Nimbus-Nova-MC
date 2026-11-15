@@ -50,12 +50,14 @@ public final class ScenarioScreen extends NovaScreen {
         final int station = state.get("station").getAsInt();
         final String phase = state.get("phase").getAsString(), id = state.get("id").getAsString();
         if (station < 0 || station == 3) {
-            if (phase.equals("READY")) {
+            if (phase.equals("READY") || state.has("canChooseRole") && state.get("canChooseRole").getAsBoolean()) {
                 final int buttonWidth = (panelWidth - 38) / 3;
                 for (final MoonMission.Role role : MoonMission.Role.values()) {
                     final int index = role.ordinal();
-                    addRenderableWidget(new MissionButton(left + 14 + index % 3 * (buttonWidth + 5), top + 86 + index / 3 * 24, buttonWidth, 21,
-                            role.name().replace('_', ' '), () -> send("role", -1, index)));
+                    final MissionButton button = addRenderableWidget(new MissionButton(left + 14 + index % 3 * (buttonWidth + 5), top + 86 + index / 3 * 24,
+                            buttonWidth, 21, role.name().replace('_', ' '), () -> send("role", -1, index)));
+                    button.active = !pending;
+                    button.selected = role.name().equals(state.get("role").getAsString());
                 }
             }
             if (state.get("operator").getAsBoolean()) {

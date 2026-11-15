@@ -130,14 +130,14 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
         }
 
         if (tablet || ended()) {
-            if (state.phase().equals("READY")) {
+            if (state.canChooseRole()) {
                 final int buttonWidth = (panelWidth - 38) / 3;
                 for (final MoonMission.Role role : MoonMission.Role.values()) {
                     final int index = role.ordinal();
                     addRenderableWidget(new MissionButton(left + 14 + index % 3 * (buttonWidth + 5), top + 80 + index / 3 * 25,
                             buttonWidth, 21, ShipClient.label(role.name()), () -> command("role", role.ordinal()))).active = !pending;
                 }
-                if (!state.role().isEmpty())
+                if (state.phase().equals("READY") && !state.role().isEmpty())
                     addRenderableWidget(new MissionButton(left + 14 + 2 * (buttonWidth + 5), top + 105, buttonWidth, 21,
                             "Report preflight check", () -> command("preflight", 0))).active = !pending;
             }
@@ -336,7 +336,7 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
                 case "MAINTENANCE" -> "Check spare parts and the ship's systems.";
                 case "PILOT" -> "Check the flight plan and maneuver fuel.";
                 default -> "Choose a role and report your preflight check.";
-            } : state.title() + ". " + state.instruction();
+            } : state.canChooseRole() ? "Choose a crew role to receive your objective." : state.title() + ". " + state.instruction();
             NovaRenderer.wrap(graphics, briefing, left + 14, top + 55, panelWidth - 28, 10,
                     state.phase().equals("READY") ? 2 : Math.max(3, (panelHeight - 129) / 12), TEXT);
         } else if (state.complete() && state.stage().equals("SURFACE") && state.task().equals("SCIENCE")) {

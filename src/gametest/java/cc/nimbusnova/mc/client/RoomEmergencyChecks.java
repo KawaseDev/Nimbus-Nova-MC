@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.content.RepairContent;
+import cc.nimbusnova.mc.client.ship.ShipClient;
 import cc.nimbusnova.mc.ship.rooms.ShipRooms;
 import cc.nimbusnova.mc.ship.rooms.RoomActionPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -27,7 +28,7 @@ final class RoomEmergencyChecks {
         /* w */
     }
 
-    static void collect(final ClientGameTestContext context, final TestSingleplayerContext world) {
+    private static void collect(final ClientGameTestContext context, final TestSingleplayerContext world) {
         context.setScreen(() -> null);
         world.getServer().runCommand("execute in nimbus_nova:return_window run tp @p 9 76 14 180 15");
         world.getServer().runOnServer(server -> {
@@ -58,6 +59,11 @@ final class RoomEmergencyChecks {
     }
 
     static void repairPower(final ClientGameTestContext context, final TestSingleplayerContext world) {
+        context.waitFor(_ -> ShipClient.state() != null && ShipClient.state().title().equals("Repair stores")
+                && ShipClient.state().target().equals(ShipMap.target(ShipTask.STORAGE, ShipMap.SPAWN)));
+        collect(context, world);
+        context.waitFor(_ -> ShipClient.state() != null && ShipClient.state().title().equals("Engineering cable")
+                && ShipClient.state().target().equals(ShipRooms.wirePosition()));
         context.setScreen(() -> null);
         world.getServer().runCommand("execute in nimbus_nova:return_window run tp @p -11 81 -38 -90 0");
         world.getServer().runOnServer(server -> {
@@ -83,6 +89,8 @@ final class RoomEmergencyChecks {
     }
 
     static void patchHull(final ClientGameTestContext context, final TestSingleplayerContext world) {
+        context.waitFor(_ -> ShipClient.state() != null && ShipClient.state().title().equals("Science hull breach")
+                && ShipClient.state().target().equals(ShipRooms.breachPosition()));
         context.setScreen(() -> null);
         world.getServer().runCommand("execute in nimbus_nova:return_window run tp @p 10 76 -12 -90 0");
         context.waitFor(client -> sciencePressure() <= 70);

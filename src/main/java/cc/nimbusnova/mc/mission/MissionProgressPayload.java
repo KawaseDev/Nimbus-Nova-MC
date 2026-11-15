@@ -13,6 +13,13 @@ public record MissionProgressPayload(String stage, String title, String instruct
     public static final StreamCodec<RegistryFriendlyByteBuf, MissionProgressPayload> CODEC =
             CustomPacketPayload.codec(MissionProgressPayload::write, MissionProgressPayload::new);
 
+    public boolean hasWorldTarget() {
+        return switch (stage) {
+            case "ARRIVAL", "ROLE", "TEAM", "PAUSED", "COMPLETE", "SHELTER_SAFE" -> false;
+            default -> true;
+        };
+    }
+
     private MissionProgressPayload(final RegistryFriendlyByteBuf buffer) {
         this(buffer.readUtf(32), buffer.readUtf(96), buffer.readUtf(512), buffer.readUtf(128),
                 buffer.readInt(), buffer.readInt(), buffer.readInt(), buffer.readVarInt(), buffer.readVarInt(),

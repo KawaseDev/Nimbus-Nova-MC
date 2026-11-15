@@ -94,6 +94,35 @@ public final class ShipRooms {
         return WIRE;
     }
 
+    public static @Nullable RepairWaypoint repairWaypoint(final ServerPlayer player, final MoonMission.@Nullable Role role) {
+        if (!player.level().dimension().equals(ShipMap.DIMENSION)) return null;
+
+        final Session session = SESSIONS.get(player.level().getServer());
+        if (session == null) return null;
+        final boolean power = session.state.fault(Room.ENGINEERING) == Fault.POWER;
+        final boolean breach = session.state.fault(Room.SCIENCE) == Fault.BREACH;
+        if (!power && !breach || role == null && !operator(player)) return null;
+
+        final boolean canRepairBoth = role == MoonMission.Role.MAINTENANCE || operator(player);
+        final boolean fixPower = power && (canRepairBoth || role == MoonMission.Role.POWER);
+        final boolean fixBreach = breach && (canRepairBoth || role == MoonMission.Role.LIFE_SUPPORT);
+        final boolean hasKit = fixPower && player.getInventory().contains(stack -> stack.is(RepairContent.WIRE_KIT));
+        final boolean hasPlate = fixBreach && player.getInventory().contains(stack -> stack.is(RepairContent.PATCH_PLATE.asItem()));
+        if (!hasKit && !hasPlate && !session.suppliesClaimed && (fixPower || fixBreach || role == MoonMission.Role.SUPPLIES))
+            return new RepairWaypoint(ShipMap.target(ShipTask.STORAGE, player.blockPosition()), "Repair stores", "Shift-right-click the storage locker for wire kits and hull plates.");
+        if (hasKit || fixPower && !hasPlate)
+            return new RepairWaypoint(WIRE, "Engineering cable", hasKit ? "Hold a wire kit and right-click the marked engine to restore power."
+                    : "Get a wire kit from the crew member who collected repair stores, then fix the marked engine.");
+        if (fixBreach)
+            return new RepairWaypoint(BREACH, "Science hull breach", hasPlate ? "Hold a hull plate and place it in the marked hole. Crank the door if needed."
+                    : "Get a hull plate from the crew member who collected repair stores, then patch the marked hole.");
+        return null;
+    }
+
+    public record RepairWaypoint(BlockPos position, String title, String instruction) {
+        /* w */
+    }
+
     public static @Nullable Room roomAt(final BlockPos position) {
         for (final var entry : BOUNDS.entrySet())
             if (entry.getValue().contains(Vec3.atCenterOf(position))) return entry.getKey();
@@ -360,8 +389,14 @@ public final class ShipRooms {
         data.addProperty("currentRoom", current == null ? "CORRIDOR" : current.name());
         data.addProperty("operator", operator(player));
         data.addProperty("alert", status(server));
-        data.addProperty("instruction", hasUnresolved(server) ? "Shift-right-click storage for repair stores. Wire kit: engineering " + WIRE.toShortString()
-                + ". Fit a plate into the science hull hole " + BREACH.toShortString() + "." : "Room doors can be closed, opened or returned to automatic control.");
+        final ShipRoomState roomsState = state(server);
+        final boolean powerFault = roomsState.fault(Room.ENGINEERING) == Fault.POWER;
+        final boolean hullBreach = roomsState.fault(Room.SCIENCE) == Fault.BREACH;
+        data.addProperty("instruction", powerFault && hullBreach ? "Power or maintenance repairs the cable. Life support or maintenance patches the hull."
+                : powerFault ? "Power or maintenance can replace the engineering cable with a wire kit."
+                : hullBreach ? "Life support or maintenance can seal the science hull with a plate."
+                : hasUnresolved(server) ? "Wait for pressure to recover before opening the doors."
+                : "Room doors can be closed, opened or returned to automatic control.");
         final JsonArray rooms = new JsonArray();
         for (final Room room : Room.values()) {
             final JsonObject item = new JsonObject();
