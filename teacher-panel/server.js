@@ -192,7 +192,7 @@ function createServer(options = {}) {
       }
       return;
     }
-    if (request.url === '/api/kick') {
+    if (request.url === '/api/kick' || request.url === '/api/operator') {
       if (!accounts.current(request)) { response.writeHead(401).end(); return; }
       if (request.method !== 'POST' || request.headers.origin !== `http://${request.headers.host}` ||
           !/^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] || '')) {
@@ -207,11 +207,13 @@ function createServer(options = {}) {
       if (!data || typeof data.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.id)) {
         response.writeHead(400).end(); return;
       }
+      if (request.url === '/api/operator' && typeof data.operator !== 'boolean') { response.writeHead(400).end(); return; }
       const bridge = bridgeAddress(options.bridgeUrl);
       if (!bridge || !options.bridgeToken || options.bridgeToken.length < 32) { response.writeHead(503).end(); return; }
       try {
-        const result = await fetch(new URL('/kick', bridge), {
-          method: 'POST', headers: { Authorization: `Bearer ${options.bridgeToken}` }, body: data.id,
+        const operator = request.url === '/api/operator';
+        const result = await fetch(new URL(operator ? '/operator' : '/kick', bridge), {
+          method: 'POST', headers: { Authorization: `Bearer ${options.bridgeToken}` }, body: operator ? `${data.id} ${data.operator}` : data.id,
           signal: AbortSignal.timeout(4000), redirect: 'error'
         });
         response.writeHead(result.status === 204 ? 204 : result.status === 404 ? 404 : 503).end();
@@ -239,9 +241,9 @@ function createServer(options = {}) {
         });
         if (!result.ok) throw new Error('Bridge unavailable');
         const data = await result.json();
-        if (!Array.isArray(data.players) || data.players.some(player => !player || typeof player.name !== 'string' || typeof player.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(player.id))) throw new Error('Invalid roster');
+        if (!Array.isArray(data.players) || data.players.some(player => !player || typeof player.name !== 'string' || typeof player.operator !== 'boolean' || typeof player.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(player.id))) throw new Error('Invalid roster');
         response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        response.end(JSON.stringify({ players: data.players.map(player => ({ id: player.id, name: player.name })) }));
+        response.end(JSON.stringify({ players: data.players.map(player => ({ id: player.id, name: player.name, operator: player.operator })) }));
       } catch { response.writeHead(503).end(); }
       return;
     }

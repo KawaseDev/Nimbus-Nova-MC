@@ -15,6 +15,7 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.players.NameAndId;
 import net.minecraft.network.chat.Component;
 
 import java.io.IOException;
@@ -43,6 +44,14 @@ public final class TeacherBridge {
     private static final AtomicReference<String> worldStatus = new AtomicReference<>("idle");
     // shortcut: duplicate command IDs are remembered only until server restart; persist them with sessions.
     private static final Map<UUID, String> completed = new LinkedHashMap<>();
+
+    public static boolean setOperator(final MinecraftServer server, final UUID id, final boolean operator) {
+        final var player = server.getPlayerList().getPlayer(id);
+        if (player == null) return false;
+        final NameAndId identity = new NameAndId(player.getGameProfile());
+        if (operator) server.getPlayerList().op(identity); else server.getPlayerList().deop(identity);
+        return true;
+    }
 
     public static void register() {
         PayloadTypeRegistry.clientboundPlay().register(ViewRequestPayload.TYPE, ViewRequestPayload.CODEC);
@@ -93,6 +102,7 @@ public final class TeacherBridge {
                             JsonObject entry = new JsonObject();
                             entry.addProperty("id", player.getUUID().toString());
                             entry.addProperty("name", nicknames.getOrDefault(server, Map.of()).getOrDefault(player.getUUID(), player.getScoreboardName()));
+                            entry.addProperty("operator", server.getPlayerList().isOp(new NameAndId(player.getGameProfile())));
                             players.add(entry);
                         });
                         JsonObject result = new JsonObject();
@@ -106,6 +116,33 @@ public final class TeacherBridge {
                     exchange.getResponseBody().write(body);
                 } catch (Exception error) {
                     NimbusNovaMod.LOGGER.warn("Teacher roster request failed", error);
+                    try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
+                } finally { exchange.close(); }
+            });
+            bridge.createContext("/operator", exchange -> {
+                try {
+                    final String authorization = exchange.getRequestHeaders().getFirst("Authorization");
+                    if (!MessageDigest.isEqual(("Bearer " + token).getBytes(StandardCharsets.UTF_8),
+                            authorization == null ? new byte[0] : authorization.getBytes(StandardCharsets.UTF_8))) {
+                        exchange.sendResponseHeaders(401, -1); return;
+                    }
+                    if (!exchange.getRequestMethod().equals("POST") || !exchange.getRequestURI().getPath().equals("/operator")) {
+                        exchange.sendResponseHeaders(404, -1); return;
+                    }
+                    final String body = new String(exchange.getRequestBody().readNBytes(44), StandardCharsets.UTF_8);
+                    if (!body.matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12} (true|false)")) {
+                        exchange.sendResponseHeaders(400, -1); return;
+                    }
+                    final String[] parts = body.split(" ");
+                    final UUID id = UUID.fromString(parts[0]);
+                    final CompletableFuture<Boolean> result = new CompletableFuture<>();
+                    server.execute(() -> {
+                        try { result.complete(setOperator(server, id, Boolean.parseBoolean(parts[1]))); }
+                        catch (RuntimeException error) { result.completeExceptionally(error); }
+                    });
+                    exchange.sendResponseHeaders(result.get(3, TimeUnit.SECONDS) ? 204 : 404, -1);
+                } catch (Exception error) {
+                    NimbusNovaMod.LOGGER.warn("Teacher operator request failed", error);
                     try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
                 } finally { exchange.close(); }
             });

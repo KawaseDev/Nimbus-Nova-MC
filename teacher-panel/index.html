@@ -472,6 +472,19 @@
         view.textContent = 'View';
         view.setAttribute('aria-label', `View ${player.name}'s game`);
         view.addEventListener('click', () => openView(player));
+        const operator = document.createElement('button');
+        operator.textContent = player.operator ? 'Remove OP' : 'Make OP';
+        operator.setAttribute('aria-label', `${operator.textContent} ${player.name}`);
+        operator.addEventListener('click', async () => {
+          if (!player.operator && !confirm(`Make ${player.name} an operator? Operators can use server commands.`)) return;
+          operator.disabled = true;
+          try {
+            const result = await fetch('/api/operator', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: player.id, operator: !player.operator }) });
+            if (!result.ok) throw new Error();
+            document.getElementById('roster-error').textContent = '';
+            await refreshRoster();
+          } catch { operator.disabled = false; document.getElementById('roster-error').textContent = 'Could not change operator status.'; }
+        });
         const kick = document.createElement('button');
         kick.textContent = 'Kick';
         kick.setAttribute('aria-label', `Kick ${player.name}`);
@@ -483,7 +496,7 @@
             await refreshRoster();
           } catch { kick.disabled = false; document.getElementById('roster-error').textContent = 'Could not kick player.'; }
         });
-        actions.append(view, kick);
+        actions.append(view, operator, kick);
         row.append(name, actions);
         roster.appendChild(row);
       }

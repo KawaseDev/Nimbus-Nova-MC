@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.server;
 
 import cc.nimbusnova.mc.hub.MissionHub;
+import cc.nimbusnova.mc.bridge.TeacherBridge;
 import cc.nimbusnova.mc.learning.LearningChecks;
 import cc.nimbusnova.mc.content.ModContent;
 import cc.nimbusnova.mc.mission.MissionController;
@@ -84,6 +85,11 @@ public final class MissionServerGameTests {
         final ServerPlayer lifeSupport = context.makeMockServerPlayerInLevel();
         server.getPlayerList().deop(new NameAndId(engineer.getGameProfile()));
         server.getPlayerList().deop(new NameAndId(lifeSupport.getGameProfile()));
+        context.assertTrue(TeacherBridge.setOperator(server, engineer.getUUID(), true)
+                && server.getPlayerList().isOp(new NameAndId(engineer.getGameProfile())), "Teacher could not grant operator status");
+        context.assertTrue(TeacherBridge.setOperator(server, engineer.getUUID(), false)
+                && !server.getPlayerList().isOp(new NameAndId(engineer.getGameProfile())), "Teacher could not remove operator status");
+        context.assertFalse(TeacherBridge.setOperator(server, java.util.UUID.randomUUID(), true), "An offline player was granted operator status");
         context.assertFalse(engineer.getUUID().equals(lifeSupport.getUUID()), "Cooperative actors must have different identities");
         context.assertFalse(engineer.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)
                 || lifeSupport.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER), "Role checks require ordinary crew actors");
