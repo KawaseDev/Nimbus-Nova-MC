@@ -62,7 +62,7 @@
     </details>
     <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p><div class="actions"><button id="power" disabled>Start server</button><button id="restart" disabled>Restart</button><button id="update-server" disabled>Update server</button></div><p>Builds the current version and restarts the server. Worlds are kept.</p><p id="server-error" role="alert"></p></section>
     <section class="card" aria-labelledby="join-title"><h2 id="join-title">Student session</h2><p id="session-status" role="status">Checking…</p></section>
-    <section class="card" aria-labelledby="world-title"><h2 id="world-title">Mars outpost</h2><div class="actions"><button id="create-world" disabled>Create outpost</button><button id="update-world" disabled>Update outpost</button></div><p id="world-status" role="status">Server unavailable.</p></section>
+    <section class="card" aria-labelledby="world-title"><h2 id="world-title">World</h2><div class="actions"><button id="create-world" disabled>Create Mars outpost</button><button id="reinstall-world" disabled>Reinstall world</button></div><p>Reinstalling starts a fresh world and saves the current one as a backup.</p><p id="world-status" role="status">Server unavailable.</p></section>
     <section class="card wide" aria-labelledby="crew-title"><h2 id="crew-title">Player roster</h2><div class="empty" id="roster" role="status" aria-live="polite">Loading roster…</div><p id="roster-error" role="alert"></p></section>
     <section class="card wide" id="view-panel" hidden aria-labelledby="view-title"><h2 id="view-title">Student view</h2><p id="view-status" role="status">Waiting for view…</p><img class="view-image" id="view-image" alt="Student game view" hidden><div class="actions"><button id="view-close" type="button">Close view</button></div></section>
     <section class="card wide" aria-labelledby="message-title"><h2 id="message-title">Message crew</h2><form class="actions" id="message-form"><input id="message" aria-label="Message" maxlength="200" required><button type="submit">Send</button></form><p id="message-result" role="status"></p></section>
@@ -81,6 +81,7 @@
     document.getElementById('power').disabled = true;
     document.getElementById('restart').disabled = true;
     document.getElementById('update-server').disabled = true;
+    document.getElementById('reinstall-world').disabled = true;
     const error = document.getElementById('server-error');
     error.textContent = '';
     try {
@@ -95,6 +96,9 @@
   document.getElementById('power').addEventListener('click', event => serverCommand(event.currentTarget.dataset.action));
   document.getElementById('restart').addEventListener('click', () => serverCommand('restart'));
   document.getElementById('update-server').addEventListener('click', () => serverCommand('update'));
+  document.getElementById('reinstall-world').addEventListener('click', () => {
+    if (confirm('Reinstall the world? The server will restart with a fresh world. The current world will be saved as a backup.')) serverCommand('reinstall');
+  });
   async function refreshStatus() {
     const label = document.getElementById('status');
     const dot = document.getElementById('dot');
@@ -111,6 +115,7 @@
       power.disabled = serverAction || ['starting', 'stopping', 'updating', 'external'].includes(status.state);
       document.getElementById('restart').disabled = serverAction || status.state !== 'running';
       document.getElementById('update-server').disabled = serverAction || !['running', 'stopped'].includes(status.state);
+      document.getElementById('reinstall-world').disabled = serverAction || !['running', 'stopped'].includes(status.state);
       if (status.error) document.getElementById('server-error').textContent = status.error;
       dot.classList.toggle('online', status.reachable);
       document.getElementById('address').textContent = `${status.host}:${status.port}`;
@@ -120,6 +125,7 @@
       document.getElementById('power').disabled = true;
       document.getElementById('restart').disabled = true;
       document.getElementById('update-server').disabled = true;
+      document.getElementById('reinstall-world').disabled = true;
     }
   }
   async function refreshSession() {
@@ -373,7 +379,6 @@
   let worldBusy = false;
   async function refreshWorld() {
     const button = document.getElementById('create-world');
-    const update = document.getElementById('update-world');
     const label = document.getElementById('world-status');
     try {
       const response = await fetch('/api/world', { cache: 'no-store' });
@@ -381,23 +386,21 @@
       const { status } = await response.json();
       const labels = { idle: '', creating: 'Creating…', upgrading: 'Updating…', ready: 'Outpost ready.', failed: 'Outpost operation stopped. Check for an active mission or conflicting blocks in the server console.' };
       label.textContent = labels[status];
-      button.disabled = update.disabled = worldBusy || ['creating', 'upgrading'].includes(status);
-    } catch { button.disabled = update.disabled = true; label.textContent = 'Server unavailable.'; }
+      button.disabled = worldBusy || ['creating', 'upgrading'].includes(status);
+    } catch { button.disabled = true; label.textContent = 'Server unavailable.'; }
   }
-  async function worldAction(upgrade) {
+  async function worldAction() {
     if (worldBusy) return;
     worldBusy = true;
     document.getElementById('create-world').disabled = true;
-    document.getElementById('update-world').disabled = true;
     try {
-      const response = await fetch(upgrade ? '/api/world/upgrade' : '/api/world', { method: 'POST' });
+      const response = await fetch('/api/world', { method: 'POST' });
       if (!response.ok) throw new Error();
-      document.getElementById('world-status').textContent = upgrade ? 'Updating…' : 'Creating…';
+      document.getElementById('world-status').textContent = 'Creating…';
     } catch { document.getElementById('world-status').textContent = 'Could not start the outpost operation.'; }
     finally { worldBusy = false; await refreshWorld(); }
   }
-  document.getElementById('create-world').addEventListener('click', () => worldAction(false));
-  document.getElementById('update-world').addEventListener('click', () => worldAction(true));
+  document.getElementById('create-world').addEventListener('click', worldAction);
   refreshWorld();
   setInterval(refreshWorld, 3000);
   let viewing = null;

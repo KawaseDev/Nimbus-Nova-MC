@@ -218,6 +218,8 @@ test('server power API requires a session and same-origin request', async () => 
     assert.equal(action, 'restart');
     assert.equal((await post('/api/server', { Origin: base, Cookie: cookie }, { action: 'update' })).status, 202);
     assert.equal(action, 'update');
+    assert.equal((await post('/api/server', { Origin: base, Cookie: cookie }, { action: 'reinstall' })).status, 202);
+    assert.equal(action, 'reinstall');
   } finally { await new Promise(resolve => server.close(resolve)); fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -277,6 +279,50 @@ test('server update saves and stops before building, preserves worlds, and leave
     await new Promise(resolve => setImmediate(resolve));
     assert.deepEqual(events.slice(stoppedEvents), ['build', 'start']);
     assert.equal(fs.readFileSync(path.join(dir, 'run', 'world', 'player-build'), 'utf8'), 'keep');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('world reinstall saves the old world before starting a fresh one', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const { EventEmitter } = require('node:events');
+  const { PassThrough } = require('node:stream');
+  const { createServerControl } = require('./server-control');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-reinstall-'));
+  const run = path.join(dir, 'run');
+  fs.mkdirSync(path.join(run, 'world'), { recursive: true });
+  fs.writeFileSync(path.join(run, 'eula.txt'), 'eula=true\n');
+  fs.writeFileSync(path.join(run, 'world', 'player-build'), 'keep');
+  let occupied = false, failStop = false;
+  const events = [];
+  const controller = createServerControl({ root: dir, checkServer: async () => occupied, spawnServer: () => {
+    const child = new EventEmitter();
+    child.stdout = new PassThrough(); child.stderr = new PassThrough(); child.stdin = new PassThrough();
+    events.push('start');
+    child.stdin.on('data', () => { events.push('stop'); setImmediate(() => { occupied = false; child.emit('close', failStop ? 1 : 0); }); });
+    setImmediate(() => { occupied = true; child.stdout.write('Done (1s)!'); });
+    return child;
+  } });
+  try {
+    await controller.command('start');
+    await new Promise(resolve => setImmediate(resolve));
+    failStop = true;
+    await assert.rejects(controller.command('reinstall'), /did not stop cleanly/);
+    assert.equal(fs.readFileSync(path.join(run, 'world', 'player-build'), 'utf8'), 'keep');
+    failStop = false;
+    await controller.command('start');
+    await new Promise(resolve => setImmediate(resolve));
+    await controller.command('reinstall');
+    await new Promise(resolve => setImmediate(resolve));
+    const backups = fs.readdirSync(path.join(run, 'world-backups'));
+    assert.equal(backups.length, 1);
+    assert.equal(fs.readFileSync(path.join(run, 'world-backups', backups[0], 'world', 'player-build'), 'utf8'), 'keep');
+    assert.equal(fs.existsSync(path.join(run, 'world')), false);
+    assert.deepEqual(events.slice(-2), ['stop', 'start']);
+    await controller.command('stop');
+    fs.writeFileSync(path.join(run, 'server.properties'), 'level-name=../outside\n');
+    await assert.rejects(controller.command('reinstall'), /world name/);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 

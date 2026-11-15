@@ -177,11 +177,11 @@ function createServer(options = {}) {
         let body = '';
         for await (const chunk of request) { body += chunk; if (Buffer.byteLength(body) > 256) throw new Error(); }
         action = JSON.parse(body).action;
-        if (!['start', 'stop', 'restart', 'update'].includes(action)) throw new Error();
+        if (!['start', 'stop', 'restart', 'update', 'reinstall'].includes(action)) throw new Error();
       } catch { response.writeHead(400).end(); return; }
       try {
-        if (action === 'start' || action === 'update') sessions.reserve(teacher);
-        if (action === 'restart' || action === 'update') sessions.expire(teacher);
+        if (action === 'start' || action === 'update' || action === 'reinstall') sessions.reserve(teacher);
+        if (action === 'restart' || action === 'update' || action === 'reinstall') sessions.expire(teacher);
         await control.command(action);
         if (action === 'stop') sessions.clear();
         response.writeHead(202).end();

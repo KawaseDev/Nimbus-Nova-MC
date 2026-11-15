@@ -1,6 +1,7 @@
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const { randomUUID } = require('node:crypto');
 
 function createServerControl({ checkServer, spawnServer = spawn, root = path.resolve(__dirname, '..'), onExit = () => {} }) {
   let child = null;
@@ -76,6 +77,25 @@ function createServerControl({ checkServer, spawnServer = spawn, root = path.res
     });
   }
 
+  function backupWorld() {
+    const run = path.join(root, 'run');
+    let properties = '';
+    try { properties = fs.readFileSync(path.join(run, 'server.properties'), 'utf8'); }
+    catch (failure) { if (failure.code !== 'ENOENT') throw failure; }
+    const name = properties.match(/^\s*level-name\s*=\s*(.*?)\s*$/m)?.[1] || 'world';
+    if (!/^[A-Za-z0-9_.-]+$/.test(name) || name === '.' || name === '..')
+      throw new Error('The configured world name cannot be backed up automatically.');
+    const world = path.join(run, name);
+    const info = fs.lstatSync(world);
+    if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('The world must be a normal directory.');
+    const backupRoot = path.join(run, 'world-backups');
+    if (fs.existsSync(backupRoot) && fs.lstatSync(backupRoot).isSymbolicLink())
+      throw new Error('The backup directory cannot be a symbolic link.');
+    const backup = path.join(backupRoot, `${name}-${randomUUID()}`);
+    fs.mkdirSync(backup, { recursive: true });
+    fs.renameSync(world, path.join(backup, name));
+  }
+
   async function command(action) {
     if (busy) throw new Error('A server operation is already in progress');
     busy = true;
@@ -95,6 +115,19 @@ function createServerControl({ checkServer, spawnServer = spawn, root = path.res
         try {
           if (child) await stop();
           await build();
+          await start();
+        } catch (failure) {
+          if (!child) { state = 'stopped'; error = failure.message; onExit(); }
+          throw failure;
+        } finally { restarting = false; updating = false; }
+      }
+      else if (action === 'reinstall') {
+        if (!child && await checkServer()) throw new Error('A server is running outside this panel. Stop it first.');
+        updating = true;
+        restarting = true;
+        try {
+          if (child) await stop();
+          backupWorld();
           await start();
         } catch (failure) {
           if (!child) { state = 'stopped'; error = failure.message; onExit(); }
