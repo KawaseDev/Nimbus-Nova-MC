@@ -137,7 +137,8 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
                             buttonWidth, 21, ShipClient.label(role.name()), () -> command("role", role.ordinal()))).active = !pending;
                 }
                 if (!state.role().isEmpty())
-                    addRenderableWidget(new MissionButton(left + 14, top + 135, panelWidth - 28, 21, "Report preflight check", () -> command("preflight", 0))).active = !pending;
+                    addRenderableWidget(new MissionButton(left + 14 + 2 * (buttonWidth + 5), top + 105, buttonWidth, 21,
+                            "Report preflight check", () -> command("preflight", 0))).active = !pending;
             }
             if (state.operator()) {
                 final String action = state.phase().equals("READY") ? "start" : state.phase().equals("PAUSED") ? "resume" : ended() ? "reset" : "pause";

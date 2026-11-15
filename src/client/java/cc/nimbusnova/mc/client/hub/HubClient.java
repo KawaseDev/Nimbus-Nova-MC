@@ -29,7 +29,7 @@ public final class HubClient {
         ClientPlayNetworking.registerGlobalReceiver(HubStatePayload.TYPE, (packet, context) -> context.client().execute(() -> {
             state = JsonParser.parseString(packet.json()).getAsJsonObject();
             if (context.client().gui.screen() instanceof HubScreen screen)
-                screen.update(state);
+                screen.update(state, packet.open());
             else if (packet.open())
                 context.client().setScreenAndShow(new HubScreen(state));
         }));

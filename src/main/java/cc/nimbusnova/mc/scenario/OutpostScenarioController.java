@@ -426,7 +426,7 @@ public final class OutpostScenarioController {
         if (role == null) return "Choose a crew role on the tablet. " + mission.objective();
         if (mission.id.equals("shelter")) return switch (role) {
             case POWER -> mission.observation ? "Live radiation data secured. Return to the covered shelter." : mission.elapsed < 45
-                    ? "Survey the three bearings before launch; during seconds45-90 make a three-second live outside scan, then return." : "Live event: remain by the sensor for three seconds to gather valuable data, then return before exposure reaches100.";
+                    ? "Survey the three bearings before launch; during seconds 45-90 make a three-second live outside scan, then return." : "Live event: remain by the sensor for three seconds to gather valuable data, then return before exposure reaches 100.";
             case LIFE_SUPPORT -> "Set breathing-loop flow to the crew demand of two units. Monitor air and the power cost of extra flow.";
             case SUPPLIES -> "Collect shield stores at this locker and hand the three modules to maintenance. Then enter the covered shelter.";
             case MAINTENANCE -> "Take the modules from supplies and place them into the three marked shield slots. Enter the sheltered room behind them.";
@@ -436,15 +436,15 @@ public final class OutpostScenarioController {
             case POWER -> "Keep heat and air powered. Supply the lab for30 observation seconds, then shed it; power the beacon only as needed.";
             case LIFE_SUPPORT -> "Set air-loop flow to at least two units before launch. More flow draws extra battery power.";
             case SUPPLIES -> "Collect the two wire kits and physically share one with maintenance. Watch the remaining repair stores.";
-            case MAINTENANCE -> mission.cableBroken ? "Use a real wire kit on the failed power junction." : "Arm the laboratory recorder. Coordinate30 powered observation seconds with the power specialist.";
+            case MAINTENANCE -> mission.cableBroken ? "Use a real wire kit on the failed power junction." : "Arm the laboratory recorder. Coordinate 30 powered observation seconds with the power specialist.";
             case PILOT -> "Transmit SOS with the beacon powered. Wait five active seconds for the delayed acknowledgement, then ask power to shed the beacon.";
         };
         return switch (role) {
             case POWER -> "Power the three bed-observation lamps for ten seconds each. Preserve energy by shedding lamps after observations.";
             case LIFE_SUPPORT -> "Balance bed irrigation and root aeration. Water reserves and neighbors' moisture matter.";
-            case SUPPLIES -> issued ? "Observe each healthy crop after second80 when lamps, moisture, root air and extraction humidity are safe." : "Collect repair plates and hand one to maintenance before the pipe failure.";
+            case SUPPLIES -> issued ? "Observe each healthy crop after second 80 when lamps, moisture, root air and extraction humidity are safe." : "Collect repair plates and hand one to maintenance before the pipe failure.";
             case MAINTENANCE -> mission.pipeBroken ? "Use a real plate to replace the marked missing pipe block." : "Inspect the pump before launch and prepare a repair plate for the feed-pipe fault.";
-            case PILOT -> "Regulate extraction-cabin ventilation: keep humidity40-70 for safe sample transfer. Fan power and evaporation consume reserves.";
+            case PILOT -> "Regulate extraction-cabin ventilation: keep humidity at 40-70 for safe sample transfer. Fan power and evaporation consume reserves.";
         };
     }
 

@@ -131,6 +131,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
             context.waitTicks(5);
             world.getConnection().waitForChunksRender();
             GuidedMissionChecks.capture(context, "dome-exterior");
+            FullscreenChecks.capture(context, "mars-outpost");
             world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 12 68 -9 35 -13");
             context.waitFor(client -> client.player != null && client.player.getX() < 15);
             context.waitTicks(5);

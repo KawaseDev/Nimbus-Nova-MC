@@ -4,7 +4,6 @@ import cc.nimbusnova.mc.client.GuidedMissionClient;
 import cc.nimbusnova.mc.client.ship.ShipClient;
 import cc.nimbusnova.mc.world.ship.ShipMap;
 import cc.nimbusnova.mc.client.airlock.EntranceAirlockClient;
-import cc.nimbusnova.mc.world.EntranceAirlock;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.mission.MissionProgressPayload;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
@@ -90,8 +89,8 @@ public final class HologramGuidance {
     private static boolean unavailable(final Minecraft client) {
         return client.level == null || client.player == null || client.gui.screen() != null || client.gui.hud.isHidden()
                 || !client.level.dimension().equals(MarsTrainingMap.DIMENSION) && !client.level.dimension().equals(ShipMap.DIMENSION)
-                || EntranceAirlockClient.scan() != null && EntranceAirlockClient.scan().stage() > 0
-                && EntranceAirlock.isChamber(client.player.blockPosition());
+                || client.level.dimension().equals(MarsTrainingMap.DIMENSION)
+                && EntranceAirlockClient.scan() != null && EntranceAirlockClient.scan().visible();
     }
 
     private static @Nullable MissionProgressPayload objective(final Minecraft client) {

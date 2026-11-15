@@ -71,7 +71,8 @@ public final class OutpostScenarioChecks {
         station(context, world, "long_night", 0);
         act(context, 0, 2);
         advance(world, 45);
-        station(context, world, "long_night", 0);
+        context.setScreen(() -> null);
+        moveToStation(world, "long_night", 0);
         world.getServer().runOnServer(server -> {
             final ServerPlayer player = world.getConnection().getServerPlayer();
             equip(player, RepairContent.WIRE_KIT);
@@ -164,7 +165,7 @@ public final class OutpostScenarioChecks {
         world.getServer().runOnServer(server -> OutpostScenarioController.get(server).select(server, id));
         context.waitFor(client -> client.level != null && client.level.dimension().equals(ScenarioMaps.dimension(id)) && ScenarioClient.state() != null);
         context.waitForScreen(ScenarioScreen.class);
-        GuidedMissionChecks.capture(context, "scenario-" + id + "-arrival");
+        FullscreenChecks.capture(context, "scenario-" + id + "-arrival");
     }
     private static void success(final ClientGameTestContext context, final TestSingleplayerContext world, final String id) {
         context.waitFor(client -> ScenarioClient.state() != null && ScenarioClient.state().get("phase").getAsString().equals("SUCCESS"));
@@ -176,12 +177,17 @@ public final class OutpostScenarioChecks {
     }
     private static void station(final ClientGameTestContext context, final TestSingleplayerContext world, final String id, final int index) {
         context.setScreen(() -> null);
-        final BlockPos target = ScenarioMaps.station(index);
-        world.getServer().runCommand("execute in nimbus_nova:scenario_" + id + " run tp @p " + (target.getX() + 0.5) + " 65 " + (target.getZ() - 1.5) + " 0 15");
+        moveToStation(world, id, index);
         context.waitTicks(3);
-        GuidedMissionChecks.use(world, target);
+        GuidedMissionChecks.use(world, ScenarioMaps.station(index));
         context.waitForScreen(ScenarioScreen.class);
         context.waitFor(client -> ((ScenarioScreen) client.gui.screen()).state().get("station").getAsInt() == index);
+    }
+
+    private static void moveToStation(final TestSingleplayerContext world, final String id, final int index) {
+        final BlockPos target = ScenarioMaps.station(index);
+        world.getServer().runCommand("execute in nimbus_nova:scenario_" + id + " run tp @p " + (target.getX() + 0.5)
+                + " 65 " + (target.getZ() - 1.5) + " 0 15");
     }
     private static void act(final ClientGameTestContext context, final int station, final int value) {
         final int revision = ScenarioClient.state().get("revision").getAsInt();

@@ -11,10 +11,14 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.NullMarked;
 
+import java.util.Objects;
+import java.util.stream.Stream;
+
 @NullMarked
 public final class HubScreen extends NovaScreen implements ShipPalette {
     private JsonObject state;
     private String chosen;
+    private String error;
     private int left, top, panelWidth, panelHeight;
     private boolean pending;
 
@@ -22,21 +26,31 @@ public final class HubScreen extends NovaScreen implements ShipPalette {
         super(Component.literal("Nimbus Nova Mission Control"));
         this.state = state;
         chosen = state.get("selected").getAsString();
+        error = state.get("error").getAsString();
     }
 
     public JsonObject state() {
         return state;
     }
 
-    public void update(final JsonObject state) {
+    public void update(final JsonObject state, final boolean response) {
+        final boolean controlsChanged = response && pending
+                || Stream.of("missions", "selected", "phase", "operator", "incident", "crewCheckSolved", "ready")
+                .anyMatch(key -> !Objects.equals(this.state.get(key), state.get(key)));
         this.state = state;
-        pending = false;
-        rebuildWidgets();
+        if (response) {
+            pending = false;
+            error = state.get("error").getAsString();
+        }
+
+        if (controlsChanged)
+            rebuildWidgets();
     }
 
     private void send(final String action) {
         if (pending) return;
         pending = true;
+        error = "";
         ClientPlayNetworking.send(new HubActionPayload(action, chosen));
         rebuildWidgets();
     }
@@ -94,7 +108,6 @@ public final class HubScreen extends NovaScreen implements ShipPalette {
         }
         if (!current.isEmpty() && !chosen.equals(current))
             description = "Switching ends the current attempt. " + description;
-        final String error = state.get("error").getAsString();
         NovaRenderer.wrap(graphics, error.isEmpty() ? description : error, left + 14, top + 132, panelWidth - 28, 8, 2,
                 error.isEmpty() ? MUTED : WARNING);
         super.extractRenderState(graphics, mouseX, mouseY, delta);

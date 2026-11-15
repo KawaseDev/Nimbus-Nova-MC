@@ -197,6 +197,19 @@ final class ShipMissionChecks {
         context.waitForScreen(ShipScreen.class);
         context.clickScreenButton("pilot");
         context.waitFor(client -> ShipClient.state() != null && ShipClient.state().role().equals("PILOT"));
+        if (!cancelLanding) {
+            context.runOnClient(client -> {
+                final var screen = (ShipScreen) client.gui.screen();
+                final var report = screen.children().stream()
+                        .filter(child -> child instanceof MissionButton button && button.getMessage().getString().equals("Report preflight check"))
+                        .findFirst().orElseThrow();
+                screen.setFocused(report);
+            });
+            context.waitTicks(30);
+            if (!context.computeOnClient(client -> ((ShipScreen) client.gui.screen()).getFocused() instanceof MissionButton button
+                    && button.getMessage().getString().equals("Report preflight check")))
+                throw new AssertionError("Ship telemetry must preserve keyboard focus on the preflight action");
+        }
         context.clickScreenButton("Report preflight check");
         context.waitFor(client -> ShipClient.state() != null && ShipClient.state().feedback().contains("PILOT"));
         if (world.getServer().computeOnServer(server -> ShipController.get(server).mission().preflightReports()) != 1 << MoonMission.Role.PILOT.ordinal())
@@ -275,6 +288,7 @@ final class ShipMissionChecks {
         context.setScreen(() -> null);
         world.getConnection().waitForChunksRender();
         GuidedMissionChecks.capture(context, "moon-surface");
+        FullscreenChecks.capture(context, "moon-surface");
         world.getServer().runCommand("execute in nimbus_nova:lunar_surface run tp @p 9.5 63 -8.5");
         GuidedMissionChecks.use(world, LunarSurface.SAMPLE);
         if (!world.getServer().computeOnServer(server -> ShipController.get(server).mission().completed(ShipTask.SCIENCE)))
@@ -326,7 +340,7 @@ final class ShipMissionChecks {
             for (final int impulse : new int[] { 1, 1, 0, 0, 3, 3, 2, 2 })
                 action(context, impulse);
             GuidedMissionChecks.capture(context, "ship-momentum-docking");
-        FullscreenChecks.capture(context, "momentum-docking");
+            FullscreenChecks.capture(context, "momentum-docking");
             action(context, 5);
         } else if (state(context).stage().equals("NAVIGATION")) {
             for (final int star : new int[] { 1, 3, 5 })

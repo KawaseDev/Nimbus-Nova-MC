@@ -59,7 +59,14 @@ public final class ScenarioScreen extends NovaScreen {
             }
             if (state.get("operator").getAsBoolean()) {
                 final String action = phase.equals("READY") ? "start" : phase.equals("PAUSED") ? "resume" : phase.equals("ACTIVE") ? "pause" : "reset";
-                addRenderableWidget(new MissionButton(left + 14, top + panelHeight - 59, 110, 21, action + " mission", () -> send(action, -1, 0)));
+                final String label = switch (action) {
+                    case "start" -> "Start mission";
+                    case "resume" -> "Resume mission";
+                    case "pause" -> "Pause mission";
+                    default -> "Reset mission";
+                };
+                addRenderableWidget(new MissionButton(left + 14, top + panelHeight - 59, 110, 21, label, () -> send(action, -1, 0))).active =
+                        !pending && (!action.equals("start") || state.get("ready").getAsBoolean());
             }
             return;
         }
@@ -114,7 +121,8 @@ public final class ScenarioScreen extends NovaScreen {
         final Color accent = new Color(112, 226, 232), muted = new Color(168, 187, 197), text = new Color(235, 244, 247);
         NovaRenderer.rect(graphics, left, top, panelWidth, panelHeight, 9, new Color(10, 23, 31, 245));
         NovaRenderer.text(graphics, state.get("title").getAsString(), left + 14, top + 12, 14, text);
-        NovaRenderer.text(graphics, state.get("phase").getAsString() + " / " + state.get("role").getAsString().replace('_', ' '), left + 14, top + 33, 8, accent);
+        final String role = state.get("role").getAsString().replace('_', ' ');
+        NovaRenderer.text(graphics, state.get("phase").getAsString() + (role.isEmpty() ? "" : " / " + role), left + 14, top + 33, 8, accent);
         final int station = state.get("station").getAsInt();
         final String id = state.get("id").getAsString();
         if (station < 0 || station == 3) {
@@ -127,7 +135,7 @@ public final class ScenarioScreen extends NovaScreen {
                 NovaRenderer.text(graphics, "Bed " + (bed + 1) + " / root air " + rootAir, x, top + 57, 8, text);
                 NovaRenderer.rect(graphics, x, top + 78, column - 7, 16, 4, new Color(37, 55, 65));
                 NovaRenderer.rect(graphics, x, top + 78, (column - 7) * moisture / 100F, 16, 4, moisture > 80 ? new Color(246, 167, 95) : accent);
-                NovaRenderer.text(graphics, "Moisture " + moisture + " / target40-70", x, top + 100, 7, muted);
+                NovaRenderer.text(graphics, "Moisture " + moisture + " / target 40-70", x, top + 100, 7, muted);
             }
         } else if (id.equals("greenhouse") && station == 2) {
             NovaRenderer.text(graphics, "Cabin humidity " + state.get("cabinHumidity").getAsInt() + " /40-70", left + 14, top + 57, 8, accent);
@@ -145,12 +153,12 @@ public final class ScenarioScreen extends NovaScreen {
                 NovaRenderer.rect(graphics, left + 14 + pulse * cell, top + 85, cell - 4, 15, 4,
                         pulse < state.get("signal").getAsInt() ? accent : new Color(37, 55, 65));
         } else if (id.equals("long_night") && station == 0) {
-            NovaRenderer.text(graphics, "Battery " + state.get("battery").getAsInt() + " / heat " + state.get("temperature").getAsInt()
-                    + " / oxygen " + state.get("oxygen").getAsInt(), left + 14, top + 57, 10, accent);
+            NovaRenderer.text(graphics, "Battery " + Math.round(state.get("battery").getAsDouble()) + " / heat " + Math.round(state.get("temperature").getAsDouble())
+                    + " / oxygen " + Math.round(state.get("oxygen").getAsDouble()), left + 14, top + 57, 10, accent);
         } else if (id.equals("shelter") && station == 0) {
             if (!state.get("phase").getAsString().equals("READY")) {
                 NovaRenderer.text(graphics, "Live scan " + state.get("eventScanSeconds").getAsInt() + "/3s / dose " + state.get("dose").getAsInt() + "/100", left + 14, top + 58, 11, accent);
-                NovaRenderer.wrap(graphics, "Three active seconds by this sensor during45-90; return to mass shielding after the measurement.", left + 14, top + 80, panelWidth - 28, 8, 2, text);
+                NovaRenderer.wrap(graphics, "Three active seconds by this sensor during seconds 45-90; return to mass shielding after the measurement.", left + 14, top + 80, panelWidth - 28, 8, 2, text);
             } else {
             NovaRenderer.text(graphics, "Exposed ridge    Berm    Covered roof", left + 14, top + 57, 10, text);
             for (int bearing = 0; bearing < 3; bearing++)
@@ -158,7 +166,7 @@ public final class ScenarioScreen extends NovaScreen {
                         (state.get("scans").getAsInt() & 1 << bearing) != 0 ? accent : muted);
             }
         } else if (!id.equals("greenhouse") && station == 1) {
-            NovaRenderer.text(graphics, "Breathing flow " + state.get("lifeFlow").getAsInt() + " / crew demand2", left + 14, top + 57, 10, accent);
+            NovaRenderer.text(graphics, "Breathing flow " + state.get("lifeFlow").getAsInt() + " / crew demand 2", left + 14, top + 57, 10, accent);
             if (id.equals("long_night"))
                 NovaRenderer.text(graphics, "Verified laboratory " + state.get("labSeconds").getAsInt() + "/30s", left + 14, top + 73, 8, muted);
         } else if (id.equals("greenhouse") && station == 0) {
