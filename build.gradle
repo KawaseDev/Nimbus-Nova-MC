@@ -219,3 +219,11 @@ tasks.register('shipHoldActionsTest', JavaExec) {
 }
 
 check.dependsOn shipHoldActionsTest
+
+tasks.register('shipRoomStateTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.ship.rooms.ShipRoomStateTest'
+    enableAssertions = true
+}
+check.dependsOn shipRoomStateTest

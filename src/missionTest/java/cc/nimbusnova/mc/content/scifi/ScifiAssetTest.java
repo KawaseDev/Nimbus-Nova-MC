@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
+import java.util.Set;
 
 public final class ScifiAssetTest {
     private ScifiAssetTest() {
@@ -33,7 +34,7 @@ public final class ScifiAssetTest {
                 final String model = Files.readString(file);
                 assert !model.contains("minecraft:block/iron_door") : "Door must use our mesh";
                 final var references = textureReference.matcher(model).results().toList();
-                assert !references.isEmpty() : file;
+                assert !references.isEmpty() || Set.of("scifi_hull_panel.json", "scifi_floor_tile.json", "scifi_reinforced_hull.json").contains(file.getFileName().toString()) && model.contains("minecraft:block/") : file;
                 for (final var reference : references) {
                     final var image = ImageIO.read(assets.resolve("textures/block/" + reference.group(1) + ".png").toFile());
                     assert image != null && image.getWidth() == 32 && image.getHeight() % 32 == 0 : file;

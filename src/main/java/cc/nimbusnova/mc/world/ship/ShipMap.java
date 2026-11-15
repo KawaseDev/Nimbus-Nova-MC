@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -87,6 +88,15 @@ public final class ShipMap {
         final Path marker = server.getWorldPath(LevelResource.ROOT).resolve("nimbus-nova/return-window-v1.txt");
         if (Files.exists(marker)) {
             if (!Files.readString(marker).equals("complete")) throw new IOException("Ship construction was interrupted. Restore a backup or use a fresh world.");
+            for (final Placed placed : read(server)) {
+                final var current = level.getBlockState(placed.position);
+                if ((current.is(ScifiBlocks.HULL_PANEL) || current.is(ScifiBlocks.FLOOR_TILE))
+                        && Set.of(Blocks.CONCRETE.gray(), Blocks.CONCRETE.white(), Blocks.CONCRETE.lightGray(),
+                        Blocks.SMOOTH_QUARTZ, Blocks.POLISHED_DEEPSLATE, Blocks.WOOL.gray(), Blocks.SPRUCE_PLANKS, Blocks.MANGROVE_PLANKS)
+                        .contains(placed.state.getBlock()))
+                    level.setBlock(placed.position, placed.state, Block.UPDATE_CLIENTS);
+            }
+            installRoomPartition(level);
             exposeEngineControls(level);
             return;
         }
@@ -138,10 +148,34 @@ public final class ShipMap {
                     : station.position.getX() > 2 ? Direction.WEST : Direction.NORTH;
             level.setBlock(station.position, block(station.task).defaultBlockState().setValue(HorizontalDirectionalBlock.FACING, facing), Block.UPDATE_CLIENTS);
         }
+        installRoomPartition(level);
         exposeEngineControls(level);
         level.setBlock(new BlockPos(-5, 78, 12), ScifiBlocks.SUPPORT_BEAM.defaultBlockState(), Block.UPDATE_CLIENTS);
         Files.writeString(marker, "complete");
         NimbusNovaMod.LOGGER.info("Installed Return Window from team schematic: {} source blocks, {} equipment anchors", blocks.size(), MARKERS.size());
+    }
+
+    private static void installRoomPartition(final ServerLevel level) throws IOException {
+        final Map<BlockPos, BlockState> original = new HashMap<>();
+        for (final Placed placed : read(level.getServer())) original.put(placed.position, placed.state);
+        for (final BlockPos position : BlockPos.betweenClosed(-11, 76, 8, -4, 79, 8)) {
+            final BlockState current = level.getBlockState(position);
+            if (!current.isAir() && !current.is(Blocks.CONCRETE.gray()) && !current.is(ScifiBlocks.HULL_PANEL)
+                    && !current.is(ScifiBlocks.AIRLOCK_DOOR) && !current.equals(original.get(position))) {
+                NimbusNovaMod.LOGGER.info("Room partition preserved occupied position {}", position);
+                return;
+            }
+        }
+        for (final BlockPos position : BlockPos.betweenClosed(-11, 76, 8, -4, 79, 8))
+            level.setBlock(position, Blocks.CONCRETE.gray().defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+        for (int leaf = 0; leaf < 2; leaf++) {
+            final BlockPos foot = new BlockPos(-8 + leaf, 76, 8);
+            final var door = ScifiBlocks.AIRLOCK_DOOR.defaultBlockState().setValue(DoorBlock.FACING, Direction.NORTH)
+                    .setValue(DoorBlock.HINGE, leaf == 0 ? DoorHingeSide.LEFT : DoorHingeSide.RIGHT);
+            level.setBlock(foot, door.setValue(DoorBlock.HALF, DoubleBlockHalf.LOWER), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+            level.setBlock(foot.above(), door.setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+            level.scheduleTick(foot, ScifiBlocks.AIRLOCK_DOOR, 5);
+        }
     }
 
     private static void exposeEngineControls(final ServerLevel level) {
@@ -211,12 +245,9 @@ public final class ShipMap {
     private static BlockState parse(final MinecraftServer server, final String original) throws IOException {
         final String name = original.substring(0, original.contains("[") ? original.indexOf('[') : original.length());
         if (name.endsWith("_sign") || name.endsWith("command_block")) return Blocks.AIR.defaultBlockState();
-        if (Set.of("minecraft:smooth_quartz", "minecraft:white_concrete", "minecraft:gray_concrete", "minecraft:light_gray_concrete", "minecraft:gray_wool", "minecraft:spruce_planks", "minecraft:mangrove_planks").contains(name))
-            return ScifiBlocks.HULL_PANEL.defaultBlockState();
-        if (name.equals("minecraft:polished_deepslate")) return ScifiBlocks.FLOOR_TILE.defaultBlockState();
         try {
             return BlockStateParser.parseForBlock(server.registryAccess().lookupOrThrow(Registries.BLOCK),
-                    name.equals("minecraft:spruce_slab") ? original.replace(name, "minecraft:smooth_stone_slab") : original, false).blockState();
+                    original, false).blockState();
         } catch (final CommandSyntaxException error) {
             final String fallback = FALLBACKS.get(name.replace("minecraft:", ""));
             if (fallback == null) throw new IOException("Unsupported schematic material " + original, error);
