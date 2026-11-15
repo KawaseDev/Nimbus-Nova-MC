@@ -152,7 +152,7 @@ This applies the Mars/Earth gravity ratio to Minecraft physics; it is a gameplay
 
 ## Play Return Window: spacecraft rescue
 
-The teacher panel also offers **Select Moon exploration prototype**, or an operator can use `/ship explore`. It reuses the spacecraft and adds simulated orbit capture, descent checks, landing, ascent and rendezvous. After landing, check suits at the medical station, equip a suit using the crew tablet or `/ship suit`, and use **Go outside** or `/ship surface`. The maintenance specialist right-clicks the sample on the Moon, then the crew returns using **Return to ship** or `/ship join`. The surface is a small fictional training area, not a real landing site. The mission is still a prototype; the legacy Earth–Moon tablet remains separate.
+The teacher panel also offers **Select Moon exploration prototype**, or an operator can use `/ship explore`. It reuses the spacecraft and adds simulated orbit capture, descent checks, landing, ascent and rendezvous. After landing, maintenance checks communications and life support checks suits at the medical station. Equip a suit using the crew tablet or `/ship suit`, and use **Go outside** or `/ship surface`. The maintenance specialist right-clicks the sample on the Moon, then the crew returns using **Return to ship** or `/ship join`. The science station links to a NASA lunar basalt sample for comparison. The surface is a small fictional training area, not a real landing site. The mission is still a prototype; the legacy Earth–Moon tablet remains separate.
 
 Select **Return Window** in the teacher menu, or run `/ship select` as an operator. This creates the separate `nimbus_nova:return_window` dimension and brings the connected crew aboard. `/ship join` admits students who arrive later; J opens the ship tablet. End the current Mars/Moon attempt before selecting it, and use `/ship end` when switching to another mission.
 
@@ -162,7 +162,7 @@ Choose the five roles before launch: power, life support, supplies, maintenance 
 
 1. **Prepare without a timer.** Assemble correctly rated power cartridges at an engine manifold and choose repair spares or extra science cargo in storage. Optional galley, medical, plant and exercise activities improve readiness at a finite water/parts/energy cost.
 2. **Dock using momentum.** Apply thruster impulses, coast and counter-thrust to stop inside the capture corridor. Being near the target is insufficient while still drifting. Maintenance tunes the communications carrier and gain without clipping the signal.
-3. **Navigate by a star fix.** Identify the three stars matching the reference constellation rather than matching numerical dials.
+3. **Navigate by a star fix.** The pilot identifies the three guide stars, and maintenance confirms the navigation signal.
 4. **Isolate the emergency.** Retain life support while shedding nonessential engine loads. The engineering bay shows the authored fault with smoke and active equipment lights.
 5. **Build the CO2 adapter.** Assemble the seal, housing, cartridge and fan in the correct connection order; run a pressure test and verify the seal before activating filtration. Adding oxygen does not remove CO2.
 6. **Restart essential systems.** Reassemble the changed cartridge layout, then allocate heating to navigation and the air loop while preserving the return reserve.

@@ -105,6 +105,16 @@ public final class MoonMission {
 
     public record Decision(Role role, String prompt, String safe, String alternative, String safeResult, String alternativeResult) { }
 
+    public void abortDescent() {
+        if (variant != Variant.EXPLORATION || stage != Stage.DESCENT || paused || fuel < 5)
+            throw new IllegalStateException("Descent cannot be aborted now.");
+        fuel -= 5;
+        confirmations.clear();
+        decisionMade = false;
+        stage = Stage.RETURN;
+        feedback = "Descent canceled. Prepare the return to Earth.";
+    }
+
     public static Decision decision(Stage stage) {
         return switch (stage) {
             case PREPARATION -> new Decision(Role.SUPPLIES, "Choose cargo while keeping a return reserve.", "Carry spare parts", "Extra instrument", "Spare parts secured.", "The instrument takes space; fewer repair parts remain.");

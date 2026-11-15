@@ -152,6 +152,9 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
             return;
         }
 
+        if (state.stage().equals("SURFACE") && state.task().equals("SCIENCE"))
+            addRenderableWidget(new MissionButton(left + 14, top + 145, 140, 23, "NASA sample image",
+                    () -> ConfirmLinkScreen.confirmLinkNow(this, URI.create("https://ares.jsc.nasa.gov/astromaterials3d/sample-details.htm?sample=12038-7"))));
         if (state.complete()) return;
         final int bodyWidth = panelWidth - 28;
         if (fuses()) {
@@ -160,6 +163,8 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
                 addRenderableWidget(new FuseCard(left + 14 + (cartridge - 1) * (cardWidth + 5), top + 57, cardWidth, cartridge));
             for (int slot = 0; slot < 4; slot++)
                 addRenderableWidget(new FuseSocket(left + 14 + slot * (cardWidth + 5), top + 111, cardWidth, slot));
+        } else if (state.task().equals("ENGINE") && state.stage().equals("ORBIT")) {
+            taskButton(left + 14, top + 145, bodyWidth, "Verify capture power", 0);
         } else if (state.task().equals("PILOT") && state.stage().equals("DOCKING")) {
             final int controlX = left + 136;
             taskButton(controlX + 34, top + 76, 32, "Up", 2);
@@ -182,12 +187,13 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
             taskButton(left + 14, top + 145, bodyWidth, "Commit capture burn", 3);
         } else if (state.task().equals("PILOT") && state.stage().equals("DESCENT")) {
             final int w = (bodyWidth - 10) / 3;
-            taskButton(left + 14, top + 103, w, "Check guidance", 0);
-            taskButton(left + 19 + w, top + 103, w, "Primary site", 5);
-            taskButton(left + 24 + 2 * w, top + 103, w, "Alternate site", 1);
-            taskButton(left + 14, top + 130, w, "Brake lateral", 2);
-            taskButton(left + 19 + w, top + 130, w, "Brake vertical", 3);
-            taskButton(left + 24 + 2 * w, top + 130, w, "Confirm contact", 4);
+            taskButton(left + 14, top + 96, w, "Check guidance", 0);
+            taskButton(left + 19 + w, top + 96, w, "Primary site", 5);
+            taskButton(left + 24 + 2 * w, top + 96, w, "Alternate site", 1);
+            taskButton(left + 14, top + 122, w, "Brake lateral", 2);
+            taskButton(left + 19 + w, top + 122, w, "Brake vertical", 3);
+            taskButton(left + 24 + 2 * w, top + 122, w, "Confirm contact", 4);
+            taskButton(left + 14, top + 148, bodyWidth, "Hold to cancel landing", 6);
         } else if (state.task().equals("PILOT") && state.stage().equals("SURFACE")) {
             taskButton(left + 14, top + 145, (bodyWidth - 5) / 2, "Launch lander", 5);
             taskButton(left + 19 + (bodyWidth - 5) / 2, top + 145, (bodyWidth - 5) / 2, "Confirm rendezvous", 6);
@@ -309,6 +315,8 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
         } else if (tablet || ended()) {
             NovaRenderer.wrap(graphics, state.title() + ". " + state.instruction(), left + 14, top + 55, panelWidth - 28, 10,
                     state.role().isEmpty() && state.phase().equals("READY") ? 2 : Math.max(3, (panelHeight - 129) / 12), TEXT);
+        } else if (state.complete() && state.stage().equals("SURFACE") && state.task().equals("SCIENCE")) {
+            NovaRenderer.wrap(graphics, "Compare the simulated basalt with NASA's Apollo 12 sample. What similarities and differences can you see? A Minecraft block is not a scientific identification.", left + 14, top + 65, panelWidth - 28, 10, 5, TEXT);
         } else if (state.complete()) {
             NovaRenderer.text(graphics, "Station check complete", left + 14, top + 73, 18, SUCCESS);
             NovaRenderer.wrap(graphics, "Close this panel and follow your next crew objective.", left + 14, top + 108, panelWidth - 28, 10, 3, TEXT);
@@ -330,6 +338,8 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
         final int bodyWidth = panelWidth - 28;
         if (fuses()) {
             NovaRenderer.text(graphics, "Choose a rated cartridge, then tap its matching bus socket.", left + 14, top + 94, 8, MUTED);
+        } else if (state.task().equals("ENGINE") && state.stage().equals("ORBIT")) {
+            NovaRenderer.wrap(graphics, "Check that capture power is available while keeping at least 30 units for the return.", left + 14, top + 65, bodyWidth, 10, 4, MUTED);
         } else if (state.task().equals("PILOT") && state.stage().equals("DOCKING")) {
             ShipPuzzleGraphics.docking(graphics, state, left + 14, top + 57, 106);
             final int velocityX = (state.board() >> 8 & 7) - 2, velocityY = (state.board() >> 11 & 7) - 2;

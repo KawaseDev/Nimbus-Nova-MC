@@ -122,6 +122,7 @@ final class ShipMissionChecks {
         align(context, world, ShipTask.PILOT);
         align(context, world, ShipTask.COMMS);
         align(context, world, ShipTask.PILOT);
+        align(context, world, ShipTask.COMMS);
         resume(context, world);
         RoomEmergencyChecks.repairPower(context, world);
         open(context, world, ShipTask.ENGINE);
@@ -191,12 +192,16 @@ final class ShipMissionChecks {
         align(context, world, ShipTask.PILOT);
         align(context, world, ShipTask.COMMS);
         align(context, world, ShipTask.PILOT);
+        align(context, world, ShipTask.COMMS);
         context.waitFor(client -> ShipClient.state() != null && ShipClient.state().stage().equals("ORBIT"));
         open(context, world, ShipTask.PILOT);
         GuidedMissionChecks.capture(context, "moon-orbit-capture");
         action(context, 0); action(context, 3);
         if (!state(context).stage().equals("ORBIT")) throw new AssertionError("An insufficient burn was accepted");
         action(context, 1); action(context, 3);
+        if (!state(context).stage().equals("ORBIT")) throw new AssertionError("Capture must wait for a power check");
+        open(context, world, ShipTask.ENGINE); action(context, 0);
+        open(context, world, ShipTask.PILOT); action(context, 3);
         resume(context, world);
         open(context, world, ShipTask.PILOT);
         action(context, 0);
@@ -209,6 +214,10 @@ final class ShipMissionChecks {
         world.getServer().runCommand("execute as @p run ship surface");
         if (world.getServer().computeOnServer(server -> world.getConnection().getServerPlayer().level().dimension().equals(LunarSurface.DIMENSION)))
             throw new AssertionError("The surface must require a suit check and equipment");
+        open(context, world, ShipTask.MEDICAL); action(context, 0);
+        if (world.getServer().computeOnServer(server -> ShipController.get(server).mission().canVisitSurface()))
+            throw new AssertionError("Surface access must wait for a verified communication link");
+        align(context, world, ShipTask.COMMS);
         open(context, world, ShipTask.MEDICAL); action(context, 0);
         world.getServer().runCommand("execute as @p run ship suit");
         world.getServer().runCommand("execute as @p run ship surface");
@@ -234,6 +243,9 @@ final class ShipMissionChecks {
             throw new AssertionError("Right-clicking the lunar sample must complete the sample task");
         world.getServer().runCommand("execute as @p run ship join");
         context.waitFor(client -> client.level != null && client.level.dimension().equals(ShipMap.DIMENSION));
+        open(context, world, ShipTask.SCIENCE);
+        if (!context.computeOnClient(client -> client.gui.screen().children().stream().anyMatch(child -> child instanceof net.minecraft.client.gui.components.Button button && button.getMessage().getString().equals("NASA sample image"))))
+            throw new AssertionError("The collected sample must offer its NASA comparison");
         open(context, world, ShipTask.PILOT);
         GuidedMissionChecks.capture(context, "moon-ascent-controls");
         action(context, 5); action(context, 6);

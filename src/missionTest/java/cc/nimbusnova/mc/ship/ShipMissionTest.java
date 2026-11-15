@@ -123,6 +123,7 @@ public final class ShipMissionTest {
         if (meeting.action(ShipTask.EXERCISE, meeting.revision(), 0) || meeting.snapshot().water() != waterAfterSet)
             throw new AssertionError("Exercise must not provide unlimited rewards");
         exploration();
+        canceledLanding();
         System.out.println("Ship mission checks passed: five station activities, bounded benefits, unique flight tasks, pauses and failures.");
     }
 
@@ -132,10 +133,14 @@ public final class ShipMissionTest {
         for (final int input : new int[] { 1, 1, 0, 0, 3, 3, 2, 2, 5 }) act(mission, ShipTask.PILOT, input);
         tuneSignal(mission);
         for (final int star : new int[] { 1, 3, 5, 6 }) act(mission, ShipTask.PILOT, star);
+        if (mission.snapshot().stage() != MoonMission.Stage.NAVIGATION) throw new AssertionError("Navigation requires maintenance confirmation");
+        tuneSignal(mission);
         if (mission.snapshot().stage() != MoonMission.Stage.ORBIT) throw new AssertionError("Exploration must approach lunar orbit");
         act(mission, ShipTask.PILOT, 0); act(mission, ShipTask.PILOT, 3);
         if (mission.snapshot().stage() != MoonMission.Stage.ORBIT) throw new AssertionError("An invalid orbit prediction cannot be committed");
         act(mission, ShipTask.PILOT, 1); act(mission, ShipTask.PILOT, 3);
+        if (mission.snapshot().stage() != MoonMission.Stage.ORBIT) throw new AssertionError("Orbit capture requires a power check");
+        act(mission, ShipTask.ENGINE, 0); act(mission, ShipTask.PILOT, 3);
         verifyPaused(mission); resume(mission);
         act(mission, ShipTask.PILOT, 0);
         if ((mission.board(ShipTask.PILOT) & 256) != 0) throw new AssertionError("Guidance requires a verified radar link");
@@ -150,6 +155,9 @@ public final class ShipMissionTest {
         verifyPaused(mission); resume(mission);
         if (mission.collectSurfaceSample() || mission.completed(ShipTask.SCIENCE)) throw new AssertionError("A sample requires a suit check");
         act(mission, ShipTask.MEDICAL, 0);
+        if (mission.canVisitSurface()) throw new AssertionError("Surface access requires a verified communication link");
+        tuneSignal(mission);
+        act(mission, ShipTask.MEDICAL, 0);
         if (!mission.collectSurfaceSample()) throw new AssertionError("A suited crew must be able to collect the surface sample");
         act(mission, ShipTask.PILOT, 5); act(mission, ShipTask.PILOT, 6);
         if (mission.snapshot().stage() != MoonMission.Stage.RETURN) throw new AssertionError("Rendezvous must lead to return");
@@ -157,6 +165,27 @@ public final class ShipMissionTest {
         for (int i = 0; i < 6; i++) mission.tickSecond();
         act(mission, ShipTask.PILOT, 1); tuneSignal(mission);
         if (mission.snapshot().phase() != ShipMission.Phase.SUCCESS) throw new AssertionError("Exploration must support a safe return");
+    }
+
+    private static void canceledLanding() {
+        final ShipMission mission = prepared(false, MoonMission.Variant.EXPLORATION);
+        mission.start(); resume(mission);
+        for (final int input : new int[] { 1, 1, 0, 0, 3, 3, 2, 2, 5 }) act(mission, ShipTask.PILOT, input);
+        tuneSignal(mission);
+        for (final int star : new int[] { 1, 3, 5, 6 }) act(mission, ShipTask.PILOT, star);
+        tuneSignal(mission);
+        act(mission, ShipTask.ENGINE, 0);
+        act(mission, ShipTask.PILOT, 1); act(mission, ShipTask.PILOT, 3);
+        resume(mission);
+        final double fuel = mission.snapshot().fuel();
+        act(mission, ShipTask.PILOT, 6);
+        if (mission.snapshot().stage() != MoonMission.Stage.RETURN || mission.snapshot().fuel() != fuel - 5)
+            throw new AssertionError("A canceled landing must spend abort fuel and move to return");
+        act(mission, ShipTask.PILOT, 0);
+        for (int i = 0; i < 6; i++) mission.tickSecond();
+        act(mission, ShipTask.PILOT, 1); tuneSignal(mission);
+        if (mission.snapshot().phase() != ShipMission.Phase.SUCCESS || !mission.snapshot().outcome().contains("Landing canceled"))
+            throw new AssertionError("A safe canceled landing must still allow crew recovery");
     }
 
     private static void activities() {
@@ -278,6 +307,7 @@ public final class ShipMissionTest {
         for (final int star : new int[] { 1, 3, 5 })
             act(mission, ShipTask.PILOT, star);
         act(mission, ShipTask.PILOT, 6);
+        tuneSignal(mission);
         verifyPaused(mission);
         resume(mission);
         final int emergencyRevision = mission.revision();

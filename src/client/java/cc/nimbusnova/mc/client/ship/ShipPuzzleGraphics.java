@@ -101,7 +101,7 @@ final class ShipPuzzleGraphics implements ShipPalette {
     static void signal(final GuiGraphicsExtractor graphics, final ShipPayload state, final int x, final int y, final int width, final int height) {
         NovaRenderer.rect(graphics, x, y, width, height, 7, SURFACE);
         final int frequency = state.board() & 15, gain = state.board() >> 4 & 15;
-        final int target = state.stage().equals("DOCKING") ? 3 : state.stage().equals("DESCENT") ? 4 : 5;
+        final int target = state.stage().equals("RETURN") ? 5 : state.stage().equals("DESCENT") ? 4 : 3;
         final float amplitude = height * 0.21F, noise = (100 - (state.aux() & 255)) * 0.035F;
         line(graphics, x + 7, y + height / 2F, x + width - 7, y + height / 2F, 0.5F, BORDER);
         for (int point = 0; point < 90; point++) {

@@ -31,7 +31,7 @@ public final class ShipMission {
     private int loadMask = 7, parts = 6;
     private int orbitProfile;
     private double battery = 100, oxygen = 100, water = 100, fuel = 100, co2 = 12, readiness = 70;
-    private boolean cargoSelected, extraInstrument, filterOnline, heaterCommitted, filterTesting, burnRunning;
+    private boolean cargoSelected, extraInstrument, filterOnline, heaterCommitted, filterTesting, burnRunning, descentAborted;
     private String feedback = "Assemble the rated power cartridges and choose cargo before Mission Control starts the clock.";
 
     public ShipMission() { this(MoonMission.Variant.RESCUE); }
@@ -122,6 +122,13 @@ public final class ShipMission {
     }
 
     private boolean engine(final int action) {
+        if (moon.stage() == MoonMission.Stage.ORBIT) {
+            if (action != 0 || completed(ShipTask.ENGINE)) return false;
+            if (battery < 30) { feedback = "The capture check needs power while keeping a return reserve."; return true; }
+            complete(ShipTask.ENGINE);
+            feedback = "Power and the return reserve are available for the planned capture.";
+            return true;
+        }
         if (moon.stage() == MoonMission.Stage.EMERGENCY) {
             if (action >= 0 && action < 3) {
                 loadMask ^= 1 << action;
@@ -183,6 +190,10 @@ public final class ShipMission {
             feedback = "The prediction misses the planned orbit. Review speed and orientation before committing.";
             return true;
         }
+        if (!completed(ShipTask.ENGINE)) {
+            feedback = "The power engineer must verify capture power and the return reserve first.";
+            return true;
+        }
         landing.capture(LunarLanding.Burn.PLANNED);
         record("Validated the planned lunar-orbit capture after comparing three predictions.");
         advance(true);
@@ -190,7 +201,20 @@ public final class ShipMission {
     }
 
     private boolean lunarDescent(final int action) {
-        if (landing == null || action < 0 || action > 5) return false;
+        if (landing == null || action < 0 || action > 6) return false;
+        if (action == 6) {
+            if (fuel < 15) { feedback = "Abort needs five fuel units while preserving ten for the return."; return true; }
+            landing.abort();
+            moon.abortDescent();
+            fuel -= 5;
+            stageComplete = 0;
+            pilotBoard = 0;
+            commsBoard = 0;
+            descentAborted = true;
+            record("Canceled lunar descent and preserved fuel for the return.");
+            feedback = instruction();
+            return true;
+        }
         if (action == 0) {
             if (!completed(ShipTask.COMMS)) {
                 feedback = "Maintenance must verify the radar link before the pilot can validate guidance.";
@@ -226,6 +250,7 @@ public final class ShipMission {
 
     private boolean surfaceSuit(final int action) {
         if (landing == null || action != 0 || landing.suitsChecked() || landing.phase() != LunarLanding.Phase.SURFACE) return false;
+        if (!completed(ShipTask.COMMS)) { feedback = "Maintenance must verify the surface communication link before the suit check."; return true; }
         if (oxygen < 5 || water < 5) { feedback = "The crew needs at least five oxygen and water units for this simulated surface check."; return true; }
         landing.checkSuits(true, true);
         complete(ShipTask.MEDICAL);
@@ -380,7 +405,7 @@ public final class ShipMission {
     private void verifyFlight(final ShipTask task) {
         complete(task);
         feedback = task == ShipTask.PILOT ? "Physical guidance check verified." : "Communication lock verified without clipping.";
-        if (completed(ShipTask.PILOT) && (moon.stage() == MoonMission.Stage.NAVIGATION || completed(ShipTask.COMMS)))
+        if (completed(ShipTask.PILOT) && completed(ShipTask.COMMS))
             advance(true);
     }
 
@@ -565,7 +590,7 @@ public final class ShipMission {
             engineBoard = 0;
         if (moon.stage() == MoonMission.Stage.COMPLETE) {
             phase = battery >= 20 && oxygen >= 25 && fuel >= 25 && readiness >= 60 ? Phase.SUCCESS : Phase.PARTIAL;
-            feedback = phase == Phase.SUCCESS ? "Crew recovered inside the approved return corridor with essential reserves intact."
+            feedback = phase == Phase.SUCCESS ? (descentAborted ? "Landing canceled safely; crew recovered with essential reserves intact." : "Crew recovered inside the approved return corridor with essential reserves intact.")
                     : "Crew recovered, but reserve or readiness targets were missed. Compare the crew's resource choices.";
             return;
         }
@@ -619,12 +644,12 @@ public final class ShipMission {
     public boolean activeTask(final ShipTask task) {
         if (phase.ended()) return false;
         return switch (task) {
-            case ENGINE -> moon.stage() == MoonMission.Stage.PREPARATION || moon.stage() == MoonMission.Stage.EMERGENCY || moon.stage() == MoonMission.Stage.RESTART;
+            case ENGINE -> moon.stage() == MoonMission.Stage.PREPARATION || moon.stage() == MoonMission.Stage.ORBIT || moon.stage() == MoonMission.Stage.EMERGENCY || moon.stage() == MoonMission.Stage.RESTART;
             case STORAGE -> moon.stage() == MoonMission.Stage.PREPARATION && !cargoSelected;
             case PILOT -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.NAVIGATION
                     || moon.stage() == MoonMission.Stage.ORBIT || moon.stage() == MoonMission.Stage.DESCENT
                     || moon.stage() == MoonMission.Stage.SURFACE || moon.stage() == MoonMission.Stage.RETURN;
-            case COMMS -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.DESCENT || moon.stage() == MoonMission.Stage.RETURN;
+            case COMMS -> moon.stage() == MoonMission.Stage.DOCKING || moon.stage() == MoonMission.Stage.NAVIGATION || moon.stage() == MoonMission.Stage.DESCENT || moon.stage() == MoonMission.Stage.SURFACE || moon.stage() == MoonMission.Stage.RETURN;
             case GALLEY -> moon.stage() == MoonMission.Stage.RESTART || (optionalComplete & 1 << task.ordinal()) == 0;
             case MEDICAL -> moon.stage() == MoonMission.Stage.FILTER || moon.stage() == MoonMission.Stage.SURFACE && landing != null
                     && landing.phase() == LunarLanding.Phase.SURFACE || moon.stage() != MoonMission.Stage.SURFACE && (optionalComplete & 1 << task.ordinal()) == 0;
@@ -713,10 +738,10 @@ public final class ShipMission {
         return switch (moon.stage()) {
             case PREPARATION -> "Match four rated power cartridges at the engines and choose cargo at storage. Preparation has no timer.";
             case DOCKING -> "Pilot: cancel drift inside the docking capture box. Communications: tune the carrier without clipping the receiver.";
-            case NAVIGATION -> "Pilot: select three reliable guide stars from the detector readings to verify the return route.";
-            case ORBIT -> "Pilot: compare three burn predictions before committing to lunar-orbit capture.";
+            case NAVIGATION -> "Pilot: verify the star fix. Maintenance: verify the navigation communication link.";
+            case ORBIT -> "Power: verify capture power and the return reserve. Pilot: compare the burn predictions.";
             case DESCENT -> "Maintenance: verify the radar link. Pilot: check guidance, select the alternate site and control both landing speeds.";
-            case SURFACE -> "Life support: check suits. Science: secure a sample. Pilot: launch and verify rendezvous.";
+            case SURFACE -> "Maintenance: verify surface communications. Life support: check suits. Collect a sample, then launch and verify rendezvous.";
             case EMERGENCY -> "Power engineer: isolate science and comfort heating while keeping life support on.";
             case FILTER -> "Life-support engineer: assemble the CO2 adapter in order, pressure-test the seal and start filtered airflow.";
             case RESTART -> "Power engineer: fit cartridges to the new restart loads. Supplies: allocate heat to navigation and the air loop.";

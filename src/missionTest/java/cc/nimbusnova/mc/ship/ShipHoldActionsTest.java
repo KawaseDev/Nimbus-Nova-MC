@@ -11,6 +11,7 @@ public final class ShipHoldActionsTest {
         assert ShipHoldActions.requires(ShipTask.COMMS, MoonMission.Stage.DOCKING, 4);
         assert ShipHoldActions.requires(ShipTask.STORAGE, MoonMission.Stage.PREPARATION, 3);
         assert ShipHoldActions.requires(ShipTask.MEDICAL, MoonMission.Stage.FILTER, 5);
+        assert ShipHoldActions.requires(ShipTask.PILOT, MoonMission.Stage.DESCENT, 6) : "Canceling a landing must be deliberate";
         assert !ShipHoldActions.requires(ShipTask.PILOT, MoonMission.Stage.RETURN, 1) : "A timed cutoff must react immediately";
         assert !ShipHoldActions.requires(ShipTask.ENGINE, MoonMission.Stage.PREPARATION, 3) : "Cartridge placement stays direct";
         final int duration = ShipHoldActions.durationTicks(ShipTask.COMMS, MoonMission.Stage.DOCKING, 4);
