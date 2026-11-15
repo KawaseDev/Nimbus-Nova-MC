@@ -23,6 +23,6 @@
     "fabric-api": ">=0.165.2+26.3"
   },
   "custom": {
-    "ai_assistance": "OpenAI Codex assisted with Java implementation, HUD, authored map, original pixel artwork, tests and documentation. See CREDITS.md."
+    "ai_assistance": "OpenAI Codex and Anthropic Claude (Claude Code) assisted with Java implementation, HUD, authored map, original pixel artwork, tests and documentation. Two textures were made with OpenAI image generation. See CREDITS.md."
   }
 }
