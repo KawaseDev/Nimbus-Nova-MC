@@ -11,6 +11,7 @@ import cc.nimbusnova.mc.client.effect.DustStormEffects;
 import cc.nimbusnova.mc.client.guidance.HologramGuidance;
 import cc.nimbusnova.mc.client.ship.ShipClient;
 import cc.nimbusnova.mc.world.ship.ShipMap;
+import cc.nimbusnova.mc.world.moon.LunarSurface;
 import cc.nimbusnova.mc.client.airlock.EntranceAirlockClient;
 import cc.nimbusnova.mc.client.suit.SuitLifeSupportClient;
 import cc.nimbusnova.mc.client.lesson.ScienceStationClient;
@@ -94,7 +95,7 @@ public final class NimbusNovaClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (consoleKey.consumeClick()) {
                 if (client.player != null && client.gui.screen() == null) {
-                    if (client.level != null && client.level.dimension().equals(ShipMap.DIMENSION))
+                    if (client.level != null && (client.level.dimension().equals(ShipMap.DIMENSION) || client.level.dimension().equals(LunarSurface.DIMENSION)))
                         ShipClient.open();
                     else
                         client.setScreenAndShow(moon == null ? new MissionConsoleScreen() : new MoonScreen(moon));

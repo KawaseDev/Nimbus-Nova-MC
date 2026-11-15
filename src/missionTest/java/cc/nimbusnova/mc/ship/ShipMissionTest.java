@@ -148,9 +148,9 @@ public final class ShipMissionTest {
         act(mission, ShipTask.PILOT, 4);
         if (mission.snapshot().stage() != MoonMission.Stage.SURFACE) throw new AssertionError("Safe speeds must permit landing");
         verifyPaused(mission); resume(mission);
-        act(mission, ShipTask.SCIENCE, 0);
-        if (mission.completed(ShipTask.SCIENCE)) throw new AssertionError("A sample requires a suit check");
-        act(mission, ShipTask.MEDICAL, 0); act(mission, ShipTask.SCIENCE, 0);
+        if (mission.collectSurfaceSample() || mission.completed(ShipTask.SCIENCE)) throw new AssertionError("A sample requires a suit check");
+        act(mission, ShipTask.MEDICAL, 0);
+        if (!mission.collectSurfaceSample()) throw new AssertionError("A suited crew must be able to collect the surface sample");
         act(mission, ShipTask.PILOT, 5); act(mission, ShipTask.PILOT, 6);
         if (mission.snapshot().stage() != MoonMission.Stage.RETURN) throw new AssertionError("Rendezvous must lead to return");
         act(mission, ShipTask.PILOT, 0);

@@ -111,7 +111,7 @@ public final class ShipMission {
             case GALLEY -> moon.stage() == MoonMission.Stage.RESTART ? heating(action) : optional(task, action);
             case STORAGE -> cargo(action);
             case MEETING -> meeting(action);
-            case SCIENCE -> moon.stage() == MoonMission.Stage.SURFACE ? surfaceSample(action) : optional(task, action);
+            case SCIENCE -> moon.stage() == MoonMission.Stage.SURFACE ? false : optional(task, action);
             case PLANTS, EXERCISE -> optional(task, action);
         };
         if (!accepted) return false;
@@ -241,6 +241,19 @@ public final class ShipMission {
         record("Collected a nearby simulated lunar sample after the suit check.");
         feedback = "Nearby sample secured. Prepare for ascent and rendezvous.";
         return true;
+    }
+
+    public boolean collectSurfaceSample() {
+        if (phase != Phase.ACTIVE || moon.stage() != MoonMission.Stage.SURFACE || landing == null
+                || !landing.suitsChecked() || !surfaceSample(0)) return false;
+        revision++;
+        checkFailure();
+        return true;
+    }
+
+    public boolean canVisitSurface() {
+        return phase == Phase.ACTIVE && moon.stage() == MoonMission.Stage.SURFACE && landing != null
+                && landing.phase() == LunarLanding.Phase.SURFACE && landing.suitsChecked();
     }
 
     private boolean lunarAscent(final int action) {

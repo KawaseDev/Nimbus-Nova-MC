@@ -6,6 +6,8 @@ import cc.nimbusnova.mc.moon.MoonController;
 import cc.nimbusnova.mc.moon.MoonMission;
 import cc.nimbusnova.mc.npc.MissionNpcs;
 import cc.nimbusnova.mc.world.ship.ShipMap;
+import cc.nimbusnova.mc.world.moon.LunarSurface;
+import cc.nimbusnova.mc.content.ModContent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -27,6 +29,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Block;
@@ -36,6 +41,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +54,7 @@ public final class ShipController {
     private final Map<UUID, ReturnPoint> returns = new HashMap<>();
     private final Map<UUID, HeldAction> holds = new HashMap<>();
     private final Map<UUID, Integer> punchTicks = new HashMap<>();
+    private final Set<UUID> issuedSuits = new HashSet<>();
     private ShipMission mission;
     private int ticks;
 
@@ -117,6 +124,10 @@ public final class ShipController {
             controller.broadcast(server, false);
         });
         UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
+            if (level.dimension().equals(LunarSurface.DIMENSION) && hand == InteractionHand.MAIN_HAND && hit.getBlockPos().equals(LunarSurface.SAMPLE)) {
+                if (player instanceof ServerPlayer astronaut) get(astronaut.level().getServer()).collectSample(astronaut);
+                return InteractionResult.SUCCESS;
+            }
             if (!level.dimension().equals(ShipMap.DIMENSION) || hand != InteractionHand.MAIN_HAND) return InteractionResult.PASS;
             if (ShipMap.task(level.getBlockState(hit.getBlockPos()).getBlock()) == null) return InteractionResult.PASS;
             if (player instanceof ServerPlayer serverPlayer)
@@ -144,7 +155,8 @@ public final class ShipController {
             return InteractionResult.SUCCESS;
         });
         PlayerBlockBreakEvents.BEFORE.register((level, player, _, _, _) ->
-                !level.dimension().equals(ShipMap.DIMENSION) || player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER));
+                !level.dimension().equals(ShipMap.DIMENSION) && !level.dimension().equals(LunarSurface.DIMENSION)
+                        || player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER));
         CommandRegistrationCallback.EVENT.register((dispatcher, _, _) -> {
             final var command = Commands.literal("ship").executes(context -> {
                 get(context.getSource().getServer()).openConsole(context.getSource().getPlayerOrException());
@@ -156,6 +168,14 @@ public final class ShipController {
             }));
             command.then(Commands.literal("leave").executes(context -> {
                 get(context.getSource().getServer()).leave(context.getSource().getPlayerOrException());
+                return 1;
+            }));
+            command.then(Commands.literal("suit").executes(context -> {
+                get(context.getSource().getServer()).giveSuit(context.getSource().getPlayerOrException());
+                return 1;
+            }));
+            command.then(Commands.literal("surface").executes(context -> {
+                get(context.getSource().getServer()).visitSurface(context.getSource().getPlayerOrException());
                 return 1;
             }));
             for (final String action : new String[] { "select", "explore", "start", "pause", "acknowledge", "resume", "abort", "reset", "end" }) {
@@ -181,12 +201,14 @@ public final class ShipController {
                 throw new IllegalStateException("End the current Mars or Moon attempt before selecting Return Window.");
             try {
                 ShipMap.create(server);
+                if (action.equals("ship_explore")) LunarSurface.create(server);
             } catch (final IOException error) {
                 throw new IllegalStateException(error.getMessage(), error);
             }
             mission = new ShipMission(action.equals("ship_explore") ? MoonMission.Variant.EXPLORATION : MoonMission.Variant.RESCUE);
             roles.clear();
             opened.clear();
+            issuedSuits.clear();
             for (final ServerPlayer player : server.getPlayerList().getPlayers()) join(player);
         } else {
             if (mission == null) throw new IllegalStateException("Select Return Window first with /ship select.");
@@ -200,14 +222,16 @@ public final class ShipController {
                     mission = new ShipMission(mission.underlying().variant());
                     roles.clear();
                     opened.clear();
+                    issuedSuits.clear();
                 }
                 case "ship_end" -> {
                     for (final ServerPlayer player : server.getPlayerList().getPlayers()) {
-                        if (player.level().dimension().equals(ShipMap.DIMENSION)) leave(player);
+                        if (player.level().dimension().equals(ShipMap.DIMENSION) || player.level().dimension().equals(LunarSurface.DIMENSION)) leave(player);
                     }
                     mission = null;
                     roles.clear();
                     opened.clear();
+                    issuedSuits.clear();
                 }
                 default -> throw new IllegalArgumentException("Unknown ship action.");
             }
@@ -223,7 +247,7 @@ public final class ShipController {
             return;
         }
         final var server = player.level().getServer();
-        if (!player.level().dimension().equals(ShipMap.DIMENSION))
+        if (!player.level().dimension().equals(ShipMap.DIMENSION) && !player.level().dimension().equals(LunarSurface.DIMENSION))
             returns.put(player.getUUID(), new ReturnPoint(player.level().dimension(), player.position(), player.getYRot(), player.getXRot()));
         player.stopRiding();
         player.teleportTo(server.getLevel(ShipMap.DIMENSION), ShipMap.SPAWN.getX() + 0.5, ShipMap.SPAWN.getY(), ShipMap.SPAWN.getZ() + 0.5, Set.of(), 0, 0, true);
@@ -236,7 +260,7 @@ public final class ShipController {
     public void leave(final ServerPlayer player) {
         holds.remove(player.getUUID());
         punchTicks.remove(player.getUUID());
-        if (!player.level().dimension().equals(ShipMap.DIMENSION)) return;
+        if (!player.level().dimension().equals(ShipMap.DIMENSION) && !player.level().dimension().equals(LunarSurface.DIMENSION)) return;
         final MinecraftServer server = player.level().getServer();
         final ReturnPoint point = returns.remove(player.getUUID());
         final var destination = point == null ? server.overworld() : server.getLevel(point.dimension);
@@ -246,6 +270,74 @@ public final class ShipController {
                 destination.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, spawn.getX(), spawn.getZ()), spawn.getZ() + 0.5) : point.position;
         player.teleportTo(destination, location.x, location.y, location.z, Set.of(), point == null ? 0 : point.yaw, point == null ? 0 : point.pitch, true);
         player.resetFallDistance();
+    }
+
+    private void giveSuit(final ServerPlayer player) {
+        if (mission == null || mission.underlying().variant() != MoonMission.Variant.EXPLORATION
+                || !player.level().dimension().equals(ShipMap.DIMENSION)) {
+            player.sendSystemMessage(Component.literal("Join the exploration ship before collecting a suit."));
+            return;
+        }
+        final EquipmentSlot[] slots = { EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET };
+        final Item[] pieces = { ModContent.SPACE_HELMET, ModContent.SPACE_CHESTPLATE, ModContent.SPACE_LEGGINGS, ModContent.SPACE_BOOTS };
+        for (int i = 0; i < slots.length; i++) {
+            final ItemStack equipped = player.getItemBySlot(slots[i]);
+            if (!equipped.isEmpty() && !equipped.is(pieces[i])) {
+                player.sendSystemMessage(Component.literal("Make room in your armor slots before collecting a space suit."));
+                return;
+            }
+        }
+        if (!issuedSuits.add(player.getUUID())) {
+            player.sendSystemMessage(Component.literal("Your suit was already issued. Check your armor and inventory."));
+            return;
+        }
+        for (int i = 0; i < slots.length; i++)
+            if (player.getItemBySlot(slots[i]).isEmpty()) player.setItemSlot(slots[i], new ItemStack(pieces[i]));
+        player.sendSystemMessage(Component.literal("Space suit equipped."));
+    }
+
+    private void visitSurface(final ServerPlayer player) {
+        if (mission == null || !mission.canVisitSurface() || !player.level().dimension().equals(ShipMap.DIMENSION)) {
+            player.sendSystemMessage(Component.literal("Land, resume the mission and complete the suit check first."));
+            return;
+        }
+        if (!sealedSuit(player)) {
+            player.sendSystemMessage(Component.literal("Equip a complete space suit first. Use /ship suit aboard the ship."));
+            return;
+        }
+        final var destination = player.level().getServer().getLevel(LunarSurface.DIMENSION);
+        if (destination == null) { player.sendSystemMessage(Component.literal("The lunar surface is unavailable.")); return; }
+        if (!destination.getBlockState(LunarSurface.SAMPLE).is(net.minecraft.world.level.block.Blocks.BASALT)) {
+            player.sendSystemMessage(Component.literal("The lunar sample site was changed. Ask Mission Control to inspect it."));
+            return;
+        }
+        opened.remove(player.getUUID());
+        holds.remove(player.getUUID());
+        player.stopRiding();
+        player.teleportTo(destination, LunarSurface.ARRIVAL.getX() + 0.5, LunarSurface.ARRIVAL.getY(), LunarSurface.ARRIVAL.getZ() + 0.5, Set.of(), -90, 0, true);
+        player.resetFallDistance();
+        player.sendSystemMessage(Component.literal("Moon surface: sample at x=10, z=-8. Right-click it, then use /ship join to return."));
+        send(player, false);
+    }
+
+    private void collectSample(final ServerPlayer player) {
+        if (mission == null || !player.level().getBlockState(LunarSurface.SAMPLE).is(net.minecraft.world.level.block.Blocks.BASALT)
+                || player.distanceToSqr(Vec3.atCenterOf(LunarSurface.SAMPLE)) > 36
+                || !sealedSuit(player)
+                || !player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER) && roles.get(player.getUUID()) != MoonMission.Role.MAINTENANCE
+                || !mission.collectSurfaceSample()) {
+            player.sendSystemMessage(Component.literal("The maintenance specialist can collect this sample during the surface mission."));
+            return;
+        }
+        player.sendSystemMessage(Component.literal("Lunar sample collected. Use /ship join to return to the lander."));
+        broadcast(player.level().getServer(), false);
+    }
+
+    private static boolean sealedSuit(final ServerPlayer player) {
+        return player.getItemBySlot(EquipmentSlot.HEAD).is(ModContent.SPACE_HELMET)
+                && player.getItemBySlot(EquipmentSlot.CHEST).is(ModContent.SPACE_CHESTPLATE)
+                && player.getItemBySlot(EquipmentSlot.LEGS).is(ModContent.SPACE_LEGGINGS)
+                && player.getItemBySlot(EquipmentSlot.FEET).is(ModContent.SPACE_BOOTS);
     }
 
     public void openConsole(final ServerPlayer player) {
@@ -278,6 +370,9 @@ public final class ShipController {
                 leave(player);
                 return;
             }
+            if (packet.action().equals("join")) { join(player); return; }
+            if (packet.action().equals("suit")) { giveSuit(player); send(player, false); return; }
+            if (packet.action().equals("surface")) { visitSurface(player); send(player, false); return; }
             if (packet.action().equals("hold_cancel")) {
                 holds.remove(player.getUUID());
                 return;
@@ -316,6 +411,9 @@ public final class ShipController {
             throw new IllegalStateException("Ask the " + task.role.name().replace('_', ' ').toLowerCase() + " specialist to use this system.");
 
         final var state = mission.snapshot();
+        if (task == ShipTask.PILOT && state.stage() == MoonMission.Stage.SURFACE && packet.value() == 5
+                && player.level().getServer().getPlayerList().getPlayers().stream().anyMatch(crew -> crew.level().dimension().equals(LunarSurface.DIMENSION)))
+            throw new IllegalStateException("All crew must return from the lunar surface before ascent.");
         final boolean requiresHold = ShipHoldActions.requires(task, state.stage(), packet.value());
         if (packet.action().equals("hold_begin")) {
             holds.remove(player.getUUID());

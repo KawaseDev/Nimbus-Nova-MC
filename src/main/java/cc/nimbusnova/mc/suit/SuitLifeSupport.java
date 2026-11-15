@@ -6,6 +6,9 @@ import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.world.EntranceAirlock;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
+import cc.nimbusnova.mc.world.moon.LunarSurface;
+import cc.nimbusnova.mc.ship.ShipController;
+import cc.nimbusnova.mc.ship.ShipMission;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -50,7 +53,8 @@ public final class SuitLifeSupport {
     public static void tickPlayer(final ServerPlayer player) {
         final MinecraftServer server = player.level().getServer();
         final ServerState state = SERVERS.computeIfAbsent(server, _ -> new ServerState());
-        if (!player.level().dimension().equals(MarsTrainingMap.DIMENSION) || !player.isAlive() || player.isSpectator()) {
+        final boolean moon = player.level().dimension().equals(LunarSurface.DIMENSION);
+        if ((!moon && !player.level().dimension().equals(MarsTrainingMap.DIMENSION)) || !player.isAlive() || player.isSpectator()) {
             state.players.remove(player.getUUID());
             return;
         }
@@ -58,14 +62,16 @@ public final class SuitLifeSupport {
         final SuitAirModel model = state.players.computeIfAbsent(player.getUUID(), _ -> new SuitAirModel());
         final MissionController controller = MissionController.get(server);
         final MissionState.Phase phase = controller.snapshot().phase();
-        final boolean frozen = phase == MissionState.Phase.PAUSED || phase.ended() || controller.education().incident() != null;
-        final boolean inside = pressurized(player.level(), player.blockPosition());
+        final ShipMission ship = moon ? ShipController.get(server).mission() : null;
+        final boolean frozen = moon ? ship == null || ship.snapshot().phase() != ShipMission.Phase.ACTIVE
+                : phase == MissionState.Phase.PAUSED || phase.ended() || controller.education().incident() != null;
+        final boolean inside = !moon && pressurized(player.level(), player.blockPosition());
         final boolean helmet = player.getItemBySlot(EquipmentSlot.HEAD).is(ModContent.SPACE_HELMET);
         final boolean sealed = helmet && player.getItemBySlot(EquipmentSlot.CHEST).is(ModContent.SPACE_CHESTPLATE)
                 && player.getItemBySlot(EquipmentSlot.LEGS).is(ModContent.SPACE_LEGGINGS)
                 && player.getItemBySlot(EquipmentSlot.FEET).is(ModContent.SPACE_BOOTS);
         model.tick(inside, sealed, frozen);
-        if (!frozen && !inside && model.air == 0 && phase == MissionState.Phase.ACTIVE)
+        if (!frozen && !inside && model.air == 0 && (moon || phase == MissionState.Phase.ACTIVE))
             player.hurtServer(player.level(), player.level().damageSources().drown(), 1);
 
         ServerPlayNetworking.send(player, new SuitAirPayload(model.air, inside, sealed, helmet, frozen));

@@ -11,15 +11,19 @@ import cc.nimbusnova.mc.ship.ShipHoldActions;
 import cc.nimbusnova.mc.ship.ShipActionPayload;
 import cc.nimbusnova.mc.moon.MoonMission;
 import cc.nimbusnova.mc.client.ship.controls.HoldTaskButton;
+import cc.nimbusnova.mc.client.suit.SuitLifeSupportClient;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import cc.nimbusnova.mc.world.ship.ShipMap;
+import cc.nimbusnova.mc.world.moon.LunarSurface;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.players.NameAndId;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.InteractionHand;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
@@ -159,6 +163,14 @@ final class ShipMissionChecks {
         world.getServer().runCommand("ship explore");
         context.waitFor(client -> client.level != null && client.level.dimension().equals(ShipMap.DIMENSION)
                 && ShipClient.state() != null && ShipClient.state().variant().equals("EXPLORATION"));
+        world.getServer().runOnServer(server -> {
+            final var moon = server.getLevel(LunarSurface.DIMENSION);
+            final BlockPos playerBuild = new BlockPos(20, 63, 20);
+            moon.setBlock(playerBuild, Blocks.GOLD_BLOCK.defaultBlockState(), Block.UPDATE_CLIENTS);
+            try { LunarSurface.create(server); } catch (java.io.IOException error) { throw new RuntimeException(error); }
+            if (!moon.getBlockState(playerBuild).is(Blocks.GOLD_BLOCK))
+                throw new AssertionError("Selecting the Moon again must preserve existing builds");
+        });
         open(context, world, ShipTask.ENGINE); circuit(context);
         open(context, world, ShipTask.STORAGE); action(context, 0); action(context, 2); action(context, 3);
         world.getServer().runCommand("ship start");
@@ -181,8 +193,34 @@ final class ShipMissionChecks {
         GuidedMissionChecks.capture(context, "moon-descent-controls");
         for (final int operation : new int[] { 0, 5, 1, 2, 3, 3, 3, 4 }) action(context, operation);
         resume(context, world);
+        world.getServer().runCommand("execute as @p run ship surface");
+        if (world.getServer().computeOnServer(server -> world.getConnection().getServerPlayer().level().dimension().equals(LunarSurface.DIMENSION)))
+            throw new AssertionError("The surface must require a suit check and equipment");
         open(context, world, ShipTask.MEDICAL); action(context, 0);
-        open(context, world, ShipTask.SCIENCE); action(context, 0);
+        world.getServer().runCommand("execute as @p run ship suit");
+        world.getServer().runCommand("execute as @p run ship surface");
+        context.waitFor(client -> client.level != null && client.level.dimension().equals(LunarSurface.DIMENSION));
+        final double gravity = world.getServer().computeOnServer(server -> world.getConnection().getServerPlayer().getGravity());
+        if (Math.abs(gravity - 0.08 * LunarSurface.GRAVITY_RATIO) > 0.000001)
+            throw new AssertionError("The Moon must use the configured one-sixth gravity");
+        context.waitFor(client -> SuitLifeSupportClient.state() != null && !SuitLifeSupportClient.state().frozen());
+        world.getServer().runCommand("ship pause");
+        context.waitFor(client -> SuitLifeSupportClient.state() != null && SuitLifeSupportClient.state().frozen());
+        final double pausedAir = context.computeOnClient(client -> SuitLifeSupportClient.state().air());
+        context.waitTicks(30);
+        if (context.computeOnClient(client -> SuitLifeSupportClient.state().air()) != pausedAir)
+            throw new AssertionError("A teacher pause must freeze lunar suit air");
+        world.getServer().runCommand("ship resume");
+        context.waitFor(client -> ShipClient.state() != null && ShipClient.state().phase().equals("ACTIVE"));
+        context.setScreen(() -> null);
+        world.getConnection().waitForChunksRender();
+        GuidedMissionChecks.capture(context, "moon-surface");
+        world.getServer().runCommand("execute in nimbus_nova:lunar_surface run tp @p 9.5 63 -8.5");
+        GuidedMissionChecks.use(world, LunarSurface.SAMPLE);
+        if (!world.getServer().computeOnServer(server -> ShipController.get(server).mission().completed(ShipTask.SCIENCE)))
+            throw new AssertionError("Right-clicking the lunar sample must complete the sample task");
+        world.getServer().runCommand("execute as @p run ship join");
+        context.waitFor(client -> client.level != null && client.level.dimension().equals(ShipMap.DIMENSION));
         open(context, world, ShipTask.PILOT);
         GuidedMissionChecks.capture(context, "moon-ascent-controls");
         action(context, 5); action(context, 6);
