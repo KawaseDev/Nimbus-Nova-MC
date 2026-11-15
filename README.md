@@ -1,19 +1,32 @@
+<p align="center">
+  <img src="docs/img/banner.jpg" alt="Nimbus Nova: space mission training, built in Minecraft" width="100%">
+</p>
+
 <h1 align="center">🛰️ Nimbus Nova</h1>
 
-<p align="center"><strong>A cooperative astronaut mission trainer inside Minecraft</strong></p>
+<p align="center"><strong>Six space missions. Five crew roles. One shared supply of power and air.</strong><br>
+A cooperative astronaut mission trainer inside Minecraft, built for the classroom.</p>
+
+<p align="center">
+  <a href="https://github.com/KawaseDev/Nimbus-Nova-MC/releases/latest"><img src="https://img.shields.io/github/v/release/KawaseDev/Nimbus-Nova-MC?color=ffc857&label=release" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/Minecraft-26.3-5fe1f0" alt="Minecraft 26.3">
+  <img src="https://img.shields.io/badge/Fabric-0.20.1-dbd0b4" alt="Fabric Loader 0.20.1">
+  <img src="https://img.shields.io/badge/Java-25-e76f51" alt="Java 25">
+  <img src="https://img.shields.io/badge/NASA%20Space%20Apps-2026-0b3d91" alt="NASA Space Apps Challenge 2026">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8bd17c" alt="MIT License"></a>
+</p>
 
 <p align="center">
   <a href="https://github.com/KawaseDev/Nimbus-Nova-MC/releases/latest/download/NimbusNova.mrpack"><strong>⬇ Download the modpack</strong></a>
-  · <a href="https://github.com/KawaseDev/Nimbus-Nova-MC/releases/latest">Release files</a>
+  · <a href="presentation/NimbusNova-Trailer.mp4"><strong>▶ Watch the trailer</strong></a>
   · <a href="PLAYER_GUIDE.md">Crew guide</a>
   · <a href="TEACHER_GUIDE.md">Teacher guide</a>
+  · <a href="presentation/NOVA-Pitch-v2.pptx">Pitch deck</a>
 </p>
 
-<p align="center">Minecraft Java Edition 26.3 · Fabric · Java 25 · Six playable missions</p>
-
 <p align="center">
-  <img src="docs/img/aster-outpost.png" alt="Aster Outpost on Mars, with a glass habitat dome, landing pad, and equipment bays">
-  <br><em>Aster Outpost, captured in Minecraft</em>
+  <a href="presentation/NimbusNova-Trailer.mp4"><img src="docs/img/trailer.gif" alt="Trailer preview with gameplay from the missions" width="720"></a>
+  <br><em>All footage recorded in-game. Click for the 30-second trailer with sound.</em>
 </p>
 
 Dust cuts power at a Mars outpost. The crew can keep oxygen running or use that energy to finish a science task, and every specialist sees different readings. Students have to compare what they know, decide together, and carry out the plan at working equipment in the world.
@@ -39,10 +52,26 @@ The release also offers a standalone mod JAR for manual Fabric setups. Install *
 | 🔋 **The Long Night** | Repair a failed junction and share limited power between heat, air, the lab, and the rescue beacon. |
 | 🌱 **Greenhouse Emergency** | Patch a feed pipe and balance irrigation, root aeration, lights, and cabin humidity. |
 
-| Lunar exploration | Flight instruments | Greenhouse Emergency |
+| | | |
 | --- | --- | --- |
-| ![Amber marker on the lunar basalt sample](docs/img/lunar-waypoint.png) | ![The return burn panel shows predicted trajectories and the cutoff window](presentation/return-burn.png) | ![Greenhouse HUD points maintenance to the pump and grow lights](docs/img/greenhouse-controls.png) |
-| Follow the lunar sample waypoint. | Compare entry predictions before burning fuel. | Find the feed system and keep crops alive. |
+| ![Aster Outpost dome on Mars](docs/img/mars-outpost.jpg) | ![Lunar surface with the sample waypoint and minimap](docs/img/lunar-surface.jpg) | ![Greenhouse site with solar panels and landing pad](docs/img/greenhouse-site.jpg) |
+| **Mars.** Aster Outpost under a dust storm. | **Moon.** Walk to the basalt sample on suit air. | **Greenhouse.** Keep the crops and the cabin alive. |
+
+## 🕹️ Hands-on stations
+
+Every job is something you do at a console, with the reason it matters on screen next to it.
+
+| | | |
+| --- | --- | --- |
+| ![Rotating cable tiles to connect solar power to the base](docs/img/power-routing.jpg) | ![Balancing pressure and flow with three valves](docs/img/oxygen-recycler.jpg) | ![Docking with thruster pulses that add drift](docs/img/momentum-docking.jpg) |
+| **Route power.** Turn cable tiles until the solar array reaches the base. | **Balance air.** Each valve changes two readings at once. | **Dock.** Every push adds drift, so you brake by pushing the other way. |
+| ![Picking three sharp guide stars on a star map](docs/img/star-navigation.jpg) | ![Checking descent speeds and choosing a landing site](docs/img/lunar-descent.jpg) | ![Shelter site with shielding and survey station](docs/img/shelter-site.jpg) |
+| **Navigate.** Fix your heading from three sharp stars. | **Land.** Brake, pick a site, or cancel and go around. | **Shelter.** Build shielding before the radiation arrives. |
+
+- 🧭 **Minimap and waypoints** show the floor plan, your crew, and where the next job is. Press **M** to toggle the map.
+- 📟 **Role-specific readings** mean no one player sees the whole picture.
+- 💡 **Space facts** on every task link the puzzle to how real missions handled the same problem.
+- 🧑‍🏫 **Teacher controls** pause the mission for discussion and save a debrief of the crew's decisions.
 
 ## 🎛️ A mission from briefing to debrief
 
@@ -75,10 +104,10 @@ With JDK 25 installed, run these commands from the repository root. On Windows, 
 ./gradlew runClient
 ```
 
-`build` runs the simulation and headless Minecraft server checks. For the rendered gameplay suite, run `./gradlew runClientGameTest` on a machine with a graphical session.
+`build` runs the simulation and headless Minecraft server checks. For the rendered gameplay suite, run `./gradlew runClientGameTest` on a machine with a graphical session. Add `-Ptrailer` to that command to record the 120 fps footage used by the trailer scripts in `tools/trailer`.
 
 - 📖 [Technical reference](docs/REFERENCE.md) for setup, commands, equipment, and mission behavior.
-- 🎙️ [Pitch outline and demo screenshots](presentation/pitch.md) for the presentation.
+- 🎙️ [Pitch deck](presentation/NOVA-Pitch-v2.pptx), [trailer](presentation/NimbusNova-Trailer.mp4) and [pitch outline](presentation/pitch.md).
 - 🧾 [Competition requirements](rules.md) and [source register](CREDITS.md).
 
 ### Optional local terrain import
