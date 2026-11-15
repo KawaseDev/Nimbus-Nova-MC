@@ -20,3 +20,5 @@ shot('ship-emergency-loads','step3',16/9); shot('0052_mission-debrief','step4',1
 shot('mission-hud','storm',16/9); shot('mission-science','science',16/9) if glob.glob(f'{SRC}/*mission-science*') else shot('mars-dust-storm','science',16/9)
 shot('fullscreen-momentum-docking','nova',2.0); shot('moon-surface-overview','moon',2.0); shot('scenario-greenhouse-overview','green',2.0)
 user('image3.jpeg','whiteboard'); user('image10.jpeg','artemis',2.0); user('image12.jpeg','mcedu'); user('image13.jpeg','logo',1.0)
+shot('fullscreen-ship-orbit','moon',2.0); shot('aster-rover','green',2.0)
+im=Image.open('dl/crater.jpg').convert('RGB'); w,h=im.size; im.crop((0,40,w,40+w//2)).save('img/crater.png')

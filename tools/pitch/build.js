@@ -135,7 +135,7 @@ slide.addNotes("Thanks to the work of NASA's teams, we managed to create realist
 // 6 Differentiation
 slide = content("05 / CREATIVITY & DIFFERENTIATION", "Others teach space. NOVA runs the mission.", 6);
 const rivals = [
-    ["Crater Crew", "Co-op browser game", "Mars and Moon strategy and exploration, not a crew fixing a spacecraft.", null],
+    ["Crater Crew", "Co-op browser game", "Mars and Moon strategy and exploration, not a crew fixing a spacecraft.", "crater"],
     ["Artemis: Return to the Moon", "Minecraft Education × NASA", "Coding puzzles to fly the Orion capsule, not crew crisis operations.", "artemis"],
     ["NOVA", "Minecraft crew simulator", "Every student holds a crew role, and one decision affects the whole mission.", "nova"]
 ];
