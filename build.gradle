@@ -135,6 +135,14 @@ fabricApi {
     }
 }
 
+tasks.matching { it.name == 'runGameTest' }.configureEach {
+    // The headless test world persists between runs; a report archive filled by older runs fails the report checks.
+    def staleReports = layout.buildDirectory.dir('run/gameTest/world/nimbus-nova/reports')
+    doFirst {
+        staleReports.get().asFile.deleteDir()
+    }
+}
+
 jar {
     def projectName = project.name
     inputs.property 'projectName', projectName
