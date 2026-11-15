@@ -135,6 +135,13 @@ fabricApi {
     }
 }
 
+if (providers.gradleProperty('trailer').isPresent()) {
+    // Records trailer footage: 120 fps frame sequences saved to build/run/clientGameTest/trailer.
+    loom.runs.configureEach {
+        property 'nimbusnova.trailer', 'true'
+    }
+}
+
 tasks.matching { it.name == 'runGameTest' }.configureEach {
     // The headless test world persists between runs; a report archive filled by older runs fails the report checks.
     def staleReports = layout.buildDirectory.dir('run/gameTest/world/nimbus-nova/reports')

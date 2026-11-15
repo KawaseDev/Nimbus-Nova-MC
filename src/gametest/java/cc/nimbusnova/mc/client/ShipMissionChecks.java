@@ -390,6 +390,7 @@ final class ShipMissionChecks {
         } else
             context.runOnClient(client -> ((ShipScreen) client.gui.screen()).sendTaskAction(value));
         context.waitFor(client -> client.gui.screen() instanceof ShipScreen screen && screen.state().revision() != revision);
+        TrailerRecorder.play(context, (task + "-" + stage).toLowerCase());
     }
 
     private static void verifyHeldCargo(final ClientGameTestContext context, final TestSingleplayerContext world) {

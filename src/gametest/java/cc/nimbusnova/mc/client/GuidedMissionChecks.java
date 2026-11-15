@@ -192,6 +192,7 @@ final class GuidedMissionChecks {
         context.clickScreenButton(action);
         context.waitFor(client -> client.gui.screen() instanceof TaskScreen screen
                 && (screen.serverState().complete() || screen.serverState().step() > previous));
+        TrailerRecorder.play(context, action.startsWith("Rotate") ? "power" : "oxygen");
     }
 
     static void use(final TestSingleplayerContext world, final BlockPos position) {
@@ -206,6 +207,7 @@ final class GuidedMissionChecks {
     static void capture(final ClientGameTestContext context, final String name) {
         context.runOnClient(client -> client.gui.hud.getChat().clearMessages(false));
         context.takeScreenshot(name);
+        TrailerRecorder.scene(context, name);
     }
 
     static void advanceTo(final TestSingleplayerContext world, final int targetSecond) {
