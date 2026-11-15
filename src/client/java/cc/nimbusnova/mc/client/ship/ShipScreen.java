@@ -148,6 +148,9 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
             return;
         }
 
+        if (state.stage().equals("SURFACE") && state.task().equals("SCIENCE"))
+            addRenderableWidget(new MissionButton(left + 14, top + 145, 140, 23, "NASA sample image",
+                    () -> ConfirmLinkScreen.confirmLinkNow(this, URI.create("https://ares.jsc.nasa.gov/astromaterials3d/sample-details.htm?sample=12038-7"))));
         if (state.complete()) return;
         final int bodyWidth = panelWidth - 28;
         if (fuses()) {
@@ -307,6 +310,8 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
         } else if (tablet || ended()) {
             NovaRenderer.wrap(graphics, state.title() + ". " + state.instruction(), left + 14, top + 55, panelWidth - 28, 10,
                     state.role().isEmpty() && state.phase().equals("READY") ? 2 : Math.max(3, (panelHeight - 129) / 12), TEXT);
+        } else if (state.complete() && state.stage().equals("SURFACE") && state.task().equals("SCIENCE")) {
+            NovaRenderer.wrap(graphics, "Compare the simulated basalt with NASA's Apollo 12 sample. What similarities and differences can you see? A Minecraft block is not a scientific identification.", left + 14, top + 65, panelWidth - 28, 10, 5, TEXT);
         } else if (state.complete()) {
             NovaRenderer.text(graphics, "Station check complete", left + 14, top + 73, 18, SUCCESS);
             NovaRenderer.wrap(graphics, "Close this panel and follow your next crew objective.", left + 14, top + 108, panelWidth - 28, 10, 3, TEXT);

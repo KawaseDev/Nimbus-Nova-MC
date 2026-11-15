@@ -230,6 +230,9 @@ final class ShipMissionChecks {
             throw new AssertionError("Right-clicking the lunar sample must complete the sample task");
         world.getServer().runCommand("execute as @p run ship join");
         context.waitFor(client -> client.level != null && client.level.dimension().equals(ShipMap.DIMENSION));
+        open(context, world, ShipTask.SCIENCE);
+        if (!context.computeOnClient(client -> client.gui.screen().children().stream().anyMatch(child -> child instanceof net.minecraft.client.gui.components.Button button && button.getMessage().getString().equals("NASA sample image"))))
+            throw new AssertionError("The collected sample must offer its NASA comparison");
         open(context, world, ShipTask.PILOT);
         GuidedMissionChecks.capture(context, "moon-ascent-controls");
         action(context, 5); action(context, 6);
