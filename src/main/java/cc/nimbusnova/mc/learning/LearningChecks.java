@@ -109,9 +109,10 @@ public final class LearningChecks {
             return null;
         }
         final Episode previous = session.episodes.get(source);
-        if (previous != null && previous.owner == current.owner && previous.incident.equals(current.incident)) return previous;
-        final Episode next = new Episode(current.owner, current.incident, ++session.revision,
-                new AppliedLearning(AppliedLearning.Case.valueOf(current.incident)));
+        if (previous != null && previous.owner == current.owner && previous.incident.equals(current.incident)
+                && (!current.incident.equals("DUST") || previous.first == current.first && previous.second == current.second)) return previous;
+        final Episode next = new Episode(current.owner, current.incident, ++session.revision, current.first, current.second,
+                new AppliedLearning(AppliedLearning.Case.valueOf(current.incident), current.first, current.second));
         session.episodes.put(source, next);
         return next;
     }
@@ -160,7 +161,7 @@ public final class LearningChecks {
         private int revision;
     }
 
-    private record Episode(Object owner, String incident, int revision, AppliedLearning model) {
+    private record Episode(Object owner, String incident, int revision, int first, int second, AppliedLearning model) {
         /* w */
     }
 

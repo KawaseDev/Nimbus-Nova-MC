@@ -42,14 +42,16 @@ function createServer(options = {}) {
         response.writeHead(403).end(); return;
       }
       let body;
+      let preparingMap = false;
       if (!readOnly) {
         try {
           let raw = '';
           for await (const chunk of request) { raw += chunk; if (Buffer.byteLength(raw) > 2048) throw new Error(); }
           const data = JSON.parse(raw);
           if (request.url === '/api/mission-action') {
+            preparingMap = typeof data.action === 'string' && data.action.startsWith('hub_select_');
             if (!data || typeof data.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.id) ||
-                !['start', 'pause', 'resume', 'acknowledge', 'abort', 'reset', 'moon_exploration', 'moon_rescue', 'moon_pause', 'moon_resume', 'moon_acknowledge', 'moon_advance', 'moon_end', 'ship_select', 'ship_explore', 'ship_start', 'ship_pause', 'ship_acknowledge', 'ship_resume', 'ship_abort', 'ship_reset', 'ship_end'].includes(data.action)) throw new Error();
+                !['start', 'pause', 'resume', 'acknowledge', 'abort', 'reset', 'moon_exploration', 'moon_rescue', 'moon_pause', 'moon_resume', 'moon_acknowledge', 'moon_advance', 'moon_end', 'ship_select', 'ship_explore', 'ship_start', 'ship_pause', 'ship_acknowledge', 'ship_resume', 'ship_abort', 'ship_reset', 'ship_end', 'hub_select_mars', 'hub_select_moon', 'hub_select_ship', 'hub_select_shelter', 'hub_select_long_night', 'hub_select_greenhouse', 'hub_start', 'hub_pause', 'hub_resume', 'hub_reset', 'hub_end'].includes(data.action)) throw new Error();
             body = `${data.id} ${data.action}`;
           } else {
             if (!data || typeof data.message !== 'string' || !data.message.trim() || data.message.trim().length > 200 || /[\x00-\x1f\x7f-\x9f]/.test(data.message)) throw new Error();
@@ -63,7 +65,7 @@ function createServer(options = {}) {
         const route = readOnly ? '/mission' : request.url === '/api/message' ? '/message' : '/mission-action';
         const result = await fetch(new URL(route, bridge), {
           method: readOnly ? 'GET' : 'POST', headers: { Authorization: `Bearer ${options.bridgeToken}` }, body,
-          signal: AbortSignal.timeout(4000), redirect: 'error'
+          signal: AbortSignal.timeout(preparingMap ? 35000 : 4000), redirect: 'error'
         });
         if (!readOnly) { response.writeHead(result.status === 204 ? 204 : result.status === 409 ? 409 : 503).end(); return; }
         if (!result.ok) throw new Error();

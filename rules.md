@@ -44,10 +44,10 @@ The brief encourages NASA open data. Suggestions include [DONKI](https://ccmc.gs
 
 - [ ] Confirm event, accepted team members, build window, and local judging time.
 - [ ] Resolve Minecraft dependency eligibility with the Local Lead.
-- [ ] Implement a playable mission with competing demands and understandable outcomes.
-- [ ] Integrate and credit a NASA resource meaningfully; distinguish science from simplified values.
+- [x] Implement a playable mission with competing demands and understandable outcomes.
+- [x] Integrate and credit a NASA resource meaningfully; distinguish science from simplified values.
 - [ ] Keep [CREDITS.md](CREDITS.md), licenses, and AI disclosures current.
 - [ ] Publish accessible source/final-project and compliant demo links; verify signed-out access.
 - [ ] Review minors' privacy, complete English fields, and submit before the applicable deadline.
 
-Only repository/template setup is implemented. No registration, organizer confirmation, science integration, public release, or submission has been performed.
+The repository now includes playable mission systems, NASA-linked dust/incident evidence, cooperative controls and explicit authored-model limits. Registration, organizer eligibility confirmation, judged public links, formal release and submission have not been verified. Software implementation and test results do not establish classroom learning effectiveness.

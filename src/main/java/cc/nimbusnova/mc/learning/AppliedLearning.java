@@ -9,10 +9,10 @@ public final class AppliedLearning {
                 "Choose the route that changes the crew's exposure.",
                 List.of("Inspect the outside solar panels", "Move together into the shelter", "Increase research power"), 1,
                 "The shelter changes exposure. Extra power or oxygen does not shield the crew from energetic particles."),
-        DUST("Stored energy", "Forecast: sunlight will drop. Life support still needs electrical power.",
-                "Which load can wait to protect essential reserves?",
-                List.of("Run every laboratory load", "Isolate nonessential science loads", "Turn off oxygen production first"), 1,
-                "Nonessential loads can wait. Keeping life support powered protects the crew while reducing battery demand."),
+        DUST("Read the power budget", "Assume battery storage has room. Compare the current supply and load, not the later forecast.",
+                "What battery trend do these displayed readings predict RIGHT NOW?",
+                List.of("Charge: supply exceeds load", "Drain: load exceeds supply", "Stay steady: supply equals load"), 2,
+                "Subtract the current electrical load from the current supply to predict the storage trend."),
         RELAY("Fault isolation", "Research uses power but its output has stopped. Oxygen equipment still works.",
                 "Choose the repair supported by both readings.",
                 List.of("Add oxygen to the habitat", "Restart every electrical load", "Isolate and repair the research relay"), 2,
@@ -58,17 +58,35 @@ public final class AppliedLearning {
     }
 
     private final Case situation;
+    private final int supportedChoice;
+    private final String explanation;
     private boolean solved;
     private String feedback = "Compare both readings before committing the crew's next action.";
 
     public AppliedLearning(final Case situation) {
+        this(situation, 0, 0);
+    }
+
+    public AppliedLearning(final Case situation, final int first, final int second) {
         this.situation = situation;
+        if (situation == Case.DUST) {
+            supportedChoice = first > second ? 0 : first < second ? 1 : 2;
+            explanation = "Supply " + first + " minus load " + second + " gives " + (first - (long) second)
+                    + " model units. " + (first > second
+                    ? "That surplus can charge available storage; a full battery cannot store more."
+                    : first < second ? "The battery supplies the deficit and drains." : "There is no net transfer, so charge stays steady.")
+                    + " A future dust forecast does not change what these current readings show.";
+            feedback = "Compare current supply and load before predicting the battery trend.";
+        } else {
+            supportedChoice = situation.answer;
+            explanation = situation.explanation;
+        }
     }
 
     public boolean answer(final int choice) {
         if (choice < 0 || choice >= situation.choices.size() || solved) return false;
-        solved = choice == situation.answer;
-        feedback = (solved ? "Prediction supported. " : "That action does not address these readings. ") + situation.explanation;
+        solved = choice == supportedChoice;
+        feedback = (solved ? "Prediction supported. " : "That action does not address these readings. ") + explanation;
         return true;
     }
 

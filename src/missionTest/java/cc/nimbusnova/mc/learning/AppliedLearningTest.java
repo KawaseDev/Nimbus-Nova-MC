@@ -9,7 +9,7 @@ public final class AppliedLearningTest {
 
     public static void main(final String[] arguments) {
         final Map<AppliedLearning.Case, Integer> supported = Map.of(
-                AppliedLearning.Case.SOLAR, 1, AppliedLearning.Case.DUST, 1, AppliedLearning.Case.RELAY, 2,
+                AppliedLearning.Case.SOLAR, 1, AppliedLearning.Case.RELAY, 2,
                 AppliedLearning.Case.DOCKING, 1, AppliedLearning.Case.DESCENT, 2, AppliedLearning.Case.EMERGENCY, 0,
                 AppliedLearning.Case.FILTER, 2, AppliedLearning.Case.RESTART, 0, AppliedLearning.Case.SURFACE, 1);
         for (final var entry : supported.entrySet()) {
@@ -25,6 +25,16 @@ public final class AppliedLearningTest {
             if (model.answer(entry.getValue()) || !model.feedback().equals(complete))
                 throw new AssertionError("A completed check must be immutable rather than provide repeat rewards");
         }
-        System.out.println("Applied learning checks passed: nine incident predictions, evidence feedback and immutable completion.");
+        for (final int[] readings : new int[][] { { 110, 60, 0 }, { 110, 125, 1 }, { 110, 110, 2 } }) {
+            final AppliedLearning dust = new AppliedLearning(AppliedLearning.Case.DUST, readings[0], readings[1]);
+            if (!dust.answer((readings[2] + 1) % 3) || dust.solved())
+                throw new AssertionError("Dust prediction must reject a trend opposite to the live power balance");
+            if (!dust.feedback().contains("Supply " + readings[0] + " minus load " + readings[1])
+                    || !dust.feedback().contains("gives " + (readings[0] - readings[1])))
+                throw new AssertionError("Dust feedback must explain the actual displayed readings");
+            if (!dust.answer(readings[2]) || !dust.solved())
+                throw new AssertionError("Dust charge/drain/steady answer must follow the live readings");
+        }
+        System.out.println("Applied learning checks passed: eight equipment predictions, three live power balances, evidence feedback and immutable completion.");
     }
 }

@@ -24,7 +24,9 @@ final class LearningGameChecks {
     static void solveOnServer(final ServerPlayer player, final String source) {
         final var packet = LearningChecks.snapshot(player.level().getServer(), source, false);
         if (packet.incident().isEmpty()) return;
-        LearningChecks.applyAnswer(player, source, packet.revision(), supported(packet.incident()));
+        LearningChecks.applyAnswer(player, source, packet.revision(), packet.incident().equals("DUST")
+                ? packet.firstValue() > packet.secondValue() ? 0 : packet.firstValue() < packet.secondValue() ? 1 : 2
+                : supported(packet.incident()));
         LearningChecks.requireSolved(player.level().getServer(), source);
     }
 
@@ -33,8 +35,14 @@ final class LearningGameChecks {
         context.waitForScreen(LearningScreen.class);
         final String incident = context.computeOnClient(client -> ((LearningScreen) client.gui.screen()).state().incident());
         GuidedMissionChecks.capture(context, "applied-check-" + source + "-" + incident.toLowerCase());
-        context.runOnClient(client -> ((LearningScreen) client.gui.screen()).answer(supported(incident)));
-        context.waitFor(client -> LearningClient.state() != null && LearningClient.state().solved());
+        context.runOnClient(client -> {
+            final var screen = (LearningScreen) client.gui.screen();
+            final var readings = screen.state();
+            screen.answer(incident.equals("DUST")
+                    ? readings.firstValue() > readings.secondValue() ? 0 : readings.firstValue() < readings.secondValue() ? 1 : 2
+                    : supported(incident));
+        });
+        context.waitFor(client -> LearningClient.state(source) != null && LearningClient.state(source).solved());
         context.setScreen(() -> null);
     }
 }
