@@ -10,6 +10,7 @@ import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.learning.LearningClient;
 import cc.nimbusnova.mc.client.render.NovaScreen;
+import cc.nimbusnova.mc.hub.HubActionPayload;
 import java.awt.Color;
 import java.net.URI;
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import java.util.List;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ConfirmLinkScreen;
 import net.minecraft.network.chat.Component;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import org.jspecify.annotations.NonNull;
 
 public final class MissionConsoleScreen extends NovaScreen implements MissionPalette {
@@ -74,6 +76,9 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
             } else if (NimbusNovaClient.snapshot != null && NimbusNovaClient.snapshot.operator()
                     && NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.READY && objective != null && objective.ready())
                 command("start");
+            else if (NimbusNovaClient.snapshot != null && NimbusNovaClient.snapshot.state().phase() == MissionState.Phase.READY
+                    && objective != null && objective.ready() && ClientPlayNetworking.canSend(HubActionPayload.TYPE))
+                ClientPlayNetworking.send(new HubActionPayload("request_start", "mars"));
             else
                 onClose();
         }));
@@ -138,8 +143,8 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
         final MissionProgressPayload objective = GuidedMissionClient.progress();
         final boolean canLaunch = connected && phase == MissionState.Phase.READY && objective != null && objective.ready();
         start.setMessage(Component.literal(!ObjectiveGuidance.onMars() ? "Enter outpost"
-                : canLaunch ? operator ? "Start mission" : "Teacher starts" : "Back to mission"));
-        start.active = connected && (!ObjectiveGuidance.onMars() || !canLaunch || operator);
+                : canLaunch ? operator ? "Start mission" : "Ask teacher to start" : "Back to mission"));
+        start.active = connected;
         final boolean prepareOutpost = !ObjectiveGuidance.onMars() && phase == MissionState.Phase.READY;
         pause.active = operator && (prepareOutpost || phase == MissionState.Phase.ACTIVE || phase == MissionState.Phase.PAUSED);
         final boolean lesson = connected && !packet.educationIncident().isEmpty();

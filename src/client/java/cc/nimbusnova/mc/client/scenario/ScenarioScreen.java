@@ -5,6 +5,7 @@ import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.render.NovaScreen;
 import cc.nimbusnova.mc.moon.MoonMission;
 import cc.nimbusnova.mc.scenario.ScenarioActionPayload;
+import cc.nimbusnova.mc.hub.HubActionPayload;
 import com.google.gson.JsonObject;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -67,7 +68,10 @@ public final class ScenarioScreen extends NovaScreen {
                 };
                 addRenderableWidget(new MissionButton(left + 14, top + panelHeight - 59, 110, 21, label, () -> send(action, -1, 0))).active =
                         !pending && (!action.equals("start") || state.get("ready").getAsBoolean());
-            }
+            } else if (phase.equals("READY") && state.get("ready").getAsBoolean())
+                addRenderableWidget(new MissionButton(left + 14, top + panelHeight - 59, 180, 21, "Ask teacher to start", () -> {
+                    if (ClientPlayNetworking.canSend(HubActionPayload.TYPE)) ClientPlayNetworking.send(new HubActionPayload("request_start", ""));
+                }));
             return;
         }
         if (phase.equals("PAUSED") || phase.equals("SUCCESS") || phase.equals("PARTIAL") || phase.equals("FAILED") || phase.equals("ABORTED")) return;

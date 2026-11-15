@@ -35,7 +35,7 @@ public final class HubScreen extends NovaScreen implements ShipPalette {
 
     public void update(final JsonObject state, final boolean response) {
         final boolean controlsChanged = response && pending
-                || Stream.of("missions", "selected", "phase", "operator", "incident", "crewCheckSolved", "ready")
+                || Stream.of("missions", "selected", "phase", "operator", "incident", "crewCheckSolved", "ready", "startRequested")
                 .anyMatch(key -> !Objects.equals(this.state.get(key), state.get(key)));
         this.state = state;
         if (response) {
@@ -81,6 +81,11 @@ public final class HubScreen extends NovaScreen implements ShipPalette {
         addRenderableWidget(new MissionButton(left + panelWidth - 70, footer, 56, 20, "Close", this::onClose));
         addRenderableWidget(new MissionButton(left + 14, footer, 72, 20, "Join crew", () -> send("join"))).active = !pending && !current.isEmpty();
         addRenderableWidget(new MissionButton(left + 91, footer, 83, 20, "Crew tablet", () -> send("continue"))).active = !pending && !current.isEmpty();
+        if (phase.equals("READY") && state.has("ready") && state.get("ready").getAsBoolean()) {
+            final boolean requested = state.has("startRequested") && state.get("startRequested").getAsBoolean();
+            addRenderableWidget(new MissionButton(left + 179, footer, 135, 20, requested ? "Request sent" : "Ask teacher to start", () -> send("request_start")))
+                    .active = !pending && !requested;
+        }
         if (!state.get("operator").getAsBoolean()) return;
 
         final int controls = footer - 25;

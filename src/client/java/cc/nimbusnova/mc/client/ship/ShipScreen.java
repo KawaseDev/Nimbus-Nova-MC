@@ -12,6 +12,7 @@ import cc.nimbusnova.mc.ship.ShipPayload;
 import cc.nimbusnova.mc.ship.ShipTask;
 import cc.nimbusnova.mc.ship.ShipHoldActions;
 import cc.nimbusnova.mc.client.ship.controls.HoldTaskButton;
+import cc.nimbusnova.mc.hub.HubActionPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -146,7 +147,10 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
                         : ended() ? "Reset mission" : "Pause mission", left + 14, top + panelHeight - 60, 120);
                 if (!ended())
                     control("abort", "Abort mission", left + 140, top + panelHeight - 60, 108);
-            }
+            } else if (state.phase().equals("READY") && state.ready())
+                addRenderableWidget(new MissionButton(left + 14, top + panelHeight - 60, 180, 20, "Ask teacher to start", () -> {
+                    if (ClientPlayNetworking.canSend(HubActionPayload.TYPE)) ClientPlayNetworking.send(new HubActionPayload("request_start", ""));
+                }));
             addRenderableWidget(new MissionButton(left + 88, top + panelHeight - 29, 87, 20, "Leave ship", () -> command("leave", 0)));
             if (state.variant().equals("EXPLORATION") && !ended()) {
                 if (onSurface())

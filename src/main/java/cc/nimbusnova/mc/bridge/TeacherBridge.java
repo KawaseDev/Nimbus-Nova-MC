@@ -292,7 +292,7 @@ public final class TeacherBridge {
                     }
                     String[] parts = new String(exchange.getRequestBody().readNBytes(65), StandardCharsets.UTF_8).split(" ", -1);
                     if (parts.length != 2 || !parts[0].matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
-                            || !java.util.Set.of("start", "pause", "resume", "acknowledge", "abort", "reset", "moon_exploration", "moon_rescue", "moon_pause", "moon_resume", "moon_acknowledge", "moon_advance", "moon_end", "ship_select", "ship_explore", "ship_start", "ship_pause", "ship_acknowledge", "ship_resume", "ship_abort", "ship_reset", "ship_end", "hub_select_mars", "hub_select_moon", "hub_select_ship", "hub_select_shelter", "hub_select_long_night", "hub_select_greenhouse", "hub_start", "hub_pause", "hub_resume", "hub_reset", "hub_end").contains(parts[1])) {
+                            || !java.util.Set.of("start", "pause", "resume", "acknowledge", "abort", "reset", "moon_exploration", "moon_rescue", "moon_pause", "moon_resume", "moon_acknowledge", "moon_advance", "moon_end", "ship_select", "ship_explore", "ship_start", "ship_pause", "ship_acknowledge", "ship_resume", "ship_abort", "ship_reset", "ship_end", "hub_select_mars", "hub_select_moon", "hub_select_ship", "hub_select_shelter", "hub_select_long_night", "hub_select_greenhouse", "hub_start", "hub_start_accept", "hub_start_reject", "hub_pause", "hub_resume", "hub_reset", "hub_end").contains(parts[1])) {
                         exchange.sendResponseHeaders(400, -1); return;
                     }
                     UUID id = UUID.fromString(parts[0]);

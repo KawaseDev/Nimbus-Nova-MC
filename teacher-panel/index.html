@@ -45,6 +45,7 @@
       <label for="hub-mission">Mission library</label>
       <div class="actions"><select id="hub-mission" aria-label="Choose classroom mission"><option value="mars">The Darkening Sky — Mars</option><option value="moon">Moon Expedition</option><option value="ship">Return Window — spacecraft rescue</option><option value="shelter">Shelter Before the Event</option><option value="long_night">The Long Night</option><option value="greenhouse">Greenhouse Emergency</option></select><button id="hub-select" disabled>Select mission</button></div>
       <p id="hub-status" role="status">Checking mission library…</p><p id="hub-feedback"></p><p id="hub-learning" hidden>Complete the applied crew check in Minecraft using the crew tablet, then resume. Reading the card alone does not clear the check.</p>
+      <div id="start-request" hidden><p id="start-request-text" role="status"></p><div class="actions"><button id="start-accept">Accept</button><button id="start-reject">Reject</button></div></div>
       <div class="actions"><button id="hub-start" disabled>Start</button><button id="hub-pause" disabled>Pause</button><button id="hub-reset" disabled>Reset attempt</button><button id="hub-end" disabled>End mission</button></div>
       <p>Selecting a different mission ends the current attempt. Existing maps and builds are preserved.</p><p id="hub-error" role="alert"></p>
     </section>
@@ -178,6 +179,7 @@
     hubState = state.hub || null;
     if (!hubState) {
       hubButtons.forEach(button => { button.disabled = true; });
+      document.getElementById('start-request').hidden = true;
       document.getElementById('hub-status').textContent = 'Update the Fabric server to use the unified mission library.';
       return;
     }
@@ -185,6 +187,9 @@
     const mission = (hubState.missions || []).find(item => item.id === selected);
     document.getElementById('hub-status').textContent = selected ? `${mission?.title || selected} · ${phase}` : 'No mission selected. Choose one above.';
     document.getElementById('hub-feedback').textContent = hubState.feedback || hubState.objective || '';
+    document.getElementById('start-request').hidden = !hubState.startRequested;
+    document.getElementById('start-request-text').textContent = hubState.startRequested ? `${hubState.startRequester} requests to start ${mission?.title || selected}.` : '';
+    for (const id of ['start-accept', 'start-reject']) document.getElementById(id).disabled = missionBusy;
     document.getElementById('hub-learning').hidden = phase !== 'PAUSED' || !hubState.incident;
     hubButtons[0].disabled = missionBusy || document.getElementById('hub-mission').value === selected;
     hubButtons[1].disabled = missionBusy || phase !== 'READY' || !hubState.ready || state.players === 0;
@@ -337,6 +342,8 @@
   });
   document.getElementById('hub-select').addEventListener('click', () => missionAction('hub_select_' + document.getElementById('hub-mission').value));
   document.getElementById('hub-start').addEventListener('click', () => missionAction('hub_start'));
+  document.getElementById('start-accept').addEventListener('click', () => missionAction('hub_start_accept'));
+  document.getElementById('start-reject').addEventListener('click', () => missionAction('hub_start_reject'));
   document.getElementById('hub-pause').addEventListener('click', () => missionAction(hubState?.phase === 'PAUSED' ? 'hub_resume' : 'hub_pause'));
   document.getElementById('hub-reset').addEventListener('click', () => missionAction('hub_reset'));
   document.getElementById('hub-end').addEventListener('click', () => missionAction('hub_end'));

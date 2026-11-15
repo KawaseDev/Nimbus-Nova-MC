@@ -13,6 +13,8 @@ Use a private classroom server or a local singleplayer demonstration with the ma
 
 The five spacecraft roles are power, life support, supplies, maintenance and pilot. The additional scenarios give each offered role a concrete objective. Operators may work every station for solo development; that is not a classroom multiplayer test.
 
+Once preparation is complete, a student can use **Ask teacher to start** in the mission tablet or in `/nimbus`. The teacher sees the request in **Classroom mission** and can **Accept** to start or **Reject** to keep preparing. The student is notified of the decision.
+
 ## Gameplay checks to discuss
 
 - Which observation changed the crew's decision?

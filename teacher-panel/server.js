@@ -51,7 +51,7 @@ function createServer(options = {}) {
           if (request.url === '/api/mission-action') {
             preparingMap = typeof data.action === 'string' && data.action.startsWith('hub_select_');
             if (!data || typeof data.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.id) ||
-                !['start', 'pause', 'resume', 'acknowledge', 'abort', 'reset', 'moon_exploration', 'moon_rescue', 'moon_pause', 'moon_resume', 'moon_acknowledge', 'moon_advance', 'moon_end', 'ship_select', 'ship_explore', 'ship_start', 'ship_pause', 'ship_acknowledge', 'ship_resume', 'ship_abort', 'ship_reset', 'ship_end', 'hub_select_mars', 'hub_select_moon', 'hub_select_ship', 'hub_select_shelter', 'hub_select_long_night', 'hub_select_greenhouse', 'hub_start', 'hub_pause', 'hub_resume', 'hub_reset', 'hub_end'].includes(data.action)) throw new Error();
+                !['start', 'pause', 'resume', 'acknowledge', 'abort', 'reset', 'moon_exploration', 'moon_rescue', 'moon_pause', 'moon_resume', 'moon_acknowledge', 'moon_advance', 'moon_end', 'ship_select', 'ship_explore', 'ship_start', 'ship_pause', 'ship_acknowledge', 'ship_resume', 'ship_abort', 'ship_reset', 'ship_end', 'hub_select_mars', 'hub_select_moon', 'hub_select_ship', 'hub_select_shelter', 'hub_select_long_night', 'hub_select_greenhouse', 'hub_start', 'hub_start_accept', 'hub_start_reject', 'hub_pause', 'hub_resume', 'hub_reset', 'hub_end'].includes(data.action)) throw new Error();
             body = `${data.id} ${data.action}`;
           } else {
             if (!data || typeof data.message !== 'string' || !data.message.trim() || data.message.trim().length > 200 || /[\x00-\x1f\x7f-\x9f]/.test(data.message)) throw new Error();

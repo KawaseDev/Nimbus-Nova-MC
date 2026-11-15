@@ -176,13 +176,29 @@ public final class MissionServerGameTests {
         controller.action(engineer, new ShipActionPayload("task", storage, controller.mission().revision(), 0));
         controller.action(engineer, new ShipActionPayload("task", storage, controller.mission().revision(), 2));
         context.assertTrue(controller.mission().board(ShipTask.STORAGE) == 17, "Cargo placement rejected at " + engineer.position() + "; board=" + controller.mission().board(ShipTask.STORAGE));
+        boolean tooEarly = false;
+        try { MissionHub.get(server).requestStart(engineer); } catch (IllegalStateException expected) { tooEarly = true; }
+        context.assertTrue(tooEarly, "A student requested launch before preparation was complete");
         controller.action(engineer, new ShipActionPayload("hold_begin", storage, controller.mission().revision(), 3));
         context.runAfterDelay(25, () -> {
             context.assertTrue(engineer.level() == ship && engineer.distanceToSqr(Vec3.atCenterOf(storage)) < 36, "Cargo actor moved out of reach while holding: " + engineer.position());
             controller.action(engineer, new ShipActionPayload("hold_finish", storage, controller.mission().revision(), 3));
             context.assertTrue(controller.mission().ready(), "Physical power and cargo setup did not enable launch");
             controller.action(engineer, new ShipActionPayload("role", BlockPos.ZERO, controller.mission().revision(), MoonMission.Role.POWER.ordinal()));
-            controller.teacherAction(server, "ship_start");
+            {
+                final MissionHub requests = MissionHub.get(server);
+                requests.requestStart(engineer);
+                context.assertTrue(requests.state(server).get("startRequested").getAsBoolean(), "Student start request did not reach the teacher");
+                boolean duplicate = false;
+                try { requests.requestStart(lifeSupport); } catch (IllegalStateException expected) { duplicate = true; }
+                context.assertTrue(duplicate, "A second request replaced the pending one");
+                requests.action(server, "start_reject", "");
+                context.assertFalse(requests.state(server).get("startRequested").getAsBoolean(), "Rejected request was not cleared");
+                context.assertTrue(controller.mission().snapshot().phase() == cc.nimbusnova.mc.ship.ShipMission.Phase.READY, "Rejecting a request started the mission");
+                requests.requestStart(engineer);
+                requests.action(server, "start_accept", "");
+                context.assertFalse(requests.state(server).get("startRequested").getAsBoolean(), "Accepted request was not cleared");
+            }
             final var launched = controller.mission().snapshot();
             controller.teacherAction(server, "ship_start");
             context.assertTrue(controller.mission().snapshot().equals(launched), "A repeated launch changed an already launched attempt");

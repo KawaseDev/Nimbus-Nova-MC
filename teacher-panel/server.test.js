@@ -369,7 +369,7 @@ test('mission controls and crew messages require a teacher and forward only vali
       assert.equal((await post('/api/mission-action', headers, { id, action })).status, 204);
       assert.deepEqual(received, { path: '/mission-action', body: `${id} ${action}` });
     }
-    for (const action of ['hub_select_mars', 'hub_select_moon', 'hub_select_ship', 'hub_select_shelter', 'hub_select_long_night', 'hub_select_greenhouse', 'hub_start', 'hub_pause', 'hub_resume', 'hub_reset', 'hub_end']) {
+    for (const action of ['hub_select_mars', 'hub_select_moon', 'hub_select_ship', 'hub_select_shelter', 'hub_select_long_night', 'hub_select_greenhouse', 'hub_start', 'hub_start_accept', 'hub_start_reject', 'hub_pause', 'hub_resume', 'hub_reset', 'hub_end']) {
       assert.equal((await post('/api/mission-action', headers, { id, action })).status, 204);
       assert.deepEqual(received, { path: '/mission-action', body: `${id} ${action}` });
     }

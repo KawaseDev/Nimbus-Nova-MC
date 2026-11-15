@@ -49,6 +49,8 @@ public final class MissionHub {
     private static final Map<MinecraftServer, MissionHub> SESSIONS = new IdentityHashMap<>();
     private final Set<UUID> watching = new HashSet<>();
     private String selected = "";
+    private UUID startRequester;
+    private String requestedMission = "", requesterName = "";
 
     private MissionHub() {
         /* w */
@@ -89,6 +91,10 @@ public final class MissionHub {
                 if (packet.action().equals("status")) hub.open(player);
                 else if (packet.action().equals("join")) hub.join(player);
                 else if (packet.action().equals("continue")) hub.continueMission(player);
+                else if (packet.action().equals("request_start")) {
+                    hub.requestStart(player);
+                    if (hub.watching.contains(player.getUUID())) hub.send(player, true, "");
+                }
                 else {
                     if (!player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER))
                         throw new IllegalStateException("Mission Control selects and manages the classroom attempt.");
@@ -154,6 +160,17 @@ public final class MissionHub {
 
     public void action(final MinecraftServer server, final String action, final String missionId) {
         final String current = selected(server);
+        if (action.equals("start_accept") || action.equals("start_reject")) {
+            final JsonObject snapshot = state(server);
+            if (startRequester == null || !current.equals(requestedMission) || !snapshot.get("phase").getAsString().equals("READY")
+                    || !snapshot.get("ready").getAsBoolean()) throw new IllegalStateException("No valid start request is pending.");
+            final ServerPlayer requester = server.getPlayerList().getPlayer(startRequester);
+            if (action.equals("start_accept")) action(server, "start", "");
+            else clearRequest();
+            if (requester != null) requester.sendSystemMessage(Component.literal(action.equals("start_accept")
+                    ? "Mission Control accepted your start request." : "Mission Control declined your start request."));
+            return;
+        }
         if (action.equals("select")) {
             if (!validMission(missionId)) throw new IllegalArgumentException("Unknown mission. Choose a mission in /nimbus.");
             if (current.equals(missionId)) return;
@@ -170,6 +187,7 @@ public final class MissionHub {
                 throw new IllegalStateException(error.getMessage(), error);
             }
             endCurrent(server, current);
+            clearRequest();
             if (MoonController.get(server).mission() != null) MoonController.get(server).teacherAction(server, "moon_end");
             if (missionId.equals("mars")) {
                 MissionController.get(server).control(server.createCommandSourceStack(), "reset");
@@ -209,6 +227,30 @@ public final class MissionHub {
             ShipController.get(server).teacherAction(server, "ship_" + action);
         } else
             OutpostScenarioController.get(server).action(server, action);
+        if (action.equals("start") || action.equals("reset") || action.equals("end")) clearRequest();
+    }
+
+    public void requestStart(final ServerPlayer player) {
+        final MinecraftServer server = player.level().getServer();
+        final String current = selected(server);
+        if (current.isEmpty()) throw new IllegalStateException("Mission Control must select a mission first.");
+        final var dimension = current.equals("mars") ? MarsTrainingMap.DIMENSION
+                : current.equals("moon") || current.equals("ship") ? ShipMap.DIMENSION : ScenarioMaps.dimension(current);
+        if (!player.level().dimension().equals(dimension)) throw new IllegalStateException("Join the mission before requesting a start.");
+        final JsonObject snapshot = state(server);
+        if (!snapshot.get("phase").getAsString().equals("READY") || !snapshot.get("ready").getAsBoolean())
+            throw new IllegalStateException("Complete the required crew preparation first.");
+        if (startRequester != null) throw new IllegalStateException("A start request is already waiting for the teacher.");
+        startRequester = player.getUUID();
+        requestedMission = current;
+        requesterName = player.getName().getString();
+        player.sendSystemMessage(Component.literal("Start request sent to Mission Control."));
+    }
+
+    private void clearRequest() {
+        startRequester = null;
+        requestedMission = "";
+        requesterName = "";
     }
 
     private void endCurrent(final MinecraftServer server, final String current) {
@@ -263,6 +305,10 @@ public final class MissionHub {
         if (data.has("incident") && !data.get("incident").getAsString().isEmpty())
             data.addProperty("crewCheckSolved", LearningChecks.snapshot(server, current.equals("mars") ? "mars" : "ship", false).solved());
         data.addProperty("selected", current);
+        if (startRequester != null && (!current.equals(requestedMission) || !data.get("phase").getAsString().equals("READY")
+                || !data.get("ready").getAsBoolean())) clearRequest();
+        data.addProperty("startRequested", startRequester != null);
+        data.addProperty("startRequester", requesterName);
         final JsonArray missions = new JsonArray();
         for (final Mission mission : MISSIONS) {
             final JsonObject item = new JsonObject();
