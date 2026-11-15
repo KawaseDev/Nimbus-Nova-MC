@@ -13,6 +13,7 @@
   "item.nimbus_nova.space_boots": "Expedition Boots",
   "item.nimbus_nova.space_suit.description": "Wear the complete suit outside. Personal air refills inside. Solar particle alerts still require the crew shelter.",
   "key.nimbus_nova.console": "Open mission console",
+  "key.nimbus_nova.minimap": "Toggle minimap",
   "key.categories.nimbus_nova.mission": "Nimbus Nova",
   "block.nimbus_nova.research_console": "Research console",
   "block.nimbus_nova.oxygen_console": "Oxygen processor",

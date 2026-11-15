@@ -98,7 +98,7 @@ public final class HologramGuidance {
                 && !dimension.identifier().toString().startsWith("nimbus_nova:scenario_");
     }
 
-    private static @Nullable MissionProgressPayload objective(final Minecraft client) {
+    static @Nullable MissionProgressPayload objective(final Minecraft client) {
         if (client.level == null) return null;
         final var dimension = client.level.dimension();
         if (dimension.equals(ShipMap.DIMENSION) || dimension.equals(LunarSurface.DIMENSION)) {

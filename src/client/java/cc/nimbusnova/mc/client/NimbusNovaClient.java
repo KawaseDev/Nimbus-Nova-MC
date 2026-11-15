@@ -8,6 +8,7 @@ import cc.nimbusnova.mc.client.vehicle.RoverRenderer;
 import cc.nimbusnova.mc.client.npc.MissionNpcClient;
 import cc.nimbusnova.mc.client.effect.DustStormEffects;
 import cc.nimbusnova.mc.client.guidance.HologramGuidance;
+import cc.nimbusnova.mc.client.guidance.Minimap;
 import cc.nimbusnova.mc.client.ship.ShipClient;
 import cc.nimbusnova.mc.client.hub.HubClient;
 import cc.nimbusnova.mc.client.learning.LearningClient;
@@ -76,8 +77,9 @@ public final class NimbusNovaClient implements ClientModInitializer {
                 }
             }
         });
-        consoleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nimbus_nova.console", InputConstants.KEY_J,
-                KeyMapping.Category.register(Identifier.parse("nimbus_nova:mission"))));
+        final KeyMapping.Category category = KeyMapping.Category.register(Identifier.parse("nimbus_nova:mission"));
+        consoleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nimbus_nova.console", InputConstants.KEY_J, category));
+        Minimap.register(category);
         ClientPlayNetworking.registerGlobalReceiver(MoonPayload.TYPE, (packet, context) -> context.client().execute(() -> {
             moon = packet.stage().isEmpty() ? null : packet;
             if (context.client().gui.screen() instanceof MoonScreen screen) screen.update(packet);
