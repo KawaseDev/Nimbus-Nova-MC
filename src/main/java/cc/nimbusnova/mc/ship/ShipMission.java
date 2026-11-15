@@ -522,7 +522,7 @@ public final class ShipMission {
     private boolean meeting(final int action) {
         if (action != 0) return false;
         if (phase == Phase.READY) {
-            feedback = "Check power and cargo first. During flight, the intercom can request up to two paused crew discussions.";
+            feedback = "Intercom ready. The crew can call two discussions during flight.";
             return true;
         }
 

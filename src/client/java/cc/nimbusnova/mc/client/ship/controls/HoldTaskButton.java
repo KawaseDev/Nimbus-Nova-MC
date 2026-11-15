@@ -53,7 +53,8 @@ public final class HoldTaskButton extends Button implements ShipPalette {
 
     @Override
     public void onRelease(final MouseButtonEvent event) {
-        cancel();
+        if (mouseGesture)
+            cancel();
     }
 
     @Override
@@ -66,28 +67,29 @@ public final class HoldTaskButton extends Button implements ShipPalette {
 
     @Override
     public boolean keyReleased(final KeyEvent event) {
-        if (event.key() != InputConstants.KEY_SPACE && event.key() != InputConstants.KEY_RETURN && event.key() != InputConstants.KEY_NUMPADENTER) return false;
+        if (!holding || mouseGesture || event.key() != heldKey) return false;
         cancel();
         return true;
     }
 
     @Override
     public void setFocused(final boolean focused) {
-        if (!focused && !mouseGesture)
+        if (!focused)
             cancel();
         super.setFocused(focused);
     }
 
     @Override
     protected MutableComponent createNarrationMessage() {
-        return Component.literal(getMessage().getString() + ". Hold Space or Enter to operate; release to cancel.");
+        return Component.literal(getMessage().getString() + ". Hold the left mouse button, Space, or Enter to operate. Release to cancel.");
     }
 
     @Override
     protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
         final Minecraft client = Minecraft.getInstance();
-        if (holding && (!active || !client.isWindowActive() || mouseGesture && (!isMouseOver(mouseX, mouseY)
-                || !client.mouseHandler.isLeftPressed()) || !mouseGesture && (!isFocused() || !InputConstants.isKeyDown(heldKey))))
+        // Screen presses and releases are consumed before MouseHandler updates gameplay button state.
+        if (holding && (!active || !client.isWindowActive()
+                || (mouseGesture ? !isMouseOver(mouseX, mouseY) : !isFocused() || !InputConstants.isKeyDown(heldKey))))
             cancel();
 
         final float progress = holding ? Math.clamp((float) (System.nanoTime() - started) / durationNanos, 0, 1) : 0;
