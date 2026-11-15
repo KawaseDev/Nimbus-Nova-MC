@@ -242,6 +242,7 @@ public final class MissionServerGameTests {
             }
             context.assertTrue(invalidRejected && hub.selected(server).equals("greenhouse"), "Invalid mission selection changed the running mission");
             hub.action(server, "end", "");
+            ScenarioRuntimeChecks.run(context, crew);
             for (final ServerPlayer actor : crew.values()) server.getPlayerList().remove(actor);
             hub.action(server, "select", "mars");
             context.assertFalse(hub.state(server).get("ready").getAsBoolean(), "An empty classroom was marked ready");

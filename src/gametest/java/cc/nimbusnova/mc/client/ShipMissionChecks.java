@@ -162,6 +162,8 @@ final class ShipMissionChecks {
         context.setScreen(() -> null);
         world.getServer().runOnServer(server -> ModContent.MISSION_TABLET.use(world.getConnection().getServerLevel(),
                 world.getConnection().getServerPlayer(), InteractionHand.MAIN_HAND));
+        context.waitForScreen(HubScreen.class);
+        context.clickScreenButton("Crew tablet");
         context.waitForScreen(ShipScreen.class);
         GuidedMissionChecks.capture(context, "ship-success-report");
         world.getServer().runOnServer(server -> {

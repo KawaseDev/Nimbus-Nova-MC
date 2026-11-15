@@ -2,6 +2,7 @@ package cc.nimbusnova.mc.hub;
 
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
+import cc.nimbusnova.mc.learning.LearningChecks;
 import cc.nimbusnova.mc.moon.MoonController;
 import cc.nimbusnova.mc.moon.MoonMission;
 import cc.nimbusnova.mc.scenario.OutpostScenarioController;
@@ -259,6 +260,8 @@ public final class MissionHub {
             data.addProperty("phase", "NONE");
             data.addProperty("ready", false);
         }
+        if (data.has("incident") && !data.get("incident").getAsString().isEmpty())
+            data.addProperty("crewCheckSolved", LearningChecks.snapshot(server, current.equals("mars") ? "mars" : "ship", false).solved());
         data.addProperty("selected", current);
         final JsonArray missions = new JsonArray();
         for (final Mission mission : MISSIONS) {

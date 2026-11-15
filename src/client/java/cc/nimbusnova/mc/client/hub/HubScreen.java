@@ -71,7 +71,8 @@ public final class HubScreen extends NovaScreen implements ShipPalette {
 
         final int controls = footer - 25;
         addRenderableWidget(new MissionButton(left + 14, controls, 99, 20, "Select mission", () -> send("select"))).active = !pending && !chosen.isEmpty() && !chosen.equals(current);
-        final boolean lesson = phase.equals("PAUSED") && state.has("incident") && !state.get("incident").getAsString().isEmpty();
+        final boolean lesson = phase.equals("PAUSED") && state.has("incident") && !state.get("incident").getAsString().isEmpty()
+                && !(state.has("crewCheckSolved") && state.get("crewCheckSolved").getAsBoolean());
         final String control = lesson ? "continue" : phase.equals("READY") ? "start" : phase.equals("PAUSED") ? "resume" : phase.equals("ACTIVE") ? "pause" : "reset";
         final String label = switch (control) { case "start" -> "Start"; case "resume" -> "Resume"; case "pause" -> "Pause"; case "continue" -> "Crew check"; default -> "Reset"; };
         addRenderableWidget(new MissionButton(left + 118, controls, 66, 20, label, () -> send(control)))

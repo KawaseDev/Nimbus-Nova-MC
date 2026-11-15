@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.mission.MissionController;
+import cc.nimbusnova.mc.client.hub.HubScreen;
 import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.mission.CrewRole;
 import cc.nimbusnova.mc.moon.MoonController;
@@ -250,7 +251,9 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
                 player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(ModContent.MISSION_TABLET));
                 ModContent.MISSION_TABLET.use(player.level(), player, InteractionHand.MAIN_HAND);
             });
-            context.waitFor(client -> client.gui.screen() instanceof MissionConsoleScreen);
+            context.waitForScreen(HubScreen.class);
+            context.clickScreenButton("Crew tablet");
+            context.waitForScreen(MissionConsoleScreen.class);
             world.getConnection().waitForClientboundPackets();
             context.runOnClient(client -> client.setScreenAndShow(new InventoryScreen(world.getConnection().getClientPlayer())));
             GuidedMissionChecks.capture(context, "expedition-equipment");
