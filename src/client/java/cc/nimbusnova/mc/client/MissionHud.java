@@ -23,14 +23,22 @@ final class MissionHud implements MissionPalette {
 
     static void render(final GuiGraphicsExtractor graphics, final DeltaTracker deltaTracker) {
         final Minecraft client = Minecraft.getInstance();
-        if (client.level != null && (client.level.dimension().equals(ShipMap.DIMENSION) || client.level.dimension().equals(LunarSurface.DIMENSION))) return;
         final MissionSnapshotPayload packet = NimbusNovaClient.snapshot;
         if (packet == null || client.player == null || client.level == null || client.gui.hud.isHidden() || client.gui.screen() != null) return;
+        if (client.level.dimension().equals(ShipMap.DIMENSION) || client.level.dimension().equals(LunarSurface.DIMENSION)
+                || client.level.dimension().identifier().toString().startsWith("nimbus_nova:scenario_")) return;
+
+        final int width = Math.min(320, graphics.guiWidth() - 16), left = 8, top = 8;
+        if (!ObjectiveGuidance.onMars()) {
+            drawObjective(graphics, left, top, width, "Mission Control",
+                    "Choose a mission in the library, or join the one Mission Control selected for your crew.",
+                    NimbusNovaClient.consoleKey.getTranslatedKeyMessage().getString() + "  Open mission library", null, ACCENT, "START HERE");
+            return;
+        }
 
         final MissionState.Snapshot state = packet.state();
         final MissionProgressPayload objective = GuidedMissionClient.progress();
-        final int width = Math.min(320, graphics.guiWidth() - 16), left = 8, top = 8;
-        final SuitAirPayload suit = ObjectiveGuidance.onMars() ? SuitLifeSupportClient.state() : null;
+        final SuitAirPayload suit = SuitLifeSupportClient.state();
         final int objectiveTop = top + (suit == null ? 36 : 50);
         MissionUi.panel(graphics, left, top, width, suit == null ? 32 : 46);
         NovaRenderer.text(graphics, packet.role().label, left + 10, top + 5, 10, ACCENT);
@@ -62,13 +70,6 @@ final class MissionHud implements MissionPalette {
         if (state.phase() == MissionState.Phase.PAUSED) {
             drawObjective(graphics, left, objectiveTop, width, "Discuss your next move",
                     "Mission Control paused the clock and reserves. Talk with your crew.", "Wait for Mission Control to resume", null, ACCENT, "PAUSED");
-            return;
-        }
-
-        if (!ObjectiveGuidance.onMars()) {
-            drawObjective(graphics, left, objectiveTop, width, "Enter Aster Outpost",
-                    "Open the mission tablet and choose Enter outpost. Your crew is preparing on Mars.",
-                    NimbusNovaClient.consoleKey.getTranslatedKeyMessage().getString() + "  Open mission tablet", null, ACCENT, "START HERE");
             return;
         }
 

@@ -1,0 +1,77 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "body": "nimbus_nova:block/scifi_hull_panel",
+    "particle": "nimbus_nova:block/scifi_hull_panel"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        13,
+        0
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#body",
+          "uv": [
+            1,
+            1,
+            1.4,
+            1.4
+          ]
+        },
+        "south": {
+          "texture": "#body",
+          "uv": [
+            1,
+            1,
+            1.4,
+            1.4
+          ]
+        },
+        "east": {
+          "texture": "#body",
+          "uv": [
+            1,
+            1,
+            1.4,
+            1.4
+          ]
+        },
+        "west": {
+          "texture": "#body",
+          "uv": [
+            1,
+            1,
+            1.4,
+            1.4
+          ]
+        },
+        "up": {
+          "texture": "#body",
+          "uv": [
+            1,
+            1,
+            1.4,
+            1.4
+          ]
+        },
+        "down": {
+          "texture": "#body",
+          "uv": [
+            1,
+            1,
+            1.4,
+            1.4
+          ]
+        }
+      }
+    }
+  ]
+}

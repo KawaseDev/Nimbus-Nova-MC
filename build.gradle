@@ -123,7 +123,7 @@ fabricApi {
     configureTests {
         createSourceSet = true
         modId = 'nimbus-nova-client-test'
-        enableGameTests = false
+        enableGameTests = true
         enableClientGameTests = true
     }
 }
@@ -234,3 +234,35 @@ tasks.register('lunarLandingTest', JavaExec) {
     enableAssertions = true
 }
 check.dependsOn lunarLandingTest
+
+tasks.register('appliedLearningTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.learning.AppliedLearningTest'
+    enableAssertions = true
+}
+check.dependsOn appliedLearningTest
+
+tasks.register('orbitGeometryTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.world.ship.OrbitGeometryTest'
+    enableAssertions = true
+}
+check.dependsOn orbitGeometryTest
+
+tasks.register('scenarioMissionTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.scenario.ScenarioMissionTest'
+    enableAssertions = true
+}
+check.dependsOn scenarioMissionTest
+
+tasks.register('missionVehicleChargeTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.mission.MissionVehicleChargeTest'
+    enableAssertions = true
+}
+check.dependsOn missionVehicleChargeTest

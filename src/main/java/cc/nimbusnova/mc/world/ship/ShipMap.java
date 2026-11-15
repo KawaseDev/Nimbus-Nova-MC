@@ -98,6 +98,7 @@ public final class ShipMap {
             }
             installRoomPartition(level);
             exposeEngineControls(level);
+            installWindows(level, read(server));
             return;
         }
 
@@ -151,8 +152,60 @@ public final class ShipMap {
         installRoomPartition(level);
         exposeEngineControls(level);
         level.setBlock(new BlockPos(-5, 78, 12), ScifiBlocks.SUPPORT_BEAM.defaultBlockState(), Block.UPDATE_CLIENTS);
+        installWindows(level, blocks);
         Files.writeString(marker, "complete");
         NimbusNovaMod.LOGGER.info("Installed Return Window from team schematic: {} source blocks, {} equipment anchors", blocks.size(), MARKERS.size());
+    }
+
+    /** Positions come only from the team's original solid outer shell, never task or breach cells. */
+    public static List<BlockPos> windowPositions(final MinecraftServer server) throws IOException {
+        return windows(read(server));
+    }
+
+    private static List<BlockPos> windows(final List<Placed> original) {
+        final Map<BlockPos, BlockState> source = new HashMap<>();
+        for (final Placed placed : original) source.put(placed.position, placed.state);
+        final Set<BlockPos> result = new HashSet<>();
+        for (final Placed placed : original) {
+            if (!placed.state.is(Blocks.CONCRETE.gray())) continue;
+            final BlockPos position = placed.position;
+            if (position.getY() == 77 && position.getZ() == -12 && (position.getX() == 11 || position.getX() == 12)) continue;
+            final int localX = position.getX() + 13, localY = position.getY() - 64, localZ = position.getZ() + 41;
+            final boolean bow = localY >= 17 && localY <= 18 && localZ >= 70 && localZ <= 75 && localX >= 5 && localX <= 21;
+            final boolean lowerPort = localY >= 13 && localY <= 14
+                    && (localX == 1 && localZ >= 20 && localZ <= 24 || localX == 25 && localZ >= 32 && localZ <= 35);
+            final boolean upperPort = localY >= 18 && localY <= 19
+                    && (localX == 1 && localZ >= 53 && localZ <= 56 || localX == 25 && localZ >= 45 && localZ <= 50);
+            if (!bow && !lowerPort && !upperPort) continue;
+            final Direction inward = bow ? Direction.NORTH : localX == 1 ? Direction.EAST : Direction.WEST;
+            if (!source.getOrDefault(position.relative(inward.getOpposite()), Blocks.AIR.defaultBlockState()).isAir()) continue;
+            final BlockPos liner = position.relative(inward);
+            final BlockState lining = source.getOrDefault(liner, Blocks.AIR.defaultBlockState());
+            if (bow) {
+                if (lining.isAir() || lining.is(Blocks.LIGHT)) result.add(position);
+                continue;
+            }
+            if (!lining.isAir() && !lining.is(Blocks.CONCRETE.gray()) && !lining.is(Blocks.CONCRETE.white())
+                    && !lining.is(Blocks.DYED_TERRACOTTA.green())) continue;
+            final BlockState interior = source.getOrDefault(position.relative(inward, 2), Blocks.AIR.defaultBlockState());
+            if (!interior.isAir() && !interior.is(Blocks.LIGHT)) continue;
+            result.add(position);
+            if (!lining.isAir()) result.add(liner);
+        }
+        return List.copyOf(result);
+    }
+
+    private static void installWindows(final ServerLevel level, final List<Placed> original) {
+        final Map<BlockPos, BlockState> source = new HashMap<>();
+        for (final Placed placed : original) source.put(placed.position, placed.state);
+        int installed = 0;
+        for (final BlockPos position : windows(original)) {
+            final BlockState current = level.getBlockState(position);
+            if (!current.equals(source.get(position)) && !current.is(ScifiBlocks.HULL_PANEL)) continue;
+            level.setBlock(position, Blocks.GLASS.defaultBlockState(), Block.UPDATE_CLIENTS);
+            installed++;
+        }
+        NimbusNovaMod.LOGGER.info("Ship observation windows fitted: {} cells; modified cells were preserved", installed);
     }
 
     private static void installRoomPartition(final ServerLevel level) throws IOException {

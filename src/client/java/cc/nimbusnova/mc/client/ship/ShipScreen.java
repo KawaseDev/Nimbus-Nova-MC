@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.client.ship;
 
 import cc.nimbusnova.mc.client.MissionButton;
+import cc.nimbusnova.mc.client.learning.LearningClient;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.ship.rooms.RoomClient;
 import cc.nimbusnova.mc.client.render.NovaScreen;
@@ -108,7 +109,7 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
         addRenderableWidget(new MissionButton(left + 14, top + panelHeight - 29, 68, 20,
                 tablet ? "Station" : "Mission", () -> { tablet = !tablet; rebuildWidgets(); })).active = !state.task().isEmpty();
         if (state.incident().isEmpty())
-            addRenderableWidget(new MissionButton(left + (tablet ? 180 : 88), top + panelHeight - 29, 110, 20,
+            addRenderableWidget(new MissionButton(left + (tablet ? 254 : 88), top + panelHeight - (tablet ? 60 : 29), tablet ? 129 : 110, 20,
                     "Room control", RoomClient::open));
         if (!state.incident().isEmpty()) {
             final MoonMission.Incident incident = MoonMission.Incident.valueOf(state.incident());
@@ -116,8 +117,12 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
                     () -> ConfirmLinkScreen.confirmLinkNow(this, URI.create(incident.source))));
             addRenderableWidget(new MissionButton(left + 175, top + panelHeight - 29, 53, 20, lessonPage == 2 ? "Back" : "Next",
                     () -> { lessonPage = (lessonPage + 1) % 3; rebuildWidgets(); }));
+            addRenderableWidget(new MissionButton(left + 234, top + panelHeight - 29, 91, 20, "Crew check", () -> LearningClient.open("ship")));
             if (state.operator()) {
-                control("acknowledge", "Confirm understanding", left + 14, top + panelHeight - 60, 160);
+                addRenderableWidget(new MissionButton(left + 14, top + panelHeight - 60, 160, 21, "Check / confirm", () -> {
+                    if (LearningClient.solved("ship", state.incident())) command("acknowledge", 0);
+                    else LearningClient.open("ship");
+                })).active = !pending;
                 control("resume", "Resume mission", left + 180, top + panelHeight - 60, 130);
             }
             return;
@@ -132,11 +137,12 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
                             buttonWidth, 21, ShipClient.label(role.name()), () -> command("role", role.ordinal()))).active = !pending;
                 }
                 if (!state.role().isEmpty())
-                    addRenderableWidget(new MissionButton(left + 14, top + 135, panelWidth - 28, 21, "Report preflight check", () -> command("preflight", 0))).active = !pending;
+                    addRenderableWidget(new MissionButton(left + 14 + 2 * (buttonWidth + 5), top + 105, buttonWidth, 21,
+                            "Report preflight check", () -> command("preflight", 0))).active = !pending;
             }
             if (state.operator()) {
                 final String action = state.phase().equals("READY") ? "start" : state.phase().equals("PAUSED") ? "resume" : ended() ? "reset" : "pause";
-                control(action, state.phase().equals("READY") ? "Launch mission" : state.phase().equals("PAUSED") ? "Resume mission"
+                control(action, state.phase().equals("READY") ? state.ready() ? "Launch mission" : "Finish ship checks" : state.phase().equals("PAUSED") ? "Resume mission"
                         : ended() ? "Reset mission" : "Pause mission", left + 14, top + panelHeight - 60, 120);
                 if (!ended())
                     control("abort", "Abort mission", left + 140, top + panelHeight - 60, 108);
@@ -288,7 +294,7 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
     }
 
     private void control(final String action, final String label, final int x, final int y, final int buttonWidth) {
-        addRenderableWidget(new MissionButton(x, y, buttonWidth, 21, label, () -> command(action, 0))).active = !pending;
+        addRenderableWidget(new MissionButton(x, y, buttonWidth, 21, label, () -> command(action, 0))).active = !pending && (!action.equals("start") || state.ready());
     }
 
     private void taskButton(final int x, final int y, final int buttonWidth, final String label, final int action) {

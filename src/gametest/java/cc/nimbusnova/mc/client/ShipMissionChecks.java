@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.client.ship.ShipClient;
+import cc.nimbusnova.mc.client.hub.HubScreen;
 import cc.nimbusnova.mc.content.ModContent;
 import cc.nimbusnova.mc.content.RepairContent;
 import cc.nimbusnova.mc.ship.rooms.ShipRooms;
@@ -45,6 +46,9 @@ final class ShipMissionChecks {
         context.waitFor(client -> client.level != null && client.level.dimension().equals(ShipMap.DIMENSION) && ShipClient.state() != null);
         context.waitForScreen(ShipScreen.class);
         GuidedMissionChecks.capture(context, "ship-bridge-arrival");
+        world.getServer().runCommand("execute as @p run nimbus");
+        context.waitForScreen(HubScreen.class);
+        FullscreenChecks.capture(context, "mission-hub");
         context.setScreen(() -> null);
         world.getServer().runCommand("gamemode spectator @p");
         world.getServer().runCommand("execute in nimbus_nova:return_window run tp @p 36 96 57 147 17");
@@ -52,6 +56,7 @@ final class ShipMissionChecks {
         world.getConnection().waitForChunksRender();
         context.runOnClient(client -> client.gui.hud.toggle());
         GuidedMissionChecks.capture(context, "ship-schematic-exterior");
+        FullscreenChecks.capture(context, "ship-orbit-and-stars");
         context.runOnClient(client -> client.gui.hud.toggle());
         world.getServer().runCommand("gamemode survival @p");
         world.getServer().runOnServer(server -> {
@@ -115,6 +120,7 @@ final class ShipMissionChecks {
             action(context, operation);
         GuidedMissionChecks.capture(context, "ship-specimen-classification");
         action(context, 9);
+        RoomLightingChecks.run(context, world);
         RoomEmergencyChecks.collect(context, world);
         RoomEmergencyChecks.doors(context, world);
         world.getServer().runCommand("ship start");
@@ -156,6 +162,8 @@ final class ShipMissionChecks {
         context.setScreen(() -> null);
         world.getServer().runOnServer(server -> ModContent.MISSION_TABLET.use(world.getConnection().getServerLevel(),
                 world.getConnection().getServerPlayer(), InteractionHand.MAIN_HAND));
+        context.waitForScreen(HubScreen.class);
+        context.clickScreenButton("Crew tablet");
         context.waitForScreen(ShipScreen.class);
         GuidedMissionChecks.capture(context, "ship-success-report");
         world.getServer().runOnServer(server -> {
@@ -189,6 +197,19 @@ final class ShipMissionChecks {
         context.waitForScreen(ShipScreen.class);
         context.clickScreenButton("pilot");
         context.waitFor(client -> ShipClient.state() != null && ShipClient.state().role().equals("PILOT"));
+        if (!cancelLanding) {
+            context.runOnClient(client -> {
+                final var screen = (ShipScreen) client.gui.screen();
+                final var report = screen.children().stream()
+                        .filter(child -> child instanceof MissionButton button && button.getMessage().getString().equals("Report preflight check"))
+                        .findFirst().orElseThrow();
+                screen.setFocused(report);
+            });
+            context.waitTicks(30);
+            if (!context.computeOnClient(client -> ((ShipScreen) client.gui.screen()).getFocused() instanceof MissionButton button
+                    && button.getMessage().getString().equals("Report preflight check")))
+                throw new AssertionError("Ship telemetry must preserve keyboard focus on the preflight action");
+        }
         context.clickScreenButton("Report preflight check");
         context.waitFor(client -> ShipClient.state() != null && ShipClient.state().feedback().contains("PILOT"));
         if (world.getServer().computeOnServer(server -> ShipController.get(server).mission().preflightReports()) != 1 << MoonMission.Role.PILOT.ordinal())
@@ -267,6 +288,7 @@ final class ShipMissionChecks {
         context.setScreen(() -> null);
         world.getConnection().waitForChunksRender();
         GuidedMissionChecks.capture(context, "moon-surface");
+        FullscreenChecks.capture(context, "moon-surface");
         world.getServer().runCommand("execute in nimbus_nova:lunar_surface run tp @p 9.5 63 -8.5");
         GuidedMissionChecks.use(world, LunarSurface.SAMPLE);
         if (!world.getServer().computeOnServer(server -> ShipController.get(server).mission().completed(ShipTask.SCIENCE)))
@@ -290,6 +312,7 @@ final class ShipMissionChecks {
     private static void resume(final ClientGameTestContext context, final TestSingleplayerContext world) {
         context.waitFor(client -> ShipClient.state() != null && ShipClient.state().phase().equals("PAUSED"));
         GuidedMissionChecks.capture(context, "ship-incident-" + ShipClient.state().incident().toLowerCase());
+        LearningGameChecks.solve(context, world, "ship");
         world.getServer().runCommand("ship acknowledge");
         world.getServer().runCommand("ship resume");
         context.waitFor(client -> ShipClient.state() != null && ShipClient.state().phase().equals("ACTIVE"));
@@ -317,6 +340,7 @@ final class ShipMissionChecks {
             for (final int impulse : new int[] { 1, 1, 0, 0, 3, 3, 2, 2 })
                 action(context, impulse);
             GuidedMissionChecks.capture(context, "ship-momentum-docking");
+            FullscreenChecks.capture(context, "momentum-docking");
             action(context, 5);
         } else if (state(context).stage().equals("NAVIGATION")) {
             for (final int star : new int[] { 1, 3, 5 })

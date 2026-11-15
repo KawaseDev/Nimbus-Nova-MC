@@ -1,6 +1,9 @@
 package cc.nimbusnova.mc.mission;
 
+import cc.nimbusnova.mc.report.ReportStore;
 import cc.nimbusnova.mc.ship.ShipController;
+import cc.nimbusnova.mc.learning.LearningChecks;
+import cc.nimbusnova.mc.scenario.OutpostScenarioController;
 import cc.nimbusnova.mc.world.ship.ShipMap;
 
 import cc.nimbusnova.mc.content.ModBlocks;
@@ -301,8 +304,33 @@ public final class MissionController {
 
     public EducationPause education() { return education; }
 
+    public MissionState mission() {
+        return mission;
+    }
+
+    public Set<CrewRole> assignedRoles() {
+        return Set.copyOf(roles.values());
+    }
+
     public MissionState.Snapshot snapshot() {
         return mission.snapshot();
+    }
+
+    public boolean chargeVehicle(final ServerPlayer player) {
+        if (!player.level().dimension().equals(MarsTrainingMap.DIMENSION)
+                || player.distanceToSqr(28.5, 66, 25.5) > 64
+                || !player.getMainHandItem().is(ModContent.ENGINEERING_TOOL)
+                || role(player.getUUID()) != CrewRole.POWER && !player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)) {
+            player.sendSystemMessage(Component.literal("The power engineer connects the rover at its workshop using the engineering tool."));
+            return false;
+        }
+        if (!mission.transferVehicleCharge()) {
+            player.sendSystemMessage(Component.literal("Charging needs an unpaused mission and at least 5 shared energy units."));
+            return false;
+        }
+        progressFeedback = mission.snapshot().lastEvent();
+        broadcast(player.level().getServer());
+        return true;
     }
 
     public int backupCellsRemaining() {
@@ -690,11 +718,13 @@ public final class MissionController {
             return 0;
         }
 
+        ReportStore.capture(source.getServer());
         try {
             switch (action) {
                 case "start" -> {
                     if (cc.nimbusnova.mc.moon.MoonController.get(source.getServer()).active()
-                            || ShipController.get(source.getServer()).selected())
+                            || ShipController.get(source.getServer()).selected()
+                            || OutpostScenarioController.get(source.getServer()).selected())
                         throw new IllegalStateException("End the Moon mission first.");
                     if (source.getServer().getPlayerList().getPlayerCount() == 0)
                         throw new IllegalStateException("A crew member must join before the mission starts.");
@@ -710,10 +740,17 @@ public final class MissionController {
                     mission.start();
                 }
                 case "pause" -> mission.pause();
-                case "resume" -> education.resume(mission);
-                case "acknowledge" -> education.confirm();
-                case "abort" -> { mission.abort(); education.clear(); }
+                case "resume" -> {
+                    LearningChecks.requireSolved(source.getServer(), "mars");
+                    education.resume(mission);
+                }
+                case "acknowledge" -> {
+                    LearningChecks.requireSolved(source.getServer(), "mars");
+                    education.confirm();
+                }
+                case "abort" -> { mission.abort(); education.clear(); LearningChecks.clear(source.getServer(), "mars"); }
                 case "reset" -> {
+                    LearningChecks.clear(source.getServer(), "mars");
                     preparation = new MissionPreparation();
                     education.clear();
                     openTasks.clear();
@@ -725,6 +762,7 @@ public final class MissionController {
 
             ticks = 0;
             broadcast(source.getServer());
+            ReportStore.capture(source.getServer());
             source.sendSuccess(() -> Component.literal("Mission: " + action), false);
             return 1;
         } catch (final IllegalStateException exception) {

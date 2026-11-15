@@ -1,6 +1,7 @@
 package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.client.render.NovaRenderer;
+import cc.nimbusnova.mc.client.learning.LearningClient;
 import cc.nimbusnova.mc.client.render.NovaScreen;
 import cc.nimbusnova.mc.moon.MoonActionPayload;
 import cc.nimbusnova.mc.moon.MoonMission;
@@ -28,6 +29,8 @@ public final class MoonScreen extends NovaScreen {
     private static String name(Enum<?> value) { return value.name().replace('_', ' '); }
 
     @Override protected void init() {
+        if (NimbusNovaClient.moon != null)
+            state = NimbusNovaClient.moon;
         panelWidth = Math.min(620, width - 16); panelHeight = Math.min(360, height - 16);
         left = (width - panelWidth) / 2; top = (height - panelHeight) / 2;
         int footer = top + panelHeight - 32;
@@ -38,6 +41,7 @@ public final class MoonScreen extends NovaScreen {
             MissionButton previous = addRenderableWidget(new MissionButton(left + 130, footer, 85, 20, "Previous", () -> { lessonPage = 0; rebuildWidgets(); }));
             MissionButton next = addRenderableWidget(new MissionButton(left + 220, footer, 65, 20, "Next", () -> { lessonPage = 1; rebuildWidgets(); }));
             previous.active = lessonPage > 0; next.active = lessonPage == 0;
+            addRenderableWidget(new MissionButton(left + 286, footer, 52, 20, "Check", () -> LearningClient.open("moon")));
         }
         if (state.stage().isEmpty() || state.stage().equals("COMPLETE") || state.paused()) return;
         if (state.role().isEmpty()) {

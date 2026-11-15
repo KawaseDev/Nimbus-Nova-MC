@@ -28,6 +28,9 @@
     .player .actions { margin-top: 0; }
     button { border: 1px solid #42536a; border-radius: 8px; padding: 10px 16px; background: #26364a; color: #bac8d6; font: inherit; }
     input { font: inherit; padding: 10px; color: inherit; background: #0c1422; border: 1px solid #42536a; border-radius: 8px; min-width: 0; flex: 1; }
+    select { background: #162637; color: inherit; border: 1px solid #40516a; border-radius: 8px; padding: 10px; max-width: 100%; }
+    summary { cursor: pointer; font-weight: 600; }
+    details > section { margin-top: 18px; }
     button:disabled { opacity: .65; cursor: not-allowed; }
     @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } .wide { grid-column: auto; } header .tag { display: none; } main { padding-top: 36px; } }
   </style>
@@ -37,16 +40,33 @@
 <main>
   <div class="intro"><h1>Mission Control</h1></div>
   <div class="grid">
+    <section class="card wide" aria-labelledby="hub-title">
+      <h2 id="hub-title">Classroom mission</h2>
+      <label for="hub-mission">Mission library</label>
+      <div class="actions"><select id="hub-mission" aria-label="Choose classroom mission"><option value="mars">The Darkening Sky — Mars</option><option value="moon">Moon Expedition</option><option value="ship">Return Window — spacecraft rescue</option><option value="shelter">Shelter Before the Event</option><option value="long_night">The Long Night</option><option value="greenhouse">Greenhouse Emergency</option></select><button id="hub-select" disabled>Select mission</button></div>
+      <p id="hub-status" role="status">Checking mission library…</p><p id="hub-feedback"></p><p id="hub-learning" hidden>Complete the applied crew check in Minecraft using the crew tablet, then resume. Reading the card alone does not clear the check.</p>
+      <div class="actions"><button id="hub-start" disabled>Start</button><button id="hub-pause" disabled>Pause</button><button id="hub-reset" disabled>Reset attempt</button><button id="hub-end" disabled>End mission</button></div>
+      <p>Selecting a different mission ends the current attempt. Existing maps and builds are preserved.</p><p id="hub-error" role="alert"></p>
+    </section>
+    <section class="card wide" aria-labelledby="reports-title">
+      <h2 id="reports-title">Crew debriefs</h2>
+      <p>Review the five latest attempts. Reports include resources and crew decisions without student names.</p>
+      <p id="reports-status" role="status">Checking for completed attempts…</p>
+      <ul id="reports-list" hidden></ul>
+      <div class="actions"><button id="reports-refresh" type="button">Refresh reports</button></div>
+    </section>
+    <details class="card wide" id="advanced-mission-controls"><summary>Mission details and compatibility controls</summary>
     <section class="card wide" aria-labelledby="session-title"><h2 id="session-title">Mission controls</h2><p id="mission-status" role="status">Mission unavailable.</p><div class="actions"><button id="mission-start" disabled aria-label="Start mission" title="Start mission">▶</button><button id="mission-pause" disabled aria-label="Pause mission" title="Pause mission">❚❚</button><button id="mission-end" disabled aria-label="End mission" title="End mission">■</button><button id="mission-reset" disabled>Reset</button></div><div id="education" hidden><h3 id="education-title"></h3><p id="education-observation"></p><p id="education-explanation"></p><p id="education-hazard"></p><p id="education-question"></p><p id="education-evidence"></p><p><a id="education-source" target="_blank" rel="noopener noreferrer">NASA source</a></p><button id="education-confirm" disabled>Confirm understanding</button></div><p id="mission-error" role="alert"></p></section>
     <section class="card wide" aria-labelledby="ship-title"><h2 id="ship-title">Spacecraft missions</h2><p id="ship-status" role="status">Select a mission to prepare your crew.</p><p id="ship-feedback"></p><div id="ship-debrief" hidden><h3>Mission debrief</h3><p id="ship-outcome"></p><p id="ship-resources"></p><ul id="ship-decisions"></ul><h4>Discuss with the crew</h4><ul><li>What information justified continuing or stopping?</li><li>Which resources affected the return?</li><li>Why are CO₂, oxygen and pressure different?</li><li>Why can't a parachute land a spacecraft on the Moon?</li></ul></div><div class="actions"><button id="ship-select" disabled>Select rescue</button><button id="ship-explore" disabled>Select Moon exploration prototype</button><button id="ship-start" hidden>Start ship mission</button><button id="ship-pause" hidden>Pause</button><button id="ship-confirm" hidden>Confirm understanding</button><button id="ship-abort" hidden>Abort attempt</button><button id="ship-reset" hidden>Reset attempt</button><button id="ship-end" hidden>Leave ship mission</button></div></section>
     <section class="card wide" aria-labelledby="moon-title"><h2 id="moon-title">Earth to Moon</h2><p class="tag">Prototype</p><p id="moon-status" role="status">No Moon mission running.</p><p id="moon-crew"></p><p id="moon-feedback"></p><div id="moon-education" hidden><h3 id="moon-education-title"></h3><p id="moon-education-observation"></p><p id="moon-education-explanation"></p><p id="moon-education-hazard"></p><p id="moon-education-question"></p><p id="moon-education-evidence"></p><p><a id="moon-education-source" target="_blank" rel="noopener noreferrer">NASA source</a></p></div><div class="actions"><button id="moon-exploration">Start exploration</button><button id="moon-rescue">Start rescue</button><button id="moon-pause" hidden>Pause</button><button id="moon-confirm" hidden>Confirm understanding</button><button id="moon-advance" hidden>Next stage</button><button id="moon-end" hidden>End mission</button></div></section>
+    </details>
     <section class="card" aria-labelledby="server-title"><h2 id="server-title">Minecraft server</h2><div class="status" role="status" aria-live="polite"><span class="dot" id="dot"></span><span id="status">Checking server…</span></div><p class="address" id="address"></p><div class="actions"><button id="power" disabled>Start server</button><button id="restart" disabled>Restart</button><button id="update-server" disabled>Update server</button></div><p>Builds the current version and restarts the server. Worlds are kept.</p><p id="server-error" role="alert"></p></section>
     <section class="card" aria-labelledby="join-title"><h2 id="join-title">Student session</h2><p id="session-status" role="status">Checking…</p></section>
     <section class="card" aria-labelledby="world-title"><h2 id="world-title">Mars outpost</h2><div class="actions"><button id="create-world" disabled>Create outpost</button><button id="update-world" disabled>Update outpost</button></div><p id="world-status" role="status">Server unavailable.</p></section>
     <section class="card wide" aria-labelledby="crew-title"><h2 id="crew-title">Player roster</h2><div class="empty" id="roster" role="status" aria-live="polite">Loading roster…</div><p id="roster-error" role="alert"></p></section>
     <section class="card wide" id="view-panel" hidden aria-labelledby="view-title"><h2 id="view-title">Student view</h2><p id="view-status" role="status">Waiting for view…</p><img class="view-image" id="view-image" alt="Student game view" hidden><div class="actions"><button id="view-close" type="button">Close view</button></div></section>
     <section class="card wide" aria-labelledby="message-title"><h2 id="message-title">Message crew</h2><form class="actions" id="message-form"><input id="message" aria-label="Message" maxlength="200" required><button type="submit">Send</button></form><p id="message-result" role="status"></p></section>
-    <section class="card" aria-labelledby="mission-title"><div class="eyebrow">Mission library</div><h2 id="mission-title">The Darkening Sky</h2><p class="tag">In development</p></section>
+    <section class="card" aria-labelledby="mission-title"><h2 id="mission-title">Joining the crew</h2><p>Students use /nimbus to join the selected mission and open the crew tablet. Complete preparation before Mission Control starts the clock.</p></section>
   </div>
 </main>
 <script>
@@ -114,16 +134,75 @@
   }
   refreshSession();
   setInterval(refreshSession, 5000);
+  async function refreshReports() {
+    const status = document.getElementById('reports-status');
+    const list = document.getElementById('reports-list');
+    const refresh = document.getElementById('reports-refresh');
+    if (refresh.disabled) return;
+    refresh.disabled = true;
+    try {
+      const response = await fetch('/api/reports', { cache: 'no-store' });
+      if (!response.ok) throw new Error();
+      const archive = await response.json();
+      list.replaceChildren(...archive.reports.map((report, index) => {
+        const entry = document.createElement('li');
+        const download = document.createElement('a');
+        download.href = `/api/reports?id=${report.id}`;
+        download.textContent = index === 0 ? 'Download latest JSON' : 'Download JSON';
+        download.setAttribute('aria-label', `${download.textContent}: ${report.title}`);
+        entry.append(`${report.title} · ${report.outcome} · ${new Date(report.endedAt).toLocaleString()} — `, download);
+        return entry;
+      }));
+      list.hidden = !archive.reports.length;
+      status.textContent = archive.capacityReached ? 'Archive full. Move old reports out of the world’s nimbus-nova/reports folder to save new attempts.' :
+        archive.reports.length ? '' : 'No completed attempts yet.';
+    } catch {
+      list.hidden = true;
+      list.replaceChildren();
+      status.textContent = 'Debriefs unavailable. Start the Minecraft server and refresh.';
+    } finally { refresh.disabled = false; }
+  }
+  document.getElementById('reports-refresh').addEventListener('click', refreshReports);
+  refreshReports();
   let missionBusy = false;
   let missionPhase = '';
+  const hubButtons = ['select', 'start', 'pause', 'reset', 'end'].map(name => document.getElementById(`hub-${name}`));
+  let hubState = null;
+  function refreshHub(state) {
+    hubState = state.hub || null;
+    if (!hubState) {
+      hubButtons.forEach(button => { button.disabled = true; });
+      document.getElementById('hub-status').textContent = 'Update the Fabric server to use the unified mission library.';
+      return;
+    }
+    const selected = hubState.selected || '', phase = hubState.phase || 'NONE';
+    const mission = (hubState.missions || []).find(item => item.id === selected);
+    document.getElementById('hub-status').textContent = selected ? `${mission?.title || selected} · ${phase}` : 'No mission selected. Choose one above.';
+    document.getElementById('hub-feedback').textContent = hubState.feedback || hubState.objective || '';
+    document.getElementById('hub-learning').hidden = phase !== 'PAUSED' || !hubState.incident;
+    hubButtons[0].disabled = missionBusy || document.getElementById('hub-mission').value === selected;
+    hubButtons[1].disabled = missionBusy || phase !== 'READY' || !hubState.ready || state.players === 0;
+    hubButtons[2].disabled = missionBusy || !['ACTIVE', 'PAUSED'].includes(phase);
+    hubButtons[2].textContent = phase === 'PAUSED' ? 'Resume' : 'Pause';
+    hubButtons[3].disabled = missionBusy || !selected;
+    hubButtons[4].disabled = missionBusy || !selected;
+    if (phase === 'READY' && !hubState.ready)
+      document.getElementById('hub-feedback').textContent = (hubState.feedback || '') + ' Complete the required crew preparation in Minecraft before starting.';
+  }
+
   const shipButtons = ['select', 'start', 'pause', 'confirm', 'abort', 'reset', 'end'].map(name => document.getElementById(`ship-${name}`));
   const missionButtons = ['mission-start', 'mission-pause', 'mission-end', 'mission-reset'].map(id => document.getElementById(id));
   async function refreshMission() {
+    if (missionBusy) return;
     try {
       const response = await fetch('/api/mission-state', { cache: 'no-store' });
       if (!response.ok) throw new Error();
       const state = await response.json();
       missionPhase = state.phase;
+      const priorPhase = hubState?.phase;
+      refreshHub(state);
+      if (hubState?.phase !== priorPhase && ['SUCCESS', 'PARTIAL', 'FAILED', 'ABORTED'].includes(hubState?.phase))
+        refreshReports();
       const ship = state.ship;
       const shipSelected = !!ship && !!ship.phase;
       const shipRunning = shipSelected && !['SUCCESS', 'PARTIAL', 'FAILED', 'ABORTED'].includes(ship.phase);
@@ -218,6 +297,7 @@
     } catch {
       missionPhase = '';
       document.getElementById('mission-status').textContent = 'Mission unavailable.';
+      hubButtons.forEach(button => { button.disabled = true; });
       missionButtons.forEach(button => { button.disabled = true; });
       shipButtons.forEach(button => { button.disabled = true; });
       document.getElementById('ship-explore').disabled = true;
@@ -228,17 +308,32 @@
   async function missionAction(action) {
     if (missionBusy) return;
     missionBusy = true;
+    hubButtons.forEach(button => { button.disabled = true; });
     missionButtons.forEach(button => { button.disabled = true; });
     shipButtons.forEach(button => { button.disabled = true; });
     document.getElementById('ship-explore').disabled = true;
     const error = document.getElementById('mission-error');
     error.textContent = '';
+    document.getElementById('hub-error').textContent = '';
     try {
       const response = await fetch('/api/mission-action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: crypto.randomUUID(), action }) });
       if (!response.ok) throw new Error(response.status === 409 ? 'Action unavailable for the current mission state.' : 'Mission connection failed.');
-    } catch (failure) { error.textContent = failure.message; }
+    } catch (failure) {
+      error.textContent = failure.message;
+      if (action.startsWith('hub_')) document.getElementById('hub-error').textContent = action === 'hub_resume'
+        ? 'Open the crew tablet in Minecraft and complete the applied crew check before resuming.'
+        : action === 'hub_start' ? 'Complete the required crew preparation before starting.' : failure.message;
+    }
     finally { missionBusy = false; await refreshMission(); }
   }
+  document.getElementById('hub-mission').addEventListener('change', () => {
+    hubButtons[0].disabled = missionBusy || document.getElementById('hub-mission').value === hubState?.selected;
+  });
+  document.getElementById('hub-select').addEventListener('click', () => missionAction('hub_select_' + document.getElementById('hub-mission').value));
+  document.getElementById('hub-start').addEventListener('click', () => missionAction('hub_start'));
+  document.getElementById('hub-pause').addEventListener('click', () => missionAction(hubState?.phase === 'PAUSED' ? 'hub_resume' : 'hub_pause'));
+  document.getElementById('hub-reset').addEventListener('click', () => missionAction('hub_reset'));
+  document.getElementById('hub-end').addEventListener('click', () => missionAction('hub_end'));
   document.getElementById('ship-select').addEventListener('click', () => missionAction('ship_select'));
   document.getElementById('ship-explore').addEventListener('click', () => missionAction('ship_explore'));
   document.getElementById('ship-start').addEventListener('click', () => missionAction('ship_start'));

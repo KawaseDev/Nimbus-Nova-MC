@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "powered=false": {
+      "model": "nimbus_nova:block/scenario_grow_light"
+    },
+    "powered=true": {
+      "model": "nimbus_nova:block/scenario_grow_light_on"
+    }
+  }
+}

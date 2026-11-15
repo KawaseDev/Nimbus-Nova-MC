@@ -1,8 +1,10 @@
 package cc.nimbusnova.mc.bridge;
 
 import cc.nimbusnova.mc.NimbusNovaMod;
+import cc.nimbusnova.mc.hub.MissionHub;
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
+import cc.nimbusnova.mc.report.ReportStore;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
 import cc.nimbusnova.mc.ship.ShipController;
 import com.google.gson.JsonArray;
@@ -174,6 +176,7 @@ public final class TeacherBridge {
                         data.addProperty("oxygen", snapshot.oxygen());
                         data.addProperty("lastEvent", snapshot.lastEvent());
                         data.addProperty("players", server.getPlayerList().getPlayerCount());
+                        data.add("hub", MissionHub.get(server).state(server));
                         data.add("ship", ShipController.get(server).teacherState());
                         var moon = cc.nimbusnova.mc.moon.MoonController.get(server).mission();
                         if (moon != null) {
@@ -230,6 +233,53 @@ public final class TeacherBridge {
                     try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }
                 } finally { exchange.close(); }
             });
+            bridge.createContext("/reports", exchange -> {
+                try {
+                    final String authorization = exchange.getRequestHeaders().getFirst("Authorization");
+                    if (!MessageDigest.isEqual(("Bearer " + token).getBytes(StandardCharsets.UTF_8),
+                            authorization == null ? new byte[0] : authorization.getBytes(StandardCharsets.UTF_8))) {
+                        exchange.sendResponseHeaders(401, -1);
+                        return;
+                    }
+
+                    if (!exchange.getRequestURI().getPath().equals("/reports")) {
+                        exchange.sendResponseHeaders(404, -1);
+                        return;
+                    }
+
+                    if (!exchange.getRequestMethod().equals("GET")) {
+                        exchange.sendResponseHeaders(405, -1);
+                        return;
+                    }
+
+                    final String query = exchange.getRequestURI().getRawQuery();
+                    if (query != null && (!query.startsWith("id=") || !ReportStore.validId(query.substring(3)))) {
+                        exchange.sendResponseHeaders(400, -1);
+                        return;
+                    }
+
+                    final JsonObject data = query == null ? ReportStore.list(server) : ReportStore.read(server, query.substring(3));
+                    if (data == null) {
+                        exchange.sendResponseHeaders(404, -1);
+                        return;
+                    }
+
+                    final byte[] body = data.toString().getBytes(StandardCharsets.UTF_8);
+                    exchange.getResponseHeaders().set("Content-Type", "application/json");
+                    exchange.getResponseHeaders().set("Cache-Control", "no-store");
+                    exchange.sendResponseHeaders(200, body.length);
+                    exchange.getResponseBody().write(body);
+                } catch (final IOException error) {
+                    NimbusNovaMod.LOGGER.warn("Teacher report request failed", error);
+                    try {
+                        exchange.sendResponseHeaders(503, -1);
+                    } catch (final IOException ignored) {
+                        /* w */
+                    }
+                } finally {
+                    exchange.close();
+                }
+            });
             bridge.createContext("/mission-action", exchange -> {
                 try {
                     String authorization = exchange.getRequestHeaders().getFirst("Authorization");
@@ -242,7 +292,7 @@ public final class TeacherBridge {
                     }
                     String[] parts = new String(exchange.getRequestBody().readNBytes(65), StandardCharsets.UTF_8).split(" ", -1);
                     if (parts.length != 2 || !parts[0].matches("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
-                            || !java.util.Set.of("start", "pause", "resume", "acknowledge", "abort", "reset", "moon_exploration", "moon_rescue", "moon_pause", "moon_resume", "moon_acknowledge", "moon_advance", "moon_end", "ship_select", "ship_explore", "ship_start", "ship_pause", "ship_acknowledge", "ship_resume", "ship_abort", "ship_reset", "ship_end").contains(parts[1])) {
+                            || !java.util.Set.of("start", "pause", "resume", "acknowledge", "abort", "reset", "moon_exploration", "moon_rescue", "moon_pause", "moon_resume", "moon_acknowledge", "moon_advance", "moon_end", "ship_select", "ship_explore", "ship_start", "ship_pause", "ship_acknowledge", "ship_resume", "ship_abort", "ship_reset", "ship_end", "hub_select_mars", "hub_select_moon", "hub_select_ship", "hub_select_shelter", "hub_select_long_night", "hub_select_greenhouse", "hub_start", "hub_pause", "hub_resume", "hub_reset", "hub_end").contains(parts[1])) {
                         exchange.sendResponseHeaders(400, -1); return;
                     }
                     UUID id = UUID.fromString(parts[0]);
@@ -250,9 +300,13 @@ public final class TeacherBridge {
                     server.execute(() -> {
                         String previous = completed.get(id);
                         if (previous != null) { result.complete(previous.equals(parts[1]) ? 204 : 409); return; }
-                        if (parts[1].startsWith("moon_") || parts[1].startsWith("ship_")) {
+                        if (parts[1].startsWith("hub_") || parts[1].startsWith("moon_") || parts[1].startsWith("ship_")) {
                             try {
-                                if (parts[1].startsWith("ship_"))
+                                if (parts[1].startsWith("hub_")) {
+                                    final boolean select = parts[1].startsWith("hub_select_");
+                                    MissionHub.get(server).action(server, select ? "select" : parts[1].substring(4),
+                                            select ? parts[1].substring(11) : "");
+                                } else if (parts[1].startsWith("ship_"))
                                     ShipController.get(server).teacherAction(server, parts[1]);
                                 else
                                     cc.nimbusnova.mc.moon.MoonController.get(server).teacherAction(server, parts[1]);
@@ -268,7 +322,7 @@ public final class TeacherBridge {
                         if (completed.size() > 256) completed.remove(completed.keySet().iterator().next());
                         result.complete(204);
                     });
-                    exchange.sendResponseHeaders(result.get(3, TimeUnit.SECONDS), -1);
+                    exchange.sendResponseHeaders(result.get(parts[1].startsWith("hub_select_") ? 30 : 3, TimeUnit.SECONDS), -1);
                 } catch (Exception error) {
                     NimbusNovaMod.LOGGER.warn("Teacher mission action failed", error);
                     try { exchange.sendResponseHeaders(503, -1); } catch (IOException ignored) { }

@@ -323,6 +323,12 @@ test('mission controls and crew messages require a teacher and forward only vali
       assert.equal((await post('/api/mission-action', headers, { id, action })).status, 204);
       assert.deepEqual(received, { path: '/mission-action', body: `${id} ${action}` });
     }
+    for (const action of ['hub_select_mars', 'hub_select_moon', 'hub_select_ship', 'hub_select_shelter', 'hub_select_long_night', 'hub_select_greenhouse', 'hub_start', 'hub_pause', 'hub_resume', 'hub_reset', 'hub_end']) {
+      assert.equal((await post('/api/mission-action', headers, { id, action })).status, 204);
+      assert.deepEqual(received, { path: '/mission-action', body: `${id} ${action}` });
+    }
+    for (const action of ['hub_select_shell', 'hub_select_mars extra', 'hub_select_', 'hub_shell'])
+      assert.equal((await post('/api/mission-action', headers, { id, action })).status, 400);
     assert.equal((await post('/api/mission-action', headers, { id, action: 'ship_shell' })).status, 400);
     assert.equal((await post('/api/message', headers, { message: 'hello\nworld' })).status, 400);
     assert.equal((await post('/api/message', headers, { message: '  Return to base  ' })).status, 204);
@@ -364,6 +370,53 @@ test('world creation requires a teacher and forwards only a fixed request', asyn
     assert.equal((await fetch(`${base}/api/world/upgrade`, { method: 'POST', headers: { Cookie: cookie, Origin: 'http://evil.example' } })).status, 403);
     assert.equal((await fetch(`${base}/api/world/upgrade`, { method: 'POST', headers: { Cookie: cookie, Origin: base } })).status, 202);
     assert.equal(upgrades, 1);
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+    await new Promise(resolve => bridge.close(resolve));
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('crew debriefs require a teacher and relay only exact report IDs', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const http = require('node:http');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nimbus-reports-'));
+  const token = 'b'.repeat(32);
+  const id = '01234567-89ab-4cde-8f01-23456789abcd';
+  const row = { id, mission: 'ship', title: 'Return Window', outcome: 'SUCCESS', endedAt: '2026-11-15T06:30:00Z' };
+  let requests = 0;
+  const bridge = http.createServer((request, response) => {
+    requests++;
+    assert.equal(request.headers.authorization, `Bearer ${token}`);
+    assert.equal(request.method, 'GET');
+    if (request.url === '/reports') {
+      response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ reports: [row], capacityReached: false }));
+    } else if (request.url === `/reports?id=${id}`) {
+      response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ...row, timeline: [] }));
+    } else response.writeHead(404).end();
+  });
+  await new Promise(resolve => bridge.listen(0, '127.0.0.1', resolve));
+  const server = createServer({ accountsFile: path.join(dir, 'users.json'), bridgeToken: token, bridgeUrl: `http://127.0.0.1:${bridge.address().port}` });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    assert.equal((await fetch(`${base}/api/reports`)).status, 401);
+    assert.equal((await fetch(`${base}/api/reports?id=${id}`)).status, 401);
+    const registration = await fetch(`${base}/api/account/register`, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'teacher', password: 'x' }) });
+    const headers = { Cookie: registration.headers.get('set-cookie').split(';')[0] };
+    assert.equal((await fetch(`${base}/api/reports`, { method: 'POST', headers })).status, 405);
+    assert.equal((await fetch(`${base}/api/reports?id=..%2F..%2Fprivate`, { headers })).status, 400);
+    assert.equal((await fetch(`${base}/api/reports?id=${id}&other=1`, { headers })).status, 400);
+    assert.equal(requests, 0);
+    const listing = await fetch(`${base}/api/reports`, { headers });
+    assert.deepEqual(await listing.json(), { reports: [row], capacityReached: false });
+    const download = await fetch(`${base}/api/reports?id=${id}`, { headers });
+    assert.equal(download.headers.get('cache-control'), 'no-store');
+    assert.equal(download.headers.get('content-disposition'), `attachment; filename="nimbus-debrief-${id}.json"`);
+    assert.deepEqual(await download.json(), { ...row, timeline: [] });
+    assert.equal((await fetch(`${base}/api/reports?id=00000000-0000-4000-8000-000000000000`, { headers })).status, 404);
   } finally {
     await new Promise(resolve => server.close(resolve));
     await new Promise(resolve => bridge.close(resolve));

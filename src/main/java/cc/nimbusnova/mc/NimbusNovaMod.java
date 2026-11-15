@@ -1,6 +1,10 @@
 package cc.nimbusnova.mc;
 
 import cc.nimbusnova.mc.mission.MissionController;
+import cc.nimbusnova.mc.hub.MissionHub;
+import cc.nimbusnova.mc.report.ReportStore;
+import cc.nimbusnova.mc.learning.LearningChecks;
+import cc.nimbusnova.mc.scenario.OutpostScenarioController;
 import cc.nimbusnova.mc.moon.MoonController;
 import cc.nimbusnova.mc.bridge.TeacherBridge;
 import cc.nimbusnova.mc.content.ModContent;
@@ -38,6 +42,10 @@ public final class NimbusNovaMod implements ModInitializer {
         ShipRooms.register();
         ShipController.register();
         MoonController.register();
+        OutpostScenarioController.register();
+        LearningChecks.register();
+        MissionHub.register();
+        ReportStore.register();
         EntranceAirlock.register();
         SuitLifeSupport.register();
         TeacherBridge.register();

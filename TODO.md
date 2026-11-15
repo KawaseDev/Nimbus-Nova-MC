@@ -252,3 +252,22 @@ Java 25 `build runClientGameTest` passed. Native checks completed all five secon
 Native door and repair checks passed, followed by rescue success and the merged exploration prototype checks. The dashboard/repair captures were inspected. Room pressure is authored, not fluid simulation; real multiplayer/classroom testing remains open.
 
 Final integration note: compartment door/repair/recovery and rescue checks passed in native Minecraft before the latest lunar-surface updates. All teammate changes were preserved, and the final merged `build compileGametestJava` plus model checks passed. The fresh post-merge client rerun twice stalled before world creation in native `SDL_GL_SwapWindow`; it was stopped. No multiplayer or final post-merge graphics certification is claimed.
+
+## Six-mission delivery goal
+
+- [x] Add the `/nimbus` library and unify teacher selection while retaining legacy commands.
+- [x] Gate launch on authoritative preparation readiness and make repeats harmless.
+- [x] Build the shelter, night and greenhouse worlds and their distinct mission loops; preserve Mars, Moon and spacecraft rescue.
+- [x] Add applied crew checks in place of skipping through incident text, including a live supply/demand prediction.
+- [x] Add ship windows, orbital sky, switchable room lights, bounded fault flicker and audible state cues.
+- [x] Add actual two-layer hull breaches and rover cargo/energy/charging.
+- [x] Obtain independent gameplay and education reviews; address paused repair item loss, misplacement, role routing and missing observation trade-offs.
+- [x] Verify merged build, server gameplay and saved report retrieval.
+- [x] Generate the importable classroom pack and verify its archive contents.
+- [x] Inspect rendered windowed/fullscreen playthroughs and test desktop input on the unlocked Mac.
+
+See [gameplay review](docs/OVERNIGHT_GAMEPLAY_REVIEW.md) and [education review](docs/OVERNIGHT_EDUCATION_REVIEW.md) for findings at the beginning of the polish pass. Organizer decisions, a real learner observation, and public submission remain open.
+
+All six maps loaded through the unified library in Minecraft. Five distinct embedded server actors exercised role routing and wrong-role rejection. The three new scenarios each reached full success through the gameplay handlers and world callbacks, including live exposure readings, timed lab output, scripted faults, physical repairs and greenhouse observations. Other checks covered repeat launch, applied lessons, shared repair supplies, switchable light emission, observation glass, rover cargo and charging, and reopening saved anonymous reports. The `.mrpack` archive passed verification.
+
+The native Minecraft client completed all six gameplay checks and entered and exited operating-system fullscreen. Hands-on Mac testing exercised the mission library, Mars dust purge, Moon preflight, ship room control and observation window, the shelter survey, the night power panel, and greenhouse irrigation. This pass fixed keyboard focus during live updates, overlapping preflight and airlock guidance, and stale Mars HUD elements in other worlds. Classroom play on five separate student devices and learning outcomes remain untested.

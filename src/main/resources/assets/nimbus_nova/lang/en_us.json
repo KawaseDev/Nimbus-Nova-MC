@@ -52,5 +52,9 @@
   "block.nimbus_nova.ship_punching_bag": "Crew Exercise Station",
   "block.nimbus_nova.ship_storage_locker": "Cargo Storage",
   "block.nimbus_nova.repair_patch_plate": "Hull Repair Plate",
-  "item.nimbus_nova.repair_wire_kit": "Replacement Wire Kit"
+  "item.nimbus_nova.repair_wire_kit": "Replacement Wire Kit",
+  "block.nimbus_nova.lighting_lamp": "Cabin Light",
+  "block.nimbus_nova.lighting_switch": "Cabin Light Switch",
+  "block.nimbus_nova.scenario_shield": "Shelter Mass Shield",
+  "block.nimbus_nova.scenario_grow_light": "Greenhouse Grow Light"
 }

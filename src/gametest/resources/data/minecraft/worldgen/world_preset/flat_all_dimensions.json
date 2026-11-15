@@ -1,0 +1,137 @@
+{
+  "dimensions": {
+    "minecraft:overworld": {
+      "type": "minecraft:overworld",
+      "generator": {
+        "type": "minecraft:flat",
+        "settings": {
+          "biome": "minecraft:desert",
+          "features": false,
+          "lakes": false,
+          "layers": [
+            {
+              "block": "minecraft:bedrock",
+              "height": 1
+            },
+            {
+              "block": "minecraft:sandstone",
+              "height": 67
+            }
+          ]
+        }
+      }
+    },
+    "minecraft:the_end": {
+      "type": "minecraft:the_end",
+      "generator": {
+        "type": "minecraft:flat",
+        "settings": {
+          "biome": "minecraft:the_end",
+          "features": false,
+          "lakes": false,
+          "layers": [
+            {
+              "block": "minecraft:bedrock",
+              "height": 1
+            },
+            {
+              "block": "minecraft:end_stone",
+              "height": 3
+            }
+          ]
+        }
+      }
+    },
+    "minecraft:the_nether": {
+      "type": "minecraft:the_nether",
+      "generator": {
+        "type": "minecraft:flat",
+        "settings": {
+          "biome": "minecraft:basalt_deltas",
+          "features": false,
+          "lakes": false,
+          "layers": [
+            {
+              "block": "minecraft:bedrock",
+              "height": 1
+            },
+            {
+              "block": "minecraft:basalt",
+              "height": 3
+            }
+          ]
+        }
+      }
+    },
+    "nimbus_nova:lunar_surface": {
+      "type": "nimbus_nova:ship_orbit",
+      "generator": {
+        "type": "minecraft:flat",
+        "settings": {
+          "biome": "minecraft:the_void",
+          "layers": [],
+          "features": false,
+          "lakes": false
+        }
+      }
+    },
+    "nimbus_nova:mars_training": {
+      "type": "nimbus_nova:mars_training",
+      "generator": {
+        "type": "nimbus_nova:mars_surface",
+        "biome_source": {
+          "type": "minecraft:fixed",
+          "biome": "nimbus_nova:mars_training"
+        }
+      }
+    },
+    "nimbus_nova:return_window": {
+      "type": "nimbus_nova:ship_orbit",
+      "generator": {
+        "type": "minecraft:flat",
+        "settings": {
+          "biome": "minecraft:the_void",
+          "layers": [],
+          "features": false,
+          "lakes": false
+        }
+      }
+    },
+    "nimbus_nova:scenario_greenhouse": {
+      "type": "nimbus_nova:scenario_greenhouse",
+      "generator": {
+        "type": "minecraft:flat",
+        "settings": {
+          "biome": "minecraft:the_void",
+          "layers": [],
+          "features": false,
+          "lakes": false
+        }
+      }
+    },
+    "nimbus_nova:scenario_long_night": {
+      "type": "nimbus_nova:scenario_long_night",
+      "generator": {
+        "type": "minecraft:flat",
+        "settings": {
+          "biome": "minecraft:the_void",
+          "layers": [],
+          "features": false,
+          "lakes": false
+        }
+      }
+    },
+    "nimbus_nova:scenario_shelter": {
+      "type": "nimbus_nova:scenario_shelter",
+      "generator": {
+        "type": "minecraft:flat",
+        "settings": {
+          "biome": "minecraft:the_void",
+          "layers": [],
+          "features": false,
+          "lakes": false
+        }
+      }
+    }
+  }
+}

@@ -101,6 +101,7 @@ public final class ShipRooms {
     }
 
     public static void register() {
+        RoomLighting.register();
         PayloadTypeRegistry.clientboundPlay().register(RoomStatusPayload.TYPE, RoomStatusPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(RoomActionPayload.TYPE, RoomActionPayload.CODEC);
         ServerLifecycleEvents.SERVER_STOPPED.register(SESSIONS::remove);
@@ -221,26 +222,30 @@ public final class ShipRooms {
             if (room != Room.SCIENCE) throw new IllegalStateException("The first authored impact is in the science room.");
             if (session.state.fault(room) == Fault.BREACH) return;
             if (session.original != null) {
-                final BlockState current = level.getBlockState(BREACH);
-                if (!current.isAir() && !current.is(RepairContent.PATCH_PLATE) && !current.equals(session.original))
+                final BlockState current = level.getBlockState(BREACH), outer = level.getBlockState(BREACH.east());
+                if (!current.isAir() && !current.is(RepairContent.PATCH_PLATE) && !current.equals(session.original)
+                        || !outer.isAir() && !outer.equals(session.originalOuter))
                     throw new IllegalStateException("Breach stopped: a changed hull cell was preserved.");
-                level.setBlock(BREACH, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
             } else {
-                final BlockState original = level.getBlockState(BREACH);
-                if (!original.is(Blocks.CONCRETE.gray()) && !original.is(ScifiBlocks.HULL_PANEL))
-                    throw new IllegalStateException("Breach stopped: the authored hull cell was changed. Your blocks were preserved.");
+                final BlockState original = level.getBlockState(BREACH), outer = level.getBlockState(BREACH.east());
+                if ((!original.is(Blocks.CONCRETE.gray()) && !original.is(ScifiBlocks.HULL_PANEL))
+                        || (!outer.is(Blocks.CONCRETE.gray()) && !outer.is(ScifiBlocks.HULL_PANEL)))
+                    throw new IllegalStateException("Breach stopped: the authored hull cells were changed. Your blocks were preserved.");
                 if (!level.getBlockState(BREACH.west()).isAir() || !level.getBlockState(BREACH.west(2)).isAir())
                     throw new IllegalStateException("Breach stopped: the interior approach was changed. Your blocks were preserved.");
                 try {
                     final Path marker = breachMarker(server);
                     Files.createDirectories(marker.getParent());
-                    Files.writeString(marker, BlockStateParser.serialize(original), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+                    Files.writeString(marker, BlockStateParser.serialize(original) + "\n" + BlockStateParser.serialize(outer),
+                            StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
                 } catch (final IOException error) {
-                    throw new IllegalStateException("Breach stopped: cannot safely record the owned hull cell. " + error.getMessage(), error);
+                    throw new IllegalStateException("Breach stopped: cannot safely record the owned hull cells. " + error.getMessage(), error);
                 }
                 session.original = original;
-                level.setBlock(BREACH, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+                session.originalOuter = outer;
             }
+            level.setBlock(BREACH, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+            level.setBlock(BREACH.east(), Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
         } else if (fault == Fault.POWER && room != Room.ENGINEERING)
             throw new IllegalStateException("The first authored cable failure is in engineering.");
         session.state.trigger(room, fault);
@@ -249,6 +254,7 @@ public final class ShipRooms {
     public static void tick(final MinecraftServer server, final boolean paused) {
         final Session session = SESSIONS.computeIfAbsent(server, _ -> new Session());
         session.state.tickSecond(paused);
+        RoomLighting.tick(server, paused);
         final ServerLevel level = server.getLevel(ShipMap.DIMENSION);
         if (level == null) return;
         if (!paused && !session.state.powered(Room.ENGINEERING))
@@ -372,6 +378,7 @@ public final class ShipRooms {
     }
 
     public static void clear(final MinecraftServer server) {
+        RoomLighting.clear(server);
         final Session session = SESSIONS.remove(server);
         if (session == null) return;
         for (final ServerPlayer player : server.getPlayerList().getPlayers()) {
@@ -384,15 +391,22 @@ public final class ShipRooms {
         if (session.original == null) return;
         final ServerLevel level = server.getLevel(ShipMap.DIMENSION);
         if (level == null) return;
-        final BlockState current = level.getBlockState(BREACH);
-        if (current.isAir() || current.is(RepairContent.PATCH_PLATE)) {
-            level.setBlock(BREACH, session.original, Block.UPDATE_ALL);
-            try {
-                Files.deleteIfExists(breachMarker(server));
-            } catch (final IOException error) {
-                NimbusNovaMod.LOGGER.warn("Owned breach restored; recovery marker could not be removed", error);
-            }
+        restoreOwnedCell(level, BREACH, session.original, true);
+        if (session.originalOuter != null)
+            restoreOwnedCell(level, BREACH.east(), session.originalOuter, false);
+        try {
+            Files.deleteIfExists(breachMarker(server));
+        } catch (final IOException error) {
+            NimbusNovaMod.LOGGER.warn("Owned breach restored; recovery marker could not be removed", error);
         }
+    }
+
+    private static void restoreOwnedCell(final ServerLevel level, final BlockPos position, final BlockState original, final boolean patchable) {
+        final BlockState current = level.getBlockState(position);
+        if (current.isAir() || patchable && current.is(RepairContent.PATCH_PLATE) || current.equals(original))
+            level.setBlock(position, original, Block.UPDATE_ALL);
+        else
+            NimbusNovaMod.LOGGER.warn("Breach recovery preserved a changed player block at {}", position);
     }
 
     private static Path breachMarker(final MinecraftServer server) {
@@ -406,16 +420,18 @@ public final class ShipRooms {
         if (level == null) return;
         try {
             if (Files.size(marker) > 1024) throw new IOException("Invalid owned breach marker");
-            final BlockState original = BlockStateParser.parseForBlock(server.registryAccess().lookupOrThrow(Registries.BLOCK),
-                    Files.readString(marker), false).blockState();
-            if (!original.is(Blocks.CONCRETE.gray()) && !original.is(ScifiBlocks.HULL_PANEL))
-                throw new IOException("Unexpected owned hull material");
-            final BlockState current = level.getBlockState(BREACH);
-            if (!current.isAir() && !current.is(RepairContent.PATCH_PLATE) && !current.equals(original)) {
-                NimbusNovaMod.LOGGER.warn("Breach recovery preserved a changed player block at {}", BREACH);
-                return;
+            final List<String> stored = Files.readAllLines(marker);
+            if (stored.isEmpty() || stored.size() > 2) throw new IOException("Invalid owned breach cell count");
+            final List<BlockState> originals = new ArrayList<>();
+            for (final String entry : stored) {
+                final BlockState original = BlockStateParser.parseForBlock(server.registryAccess().lookupOrThrow(Registries.BLOCK), entry, false).blockState();
+                if (!original.is(Blocks.CONCRETE.gray()) && !original.is(ScifiBlocks.HULL_PANEL))
+                    throw new IOException("Unexpected owned hull material");
+                originals.add(original);
             }
-            level.setBlock(BREACH, original, Block.UPDATE_ALL);
+            restoreOwnedCell(level, BREACH, originals.getFirst(), true);
+            if (originals.size() == 2)
+                restoreOwnedCell(level, BREACH.east(), originals.get(1), false);
             Files.delete(marker);
             SESSIONS.remove(server);
         } catch (final IOException | CommandSyntaxException error) {
@@ -426,7 +442,7 @@ public final class ShipRooms {
     private static final class Session {
         private final ShipRoomState state = new ShipRoomState();
         private final Map<BlockPos, Integer> cranks = new HashMap<>();
-        private BlockState original;
+        private BlockState original, originalOuter;
         private boolean suppliesClaimed;
     }
 }
