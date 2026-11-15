@@ -57,14 +57,14 @@ public final class RoomClient implements ShipPalette {
             for (final var entry : state.getAsJsonArray("rooms")) {
                 final JsonObject room = entry.getAsJsonObject();
                 if (!room.get("id").getAsString().equals(current)) continue;
-                details = room.get("name").getAsString() + " / Air " + room.get("pressure").getAsInt()
+                details = room.get("name").getAsString() + " / Pressure " + room.get("pressure").getAsInt()
                         + "% / Power " + (room.get("powered").getAsBoolean() ? "ON" : "OFF");
                 break;
             }
             NovaRenderer.rect(graphics, 8, 122, width, 24, 6, BACKGROUND);
             NovaRenderer.text(graphics, details, 17, 129, 8, TEXT);
             final String alert = state.get("alert").getAsString();
-            if (alert.isEmpty()) return;
+            if (alert.isEmpty() || alert.equals("All compartments nominal")) return;
             NovaRenderer.rect(graphics, 8, 150, width, 43, 6, BACKGROUND);
             NovaRenderer.text(graphics, alert, 17, 156, 9, WARNING);
             NovaRenderer.wrap(graphics, state.get("instruction").getAsString(), 17, 169, width - 18, 8, 2, TEXT);

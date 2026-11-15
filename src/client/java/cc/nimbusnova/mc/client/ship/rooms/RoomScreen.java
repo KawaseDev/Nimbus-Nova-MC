@@ -77,7 +77,7 @@ public final class RoomScreen extends NovaScreen implements ShipPalette {
             final boolean powered = room.get("powered").getAsBoolean();
             final String fault = room.get("fault").getAsString();
             NovaRenderer.text(graphics, room.get("name").getAsString(), left + 14, rowTop, 9, TEXT);
-            NovaRenderer.text(graphics, "Air " + room.get("pressure").getAsInt() + "% / " + (powered ? "power ON" : "power OFF")
+            NovaRenderer.text(graphics, "Pressure " + room.get("pressure").getAsInt() + "% / " + (powered ? "power ON" : "power OFF")
                     + " / " + room.get("mode").getAsString(), left + 14, rowTop + 11, 7, fault.equals("NONE") && powered && room.get("pressure").getAsInt() >= 80 ? MUTED : WARNING);
         }
         NovaRenderer.text(graphics, "Page " + (page + 1), left + 105, top + panelHeight - 23, 8, MUTED);

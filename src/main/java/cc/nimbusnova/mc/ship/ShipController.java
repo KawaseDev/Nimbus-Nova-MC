@@ -110,7 +110,9 @@ public final class ShipController {
                 for (final ShipMap.Marker marker : ShipMap.MARKERS) {
                     final var block = level.getBlockState(marker.position());
                     if (marker.task() == ShipTask.EXERCISE) continue;
-                    final boolean active = controller.mission.activeTask(marker.task()) || controller.mission.completed(marker.task());
+                    final var room = ShipRooms.roomAt(marker.position());
+                    final boolean powered = room == null || ShipRooms.state(server).powered(room);
+                    final boolean active = powered && (controller.mission.activeTask(marker.task()) || controller.mission.completed(marker.task()));
                     if (block.is(ShipMap.block(marker.task())) && block.getValue(BlockStateProperties.POWERED) != active)
                         level.setBlock(marker.position(), block.setValue(BlockStateProperties.POWERED, active), Block.UPDATE_CLIENTS);
                     if (marker.task() != ShipTask.ENGINE) continue;
