@@ -4,7 +4,6 @@ import cc.nimbusnova.mc.mission.MissionSnapshotPayload;
 import cc.nimbusnova.mc.moon.MoonPayload;
 import cc.nimbusnova.mc.bridge.JoinNamePayload;
 import cc.nimbusnova.mc.mission.OpenConsolePayload;
-import cc.nimbusnova.mc.client.render.NovaRenderer;
 import cc.nimbusnova.mc.client.vehicle.RoverRenderer;
 import cc.nimbusnova.mc.client.npc.MissionNpcClient;
 import cc.nimbusnova.mc.client.effect.DustStormEffects;
@@ -49,7 +48,6 @@ public final class NimbusNovaClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         StudentView.register();
-        NovaRenderer.initialize();
         GuidedMissionClient.register();
         ShipClient.register();
         HubClient.register();

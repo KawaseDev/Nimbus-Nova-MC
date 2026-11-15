@@ -67,11 +67,16 @@ public final class MoonScreen extends NovaScreen {
     }
 
     @Override public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float delta) {
-        Color bg = new Color(13, 23, 32, 245), white = new Color(233, 243, 244), muted = new Color(159, 180, 191), accent = new Color(110, 220, 225);
-        NovaRenderer.rect(g, left, top, panelWidth, panelHeight, 10, bg);
-        if (state.stage().isEmpty()) { NovaRenderer.text(g, "Moon mission ended", left + 14, top + 14, 15, white); super.extractRenderState(g, mouseX, mouseY, delta); return; }
+        final Color bg = new Color(30, 28, 42, 245), white = new Color(248, 245, 235), muted = new Color(190, 187, 200), accent = new Color(113, 221, 230);
+        NovaRenderer.window(g, left, top, panelWidth, panelHeight, bg);
+        if (state.stage().isEmpty()) {
+            NovaRenderer.title(g, left, top, panelWidth, "Moon mission ended");
+            super.extractRenderState(g, mouseX, mouseY, delta);
+            return;
+        }
+
         MoonMission.Stage stage = MoonMission.Stage.valueOf(state.stage());
-        NovaRenderer.text(g, "Earth to Moon / " + name(stage), left + 14, top + 14, 15, white);
+        NovaRenderer.title(g, left, top, panelWidth, "Earth to Moon / " + name(stage));
         String telemetry = switch (state.role()) {
             case "POWER" -> "Battery: " + state.battery();
             case "LIFE_SUPPORT" -> "Oxygen: " + state.oxygen();

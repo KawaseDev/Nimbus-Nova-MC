@@ -32,18 +32,16 @@ public final class EntranceAirlockClient {
                     || client.gui.hud.isHidden() || !client.level.dimension().equals(MarsTrainingMap.DIMENSION)) return;
 
             final float width = Math.min(300, graphics.guiWidth() - 20), left = (graphics.guiWidth() - width) / 2, top = graphics.guiHeight() - 102;
-            final Color cyan = new Color(107, 232, 222), text = new Color(223, 239, 241), muted = new Color(161, 184, 192);
+            final Color cyan = new Color(113, 221, 230), text = new Color(248, 245, 235);
             final String title = scan.stage() == 1 ? "Dust purge / suit scan" : scan.stage() == 2
                     ? scan.outbound() ? "Exit ready" : "Scan complete / cabin ready" : scan.outbound() ? "Preparing EVA exit" : "Dome entrance lock";
             final String detail = scan.stage() == 1 ? "Stand inside. Both laser barriers are locked."
                     : scan.stage() == 2 ? scan.outbound() ? scan.helmet() ? "Outer barrier ready. Watch your suit air." : "Helmet missing. Equip it before leaving!"
                     : "Dust removed. Walk through the inner barrier." : scan.outbound() ? "Step into the lock for the exit cycle." : "Enter the chamber to start the safety check.";
-            NovaRenderer.rect(graphics, left, top, width, 51, 8, new Color(9, 24, 32, 236));
+            NovaRenderer.hud(graphics, left, top, width, 51, new Color(30, 28, 42, 245));
             NovaRenderer.text(graphics, title, left + 10, top + 7, 10, cyan);
             NovaRenderer.wrap(graphics, detail, left + 10, top + 23, width - 20, 8.5F, 1, text);
-            NovaRenderer.rect(graphics, left + 10, top + 40, width - 20, 3, 1.5F, muted);
-            if (scan.stage() != 0)
-                NovaRenderer.rect(graphics, left + 10, top + 40, (width - 20) * Math.clamp(scan.elapsed() / 80F, 0, 1), 3, 1.5F, cyan);
+            NovaRenderer.meter(graphics, left + 10, top + 39, width - 20, 6, scan.stage() == 0 ? 0 : scan.elapsed() / 80D, cyan);
         });
     }
 }

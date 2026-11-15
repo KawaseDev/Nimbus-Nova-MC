@@ -1,5 +1,7 @@
 package cc.nimbusnova.mc.client;
 
+import cc.nimbusnova.mc.client.render.NovaRenderer;
+
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -23,7 +25,7 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 @NullMarked
-final class JoinSessionScreen extends Screen {
+final class JoinSessionScreen extends Screen implements MissionPalette {
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
     private static @Nullable String pendingNickname;
     private record SessionTarget(String address, boolean offline) { }
@@ -122,9 +124,10 @@ final class JoinSessionScreen extends Screen {
 
     @Override
     public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
+        final int left = width / 2 - 100, top = height / 2 - 75;
+        NovaRenderer.window(graphics, left - 12, top - 43, 224, 209, BACKGROUND);
+        NovaRenderer.title(graphics, left - 12, top - 43, 224, getTitle().getString());
         super.extractRenderState(graphics, mouseX, mouseY, delta);
-        int left = width / 2 - 100, top = height / 2 - 75;
-        graphics.centeredText(font, title, width / 2, top - 30, 0xFFFFFFFF);
         graphics.text(font, "Nickname", left, top - 12, 0xFFA0A0A0);
         graphics.text(font, "Session code", left, top + 28, 0xFFA0A0A0);
         graphics.text(font, "Session server", left, top + 68, 0xFFA0A0A0);

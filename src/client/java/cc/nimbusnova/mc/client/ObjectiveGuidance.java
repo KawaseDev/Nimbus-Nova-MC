@@ -78,12 +78,12 @@ public final class ObjectiveGuidance {
         graphics.pose().pushMatrix();
         graphics.pose().translate(x, y);
         graphics.pose().rotate((float) Math.toRadians(yaw));
-        NovaRenderer.rect(graphics, -0.8F, -5, 1.6F, 12, 0.7F, color);
+        NovaRenderer.rect(graphics, -0.8F, -5, 1.6F, 12, color);
         graphics.pose().translate(0, -5);
         graphics.pose().rotate((float) Math.PI / 4);
-        NovaRenderer.rect(graphics, -0.7F, 0, 1.4F, 6, 0.5F, color);
+        NovaRenderer.rect(graphics, -0.7F, 0, 1.4F, 6, color);
         graphics.pose().rotate(-(float) Math.PI / 2);
-        NovaRenderer.rect(graphics, -0.7F, 0, 1.4F, 6, 0.5F, color);
+        NovaRenderer.rect(graphics, -0.7F, 0, 1.4F, 6, color);
         graphics.pose().popMatrix();
     }
 }

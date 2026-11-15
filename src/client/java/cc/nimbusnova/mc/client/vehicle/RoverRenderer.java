@@ -50,7 +50,7 @@ public final class RoverRenderer extends EntityRenderer<MarsRover, RoverRenderer
             if (client.player == null || !(client.player.getVehicle() instanceof MarsRover rover)
                     || client.gui.screen() != null || client.gui.hud.isHidden()) return;
             final int top = graphics.guiHeight() - 70;
-            NovaRenderer.rect(graphics, 8, top, Math.min(270, graphics.guiWidth() - 16), 24, 5, new Color(12, 24, 32, 225));
+            NovaRenderer.hud(graphics, 8, top, Math.min(270, graphics.guiWidth() - 16), 24, new Color(12, 24, 32, 225));
             NovaRenderer.text(graphics, "Rover battery " + (int) Math.ceil(rover.battery()) + "% / Cargo " + rover.cargoCount() + "/3",
                     16, top + 7, 9, rover.battery() <= 15 ? new Color(248, 185, 95) : new Color(119, 230, 237));
         });

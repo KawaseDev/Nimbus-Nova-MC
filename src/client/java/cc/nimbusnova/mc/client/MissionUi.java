@@ -16,9 +16,7 @@ final class MissionUi implements MissionPalette {
     }
 
     static void panel(final GuiGraphicsExtractor graphics, final int x, final int y, final int width, final int height) {
-        NovaRenderer.glow(graphics, x, y + 3, width, height, 9, 4, new Color(5, 9, 14, 90));
-        NovaRenderer.rect(graphics, x, y, width, height, 9, BACKGROUND);
-        NovaRenderer.stroke(graphics, x, y, width, height, 9, 0.6F, BORDER);
+        NovaRenderer.window(graphics, x, y, width, height, BACKGROUND);
     }
 
     static void text(final GuiGraphicsExtractor graphics, final String text, final int x, final int y, final Color color) {
@@ -36,8 +34,7 @@ final class MissionUi implements MissionPalette {
 
     static void bar(final GuiGraphicsExtractor graphics, final int x, final int y,
                     final int width, final double percentage, final Color color) {
-        NovaRenderer.rect(graphics, x, y, width, 4, 2, SURFACE);
-        NovaRenderer.rect(graphics, x, y, (float) (width * Math.clamp(percentage, 0, 100) / 100), 4, 2, color);
+        NovaRenderer.meter(graphics, x, y, width, 5, percentage / 100, color);
     }
 
     static String time(final int seconds) {

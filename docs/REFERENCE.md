@@ -132,7 +132,7 @@ The rover has a translucent windscreen with a solid frame and a clear first-pers
 
 ### Interface and rendering
 
-Mod screens use the Nova renderer for rounded surfaces, strokes, restrained glow, and Geist distance-field typography. Screen backgrounds apply native blur once, and custom text fields support cursor/selection behavior. The dust particles use a dedicated soft-particle shader with fog and transparency support. These paths have passed a runtime render test; physical two-client interaction remains an open check.
+The in-game screens and HUD use Minecraft's font. The Nova renderer draws beveled panels, inset equipment slots, and pixel resource bars. The dust particles use a separate shader with fog and transparency support.
 
 ### Optional local terrain import
 

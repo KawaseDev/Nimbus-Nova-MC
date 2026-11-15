@@ -39,22 +39,28 @@ final class MissionHud implements MissionPalette {
         final MissionState.Snapshot state = packet.state();
         final MissionProgressPayload objective = GuidedMissionClient.progress();
         final SuitAirPayload suit = SuitLifeSupportClient.state();
-        final int objectiveTop = top + (suit == null ? 36 : 50);
-        MissionUi.panel(graphics, left, top, width, suit == null ? 32 : 46);
+        final int summaryHeight = suit == null ? 39 : 53, objectiveTop = top + summaryHeight + 4;
+        NovaRenderer.hud(graphics, left, top, width, summaryHeight, BACKGROUND);
         NovaRenderer.text(graphics, packet.role().label, left + 10, top + 5, 10, ACCENT);
         final String status = state.phase() == MissionState.Phase.READY ? "PREPARE / no timer"
                 : state.phase() == MissionState.Phase.PAUSED ? "PAUSED"
                 : state.phase().ended() ? state.phase().name() : MissionUi.time(MissionState.DURATION_SECONDS - state.elapsedSeconds()) + " remaining";
         MissionUi.rightText(graphics, status, left + width - 10, top + 8, state.phase() == MissionState.Phase.FAILED ? DANGER : TEXT);
-        NovaRenderer.text(graphics, "Power " + Math.round(state.battery()) + "%", left + 10, top + 20, 8.5F, state.battery() <= 25 ? DANGER : MUTED);
-        NovaRenderer.text(graphics, "Base air " + Math.round(state.oxygen()) + "%", left + width / 3F, top + 20, 8.5F, state.oxygen() <= 25 ? DANGER : MUTED);
-        NovaRenderer.text(graphics, "Science " + Math.min(state.researchSeconds(), MissionState.RESEARCH_TARGET_SECONDS) + "/90s",
-                left + width * 2 / 3F, top + 20, 8.5F, MUTED);
+        final int meterWidth = (width - 32) / 3;
+        final int research = Math.min(state.researchSeconds(), MissionState.RESEARCH_TARGET_SECONDS);
+        final Color power = state.battery() <= 25 ? DANGER : ACCENT, air = state.oxygen() <= 25 ? DANGER : OXYGEN;
+        NovaRenderer.text(graphics, "Power " + Math.round(state.battery()) + "%", left + 9, top + 19, 8.5F, power);
+        NovaRenderer.text(graphics, "Base air " + Math.round(state.oxygen()) + "%", left + 16 + meterWidth, top + 19, 8.5F, air);
+        NovaRenderer.text(graphics, "Science " + research + "/90s", left + 23 + meterWidth * 2, top + 19, 8.5F, SUCCESS);
+        NovaRenderer.meter(graphics, left + 9, top + 30, meterWidth, 5, state.battery() / 100, power);
+        NovaRenderer.meter(graphics, left + 16 + meterWidth, top + 30, meterWidth, 5, state.oxygen() / 100, air);
+        NovaRenderer.meter(graphics, left + 23 + meterWidth * 2, top + 30, meterWidth, 5,
+                (double) research / MissionState.RESEARCH_TARGET_SECONDS, SUCCESS);
 
         if (suit != null) {
             final String location = suit.frozen() ? "Paused" : suit.pressurized() ? "Habitat air / refilling"
                     : !suit.helmet() ? "Outside / HELMET MISSING" : !suit.sealedSuit() ? "Outside / SUIT INCOMPLETE" : "Outside / suit sealed";
-            NovaRenderer.text(graphics, "Suit air " + (int) Math.ceil(suit.air()) + "% / " + location, left + 10, top + 34, 8.5F,
+            NovaRenderer.text(graphics, "Suit air " + (int) Math.ceil(suit.air()) + "% / " + location, left + 9, top + 41, 8.5F,
                     suit.air() <= 25 || !suit.pressurized() && !suit.sealedSuit() ? DANGER : MUTED);
         }
 
@@ -90,7 +96,7 @@ final class MissionHud implements MissionPalette {
     private static void drawObjective(final GuiGraphicsExtractor graphics, final int x, final int y, final int width,
                                       final String title, final String instruction, final String action,
                                       final MissionProgressPayload objective, final Color accent, final String badge) {
-        MissionUi.panel(graphics, x, y, width, 72);
+        NovaRenderer.hud(graphics, x, y, width, 72, BACKGROUND);
         final float titleSize = NovaRenderer.width(title, 13) > width - 95 ? 11 : 13;
         NovaRenderer.text(graphics, title, x + 12, y + 7, titleSize, TEXT);
         NovaRenderer.text(graphics, badge, x + width - 10 - NovaRenderer.width(badge, 8), y + 10, 8, accent);

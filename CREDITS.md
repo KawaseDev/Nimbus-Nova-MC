@@ -56,7 +56,7 @@ When adding NASA data, record the exact dataset/study URL, retrieval date, units
 
 ## Rendering and font
 
-The Nova renderer uses original RenderPearl/Blaze3D GUI render states and shaders for rounded surfaces, strokes, glow, native screen blur, and MTSDF text. The mission-driven dust path uses a separate original soft-particle shader with fog and transparency support. Sapphire in the team's existing mod informed the design; its engine implementation was not copied. The bundled Geist MTSDF atlas is derived from [Geist](https://github.com/vercel/geist-font), licensed under SIL OFL 1.1; the full license is bundled at `assets/nimbus_nova/fonts/OFL.txt`. RGB-median distance reconstruction follows the technique documented by [msdf-atlas-gen](https://github.com/Chlumsky/msdf-atlas-gen). The font software remains under OFL, separately from the repository's MIT code.
+The mission UI uses Minecraft's default font and Blaze3D GUI drawing. The client includes original RenderPearl rendering utilities, and dust storms use a dedicated soft-particle shader with fog and transparency support. Sapphire in the team's existing mod informed the rendering design. The bundled Geist MTSDF atlas is derived from [Geist](https://github.com/vercel/geist-font) and licensed under SIL OFL 1.1. The full license is bundled at `assets/nimbus_nova/fonts/OFL.txt`. RGB-median distance reconstruction follows the technique documented by [msdf-atlas-gen](https://github.com/Chlumsky/msdf-atlas-gen). The font software remains under OFL, separately from the repository's MIT code.
 
 
 ## Gravity reference

@@ -3,12 +3,12 @@ package cc.nimbusnova.mc.client.ship;
 import java.awt.Color;
 
 public interface ShipPalette {
-    Color BACKGROUND = new Color(12, 22, 30, 242);
-    Color SURFACE = new Color(28, 42, 53);
-    Color BORDER = new Color(71, 97, 112);
-    Color TEXT = new Color(233, 242, 245);
-    Color MUTED = new Color(158, 179, 190);
-    Color ACCENT = new Color(105, 220, 231);
-    Color WARNING = new Color(246, 180, 105);
-    Color SUCCESS = new Color(144, 214, 169);
+    Color BACKGROUND = new Color(30, 28, 42, 245);
+    Color SURFACE = new Color(52, 49, 65);
+    Color BORDER = new Color(103, 100, 121);
+    Color TEXT = new Color(248, 245, 235);
+    Color MUTED = new Color(190, 187, 200);
+    Color ACCENT = new Color(113, 221, 230);
+    Color WARNING = new Color(255, 201, 113);
+    Color SUCCESS = new Color(158, 232, 114);
 }

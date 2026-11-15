@@ -318,8 +318,9 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
 
     @Override
     public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
-        NovaRenderer.rect(graphics, left, top, panelWidth, panelHeight, 10, BACKGROUND);
-        NovaRenderer.text(graphics, (state.variant().equals("EXPLORATION") ? "Moon exploration" : "Return Window") + " / " + (tablet ? "Crew tablet" : ShipClient.label(state.task())), left + 14, top + 12, 14, TEXT);
+        NovaRenderer.window(graphics, left, top, panelWidth, panelHeight, BACKGROUND);
+        NovaRenderer.title(graphics, left, top, panelWidth,
+                (state.variant().equals("EXPLORATION") ? "Moon exploration" : "Return Window") + " / " + (tablet ? "Crew tablet" : ShipClient.label(state.task())));
         NovaRenderer.text(graphics, ShipClient.label(state.stage()) + " / " + ShipClient.label(state.role().isEmpty() ? "No role assigned" : state.role())
                 + " / " + ShipClient.telemetry(state), left + 14, top + 33, 8, ACCENT);
         if (!state.incident().isEmpty()) {
@@ -349,7 +350,7 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
 
         if (state.incident().isEmpty())
             NovaRenderer.wrap(graphics, pending ? "Waiting for the crew server..." : state.feedback(), left + 14,
-                    top + panelHeight - (tablet || ended() ? 83 : 48), panelWidth - 28, 8, 1, MUTED);
+                    top + panelHeight - (tablet || ended() ? 83 : 49), panelWidth - 28, 8, 2, MUTED);
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
@@ -433,8 +434,8 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
 
         @Override
         protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
-            NovaRenderer.rect(graphics, getX(), getY(), width, height, 4, SURFACE);
-            NovaRenderer.stroke(graphics, getX(), getY(), width, height, 4, selectedSampleClass == classification ? 1.5F : 0.5F,
+            NovaRenderer.rect(graphics, getX(), getY(), width, height, SURFACE);
+            NovaRenderer.stroke(graphics, getX(), getY(), width, height, selectedSampleClass == classification ? 1.5F : 0.5F,
                     selectedSampleClass == classification ? ACCENT : BORDER);
             NovaRenderer.text(graphics, label, getX() + (width - NovaRenderer.width(label, 9)) / 2, getY() + 5, 9, TEXT);
         }
@@ -486,23 +487,22 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
             final boolean selected = (state.board() & 1 << star) != 0;
             final boolean reliable = (state.aux() & 1 << star) != 0;
             if (reliable) {
-                NovaRenderer.glow(graphics, getX() + 3, getY() + 3, 8, 8, 4, 1.5F, BORDER);
-                NovaRenderer.rect(graphics, getX() + 5, getY() + 5, 4, 4, 1, TEXT);
-                NovaRenderer.rect(graphics, getX() + 6.5F, getY() + 1, 1, 12, 0, TEXT);
-                NovaRenderer.rect(graphics, getX() + 1, getY() + 6.5F, 12, 1, 0, TEXT);
+                NovaRenderer.rect(graphics, getX() + 5, getY() + 5, 4, 4, TEXT);
+                NovaRenderer.rect(graphics, getX() + 6.5F, getY() + 1, 1, 12, TEXT);
+                NovaRenderer.rect(graphics, getX() + 1, getY() + 6.5F, 12, 1, TEXT);
             } else if (star == 0)
-                NovaRenderer.glow(graphics, getX(), getY(), width, height, 7, 5, MUTED);
+                NovaRenderer.rect(graphics, getX() + 5, getY() + 5, 4, 4, MUTED);
             else if (star == 2) {
-                NovaRenderer.rect(graphics, getX() + 2, getY() + 5, 4, 4, 2, MUTED);
-                NovaRenderer.rect(graphics, getX() + 8, getY() + 5, 4, 4, 2, MUTED);
+                NovaRenderer.rect(graphics, getX() + 2, getY() + 5, 4, 4, MUTED);
+                NovaRenderer.rect(graphics, getX() + 8, getY() + 5, 4, 4, MUTED);
             } else {
-                NovaRenderer.rect(graphics, getX() + 1, getY() + 6, 5, 2, 1, BORDER);
-                NovaRenderer.rect(graphics, getX() + 7, getY() + 5, 5, 4, 2, MUTED);
+                NovaRenderer.rect(graphics, getX() + 1, getY() + 6, 5, 2, BORDER);
+                NovaRenderer.rect(graphics, getX() + 7, getY() + 5, 5, 4, MUTED);
             }
             if (selected)
-                NovaRenderer.stroke(graphics, getX() - 2, getY() - 2, width + 4, height + 4, 5, 1, ACCENT);
+                NovaRenderer.stroke(graphics, getX() - 2, getY() - 2, width + 4, height + 4, 1, ACCENT);
             if (isHoveredOrFocused())
-                NovaRenderer.stroke(graphics, getX(), getY(), width, height, 7, 1, WARNING);
+                NovaRenderer.stroke(graphics, getX(), getY(), width, height, 1, WARNING);
             NovaRenderer.text(graphics, Character.toString((char) ('A' + star)), getX() + 11, getY() - 2, 6, selected ? ACCENT : MUTED);
         }
     }
@@ -520,13 +520,11 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
 
         @Override
         protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
-            NovaRenderer.rect(graphics, getX(), getY(), width, height, 5, SURFACE);
-            NovaRenderer.stroke(graphics, getX(), getY(), width, height, 5, selectedCartridge == cartridge ? 1.5F : 0.5F,
-                    selectedCartridge == cartridge ? ACCENT : BORDER);
+            NovaRenderer.slot(graphics, getX(), getY(), width, height, SURFACE, selectedCartridge == cartridge || isHoveredOrFocused());
             final float fuseX = getX() + 7, fuseY = getY() + 7;
-            NovaRenderer.rect(graphics, fuseX + 2, fuseY + 2, 24, 13, 2, BORDER);
-            NovaRenderer.rect(graphics, fuseX, fuseY, 24, 13, 2, cartridge % 2 == 0 ? ACCENT : WARNING);
-            NovaRenderer.rect(graphics, fuseX + 3, fuseY + 4, 18, 5, 1, SURFACE);
+            NovaRenderer.rect(graphics, fuseX + 2, fuseY + 2, 24, 13, BORDER);
+            NovaRenderer.rect(graphics, fuseX, fuseY, 24, 13, cartridge % 2 == 0 ? ACCENT : WARNING);
+            NovaRenderer.rect(graphics, fuseX + 3, fuseY + 4, 18, 5, SURFACE);
             NovaRenderer.text(graphics, cartridge * 2 + 2 + "A", getX() + 39, getY() + 8, 10, TEXT);
         }
     }
@@ -544,13 +542,11 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
         @Override
         protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
             final int installed = state.board() >> slot * 4 & 15, required = state.aux() >> slot * 4 & 15;
-            NovaRenderer.rect(graphics, getX(), getY(), width, height, 5, SURFACE);
-            NovaRenderer.stroke(graphics, getX() + 5, getY() + 18, width - 10, 24, 3, 1.5F, installed == required ? SUCCESS : BORDER);
+            NovaRenderer.slot(graphics, getX(), getY(), width, height, SURFACE, isHoveredOrFocused());
+            NovaRenderer.stroke(graphics, getX() + 5, getY() + 18, width - 10, 24, 1, installed == required ? SUCCESS : BORDER);
             NovaRenderer.text(graphics, "BUS " + (slot + 1) + " / " + (required * 2 + 2) + "A", getX() + 6, getY() + 5, 7, MUTED);
             NovaRenderer.text(graphics, installed == 0 ? "Empty" : installed * 2 + 2 + "A", getX() + 12, getY() + 25, 10,
                     installed == required ? SUCCESS : WARNING);
-            if (isHoveredOrFocused())
-                NovaRenderer.stroke(graphics, getX(), getY(), width, height, 5, 1, ACCENT);
         }
     }
 }

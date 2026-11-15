@@ -31,6 +31,6 @@ public abstract class NovaScreen extends Screen {
 
     @Override
     public void extractBackground(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
-        NovaRenderer.blur(graphics);
+        graphics.fill(0, 0, width, height, 0x88090910);
     }
 }

@@ -65,8 +65,8 @@ public final class RoomScreen extends NovaScreen implements ShipPalette {
 
     @Override
     public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
-        NovaRenderer.rect(graphics, left, top, panelWidth, panelHeight, 9, BACKGROUND);
-        NovaRenderer.text(graphics, "Compartment control", left + 14, top + 12, 15, TEXT);
+        NovaRenderer.window(graphics, left, top, panelWidth, panelHeight, BACKGROUND);
+        NovaRenderer.title(graphics, left, top, panelWidth, "Compartment control");
         final String alert = state.get("alert").getAsString();
         NovaRenderer.wrap(graphics, alert.isEmpty() ? "Select door mode: AUTO uses proximity and pressure interlocks."
                 : alert + ". " + state.get("instruction").getAsString(), left + 14, top + 34, panelWidth - 28, 8, 2, alert.isEmpty() ? MUTED : WARNING);

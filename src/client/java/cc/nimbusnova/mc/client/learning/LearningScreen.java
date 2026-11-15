@@ -76,8 +76,8 @@ public final class LearningScreen extends NovaScreen implements ShipPalette {
     @Override
     public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
         final AppliedLearning.Case situation = AppliedLearning.Case.valueOf(state.incident());
-        NovaRenderer.rect(graphics, left, top, panelWidth, panelHeight, 9, BACKGROUND);
-        NovaRenderer.text(graphics, "Crew check / " + situation.title, left + 14, top + 12, 13, ACCENT);
+        NovaRenderer.window(graphics, left, top, panelWidth, panelHeight, BACKGROUND);
+        NovaRenderer.title(graphics, left, top, panelWidth, "Crew check / " + situation.title);
         final int meterWidth = (panelWidth - 38) / 2;
         meter(graphics, left + 14, top + 34, meterWidth, state.firstLabel(), state.firstValue(), Math.max(100, Math.max(state.firstValue(), state.secondValue())));
         meter(graphics, left + 24 + meterWidth, top + 34, meterWidth, state.secondLabel(), state.secondValue(), Math.max(100, Math.max(state.firstValue(), state.secondValue())));
@@ -99,9 +99,7 @@ public final class LearningScreen extends NovaScreen implements ShipPalette {
     private static void meter(final GuiGraphicsExtractor graphics, final int x, final int y, final int width,
                               final String label, final int value, final int maximum) {
         NovaRenderer.text(graphics, label + (value >= 0 ? " " + value : ""), x, y, 8, TEXT);
-        NovaRenderer.rect(graphics, x, y + 12, width, 6, 3, SURFACE);
-        if (value > 0)
-            NovaRenderer.rect(graphics, x, y + 12, width * Math.clamp(value, 0, maximum) / (float) maximum, 6, 3, ACCENT);
+        NovaRenderer.meter(graphics, x, y + 12, width, 6, (double) value / maximum, ACCENT);
     }
 
     @Override

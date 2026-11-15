@@ -93,18 +93,12 @@ public final class HoldTaskButton extends Button implements ShipPalette {
             cancel();
 
         final float progress = holding ? Math.clamp((float) (System.nanoTime() - started) / durationNanos, 0, 1) : 0;
-        if (holding)
-            NovaRenderer.glow(graphics, getX(), getY(), width, height, 5, 3 + progress * 3, ACCENT);
-        NovaRenderer.rect(graphics, getX(), getY(), width, height, 5, isHoveredOrFocused() && active ? BORDER : SURFACE);
+        NovaRenderer.button(graphics, getX(), getY(), width, height, active, isHoveredOrFocused(), holding);
         if (progress > 0)
-            NovaRenderer.rect(graphics, getX() + 2, getY() + 2, (width - 4) * progress, height - 4, 4, BORDER);
-        NovaRenderer.stroke(graphics, getX(), getY(), width, height, 5, holding || isFocused() ? 1.2F : 0.7F,
-                holding || isFocused() ? ACCENT : BORDER);
+            NovaRenderer.meter(graphics, getX() + 3, getY() + height - 6, width - 6, 4, progress, SUCCESS);
 
         final String label = holding ? getMessage().getString() + " " + (int) (progress * 100) + "%" : "Hold: " + getMessage().getString();
-        final float size = NovaRenderer.width(label, 9) <= width - 10 ? 9 : 7.5F;
-        NovaRenderer.text(graphics, label, getX() + (width - NovaRenderer.width(label, size)) / 2,
-                getY() + (height - 12) / 2F, size, active ? TEXT : MUTED);
+        NovaRenderer.centered(graphics, label, getX(), getY(), width, holding ? height - 5 : height, active ? TEXT : MUTED);
         if (holding && progress >= 1) {
             holding = false;
             finishAction.run();

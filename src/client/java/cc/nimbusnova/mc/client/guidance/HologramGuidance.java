@@ -160,13 +160,11 @@ public final class HologramGuidance {
         final Color color = active ? AMBER : CYAN;
         final float ring = active ? 11 + (float) Math.sin(time * 0.075) * motion : 5;
         if (screen.y >= 118) {
-            NovaRenderer.glow(graphics, screen.x - ring, screen.y - ring, ring * 2, ring * 2, ring, active ? 5 : 2,
-                    new Color(color.getRed(), color.getGreen(), color.getBlue(), (int) (active ? pulse * 65 : 30)));
-            NovaRenderer.stroke(graphics, screen.x - ring, screen.y - ring, ring * 2, ring * 2, ring, 0.8F,
+            NovaRenderer.stroke(graphics, screen.x - ring, screen.y - ring, ring * 2, ring * 2, 0.8F,
                     new Color(color.getRed(), color.getGreen(), color.getBlue(), (int) (pulse * 215)));
             if (active) {
-                NovaRenderer.rect(graphics, screen.x - 1, screen.y - 4, 2, 8, 1, color);
-                NovaRenderer.rect(graphics, screen.x - 4, screen.y - 1, 8, 2, 1, color);
+                NovaRenderer.rect(graphics, screen.x - 1, screen.y - 4, 2, 8, color);
+                NovaRenderer.rect(graphics, screen.x - 4, screen.y - 1, 8, 2, color);
             }
         }
 
@@ -183,8 +181,8 @@ public final class HologramGuidance {
         final LabelBounds bounds = new LabelBounds(left, top, width, height);
         if (occupied.stream().anyMatch(bounds::overlaps)) return;
         occupied.add(bounds);
-        NovaRenderer.rect(graphics, left, top, width, height, 6, BACKGROUND);
-        NovaRenderer.stroke(graphics, left, top, width, height, 6, 0.6F,
+        NovaRenderer.hud(graphics, left, top, width, height, BACKGROUND);
+        NovaRenderer.stroke(graphics, left, top, width, height, 0.6F,
                 new Color(color.getRed(), color.getGreen(), color.getBlue(), active ? 155 : 80));
         NovaRenderer.text(graphics, anchor.name, left + 10, top + 3, fontSize, active ? color : TEXT);
         if (active)

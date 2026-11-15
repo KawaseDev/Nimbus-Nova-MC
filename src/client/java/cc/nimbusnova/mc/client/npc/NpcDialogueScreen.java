@@ -103,11 +103,9 @@ public final class NpcDialogueScreen extends NovaScreen {
             continueMission.setMessage(Component.literal(mission != null && mission.state().phase().ended() ? "Mission report"
                     : GuidedMissionClient.progress() != null && GuidedMissionClient.progress().stage().equals("ROLE") ? "Choose role"
                     : GuidedMissionClient.progress() != null && GuidedMissionClient.progress().ready() ? "Launch tablet" : "Next task"));
-        final Color background = new Color(14, 22, 29, 242), border = new Color(78, 101, 113),
-                text = new Color(238, 239, 233), accent = new Color(239, 177, 94), muted = new Color(165, 181, 188);
-        NovaRenderer.rect(graphics, left, top, panelWidth, panelHeight, 10, background);
-        NovaRenderer.stroke(graphics, left, top, panelWidth, panelHeight, 10, 1, border);
-        NovaRenderer.text(graphics, dialogue.name(), left + 16, top + 14, 15, accent);
+        final Color background = new Color(30, 28, 42, 245), text = new Color(248, 245, 235), muted = new Color(190, 187, 200);
+        NovaRenderer.window(graphics, left, top, panelWidth, panelHeight, background);
+        NovaRenderer.title(graphics, left, top, panelWidth, dialogue.name());
         NovaRenderer.text(graphics, GuidedMissionClient.progress() == null ? "Your astronaut guide"
                         : GuidedMissionClient.progress().title(), left + 16, top + 33, 9, muted);
         for (int line = 0; line < linesPerPage && page * linesPerPage + line < lines.size(); line++)

@@ -56,8 +56,7 @@ final class MissionEditBox extends EditBox implements MissionPalette {
     public void extractWidgetRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
         if (!isVisible()) return;
 
-        NovaRenderer.rect(graphics, getX(), getY(), getWidth(), getHeight(), 6, SURFACE);
-        NovaRenderer.stroke(graphics, getX(), getY(), getWidth(), getHeight(), 6, 0.7F, isFocused() ? ACCENT : BORDER);
+        NovaRenderer.slot(graphics, getX(), getY(), getWidth(), getHeight(), SURFACE, isFocused());
         final String value = getValue();
         final int cursor = Math.clamp(getCursorPosition(), 0, value.length());
         final float cursorX = NovaRenderer.width(value.substring(0, cursor), 10), available = getWidth() - 20;
@@ -68,11 +67,11 @@ final class MissionEditBox extends EditBox implements MissionPalette {
         final int end = Math.clamp(Math.max(cursor, selectionAnchor), 0, value.length());
         if (isFocused() && start != end)
             NovaRenderer.rect(graphics, getX() + 9 - scroll + NovaRenderer.width(value.substring(0, start), 10), getY() + 5,
-                    NovaRenderer.width(value.substring(start, end), 10), 16, 2, new Color(239, 177, 94, 65));
+                    NovaRenderer.width(value.substring(start, end), 10), 16, new Color(239, 177, 94, 65));
 
-        NovaRenderer.text(graphics, value.isEmpty() ? placeholder : value, getX() + 9 - scroll, getY() + 5, 10, value.isEmpty() ? MUTED : TEXT);
+        NovaRenderer.text(graphics, value.isEmpty() ? placeholder : value, getX() + 9 - scroll, getY() + 8, 10, value.isEmpty() ? MUTED : TEXT);
         if (isFocused())
-            NovaRenderer.rect(graphics, getX() + 9 - scroll + cursorX, getY() + 6, 0.7F, 13, 0, ACCENT);
+            NovaRenderer.rect(graphics, getX() + 9 - scroll + cursorX, getY() + 6, 0.7F, 13, ACCENT);
 
         graphics.disableScissor();
     }

@@ -83,10 +83,10 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
         if (state.step() < 0) {
             addRenderableWidget(new MissionButton(left + 14, top + panelHeight - 42, panelWidth - 28, 26, "Next task", this::onClose));
         } else if (state.kind() == MissionPreparation.TaskKind.POWER) {
-            cellSize = Math.min(60, (panelHeight - 96) / 3);
+            cellSize = Math.min(60, Math.min((panelHeight - 98) / 3, (panelWidth - 192) / 3));
             boardWidth = cellSize * 3 + 8;
-            boardX = left + 27;
-            boardY = top + 61;
+            boardX = left + 53;
+            boardY = top + 55;
             for (int cell = 0; cell < 9; cell++)
                 controls.add(addRenderableWidget(new CircuitTile(boardX + cell % 3 * (cellSize + 4),
                         boardY + cell / 3 * (cellSize + 4), cellSize, cell)));
@@ -96,9 +96,9 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
             final int spacing = (panelWidth - 28) / 3;
             for (int valve = 0; valve < 3; valve++) {
                 final int index = valve, centerX = left + 14 + spacing * valve + spacing / 2;
-                controls.add(addRenderableWidget(new ValveDial(centerX - 18, top + 118, index, labels[valve])));
-                controls.add(addRenderableWidget(new AdjustmentButton(centerX - 30, top + 157, "Decrease " + labels[valve], "-", () -> submit(index * 2 + 1))));
-                controls.add(addRenderableWidget(new AdjustmentButton(centerX + 8, top + 157, "Increase " + labels[valve], "+", () -> submit(index * 2))));
+                controls.add(addRenderableWidget(new ValveDial(centerX - 18, top + 108, index, labels[valve])));
+                controls.add(addRenderableWidget(new AdjustmentButton(centerX - 30, top + 147, "Decrease " + labels[valve], "-", () -> submit(index * 2 + 1))));
+                controls.add(addRenderableWidget(new AdjustmentButton(centerX + 8, top + 147, "Increase " + labels[valve], "+", () -> submit(index * 2))));
             }
 
             activate = addRenderableWidget(new MissionButton(left + 14, top + panelHeight - 36, panelWidth - 28, 24,
@@ -159,8 +159,8 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
         if (state.step() < 0) {
             drawComplete(graphics, now, motion);
         } else {
-            NovaRenderer.text(graphics, state.kind() == MissionPreparation.TaskKind.POWER ? "Route solar power" : "Balance the oxygen recycler",
-                    left + 14, top + 10, 15, TEXT);
+            NovaRenderer.title(graphics, left, top, panelWidth,
+                    state.kind() == MissionPreparation.TaskKind.POWER ? "Route solar power" : "Balance the oxygen recycler");
             NovaRenderer.text(graphics, mission != null && mission.state().phase() == MissionState.Phase.PAUSED
                             ? "Mission paused. Your puzzle progress is safe."
                             : state.kind() == MissionPreparation.TaskKind.POWER ? "Turn the cables to connect SOLAR to BASE."
@@ -176,13 +176,13 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
     }
 
     private void drawCircuit(final GuiGraphicsExtractor graphics) {
-        NovaRenderer.rect(graphics, boardX - 6, boardY - 6, boardWidth + 12, boardWidth + 12, 8, new Color(10, 24, 29));
+        NovaRenderer.slot(graphics, boardX - 6, boardY - 6, boardWidth + 12, boardWidth + 12, new Color(20, 18, 29), false);
         final int terminalY = boardY + cellSize + 4 + cellSize / 2;
-        NovaRenderer.rect(graphics, boardX - 16, terminalY - 5, 16, 10, 3, ACCENT);
-        NovaRenderer.text(graphics, "SOLAR", boardX - 17, terminalY - 19, 6.5F, ACCENT);
-        NovaRenderer.rect(graphics, boardX + boardWidth, terminalY - 5, 12, 10, 3, BORDER);
-        NovaRenderer.text(graphics, "BASE", boardX + boardWidth + 1, terminalY + 9, 6.5F, MUTED);
-        final int infoX = boardX + boardWidth + 22, infoWidth = left + panelWidth - infoX - 14;
+        NovaRenderer.rect(graphics, boardX - 16, terminalY - 5, 16, 10, ACCENT);
+        NovaRenderer.text(graphics, "SOLAR", boardX - 10 - NovaRenderer.width("SOLAR", 8), terminalY - 17, 8, ACCENT);
+        NovaRenderer.rect(graphics, boardX + boardWidth, terminalY - 5, 12, 10, BORDER);
+        NovaRenderer.text(graphics, "BASE", boardX + boardWidth + 10, terminalY - 17, 8, MUTED);
+        final int infoX = boardX + boardWidth + 40, infoWidth = left + panelWidth - infoX - 14;
         NovaRenderer.text(graphics, "Make a live path", infoX, boardY + 3, 10, ACCENT);
         NovaRenderer.wrap(graphics, "Click a tile to rotate its cable. Lit cables carry power from the solar input.",
                 infoX, boardY + 24, infoWidth, 9, 5, TEXT);
@@ -195,8 +195,8 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
 
     private void drawOxygen(final GuiGraphicsExtractor graphics, final float elapsed, final boolean motion) {
         final int packed = state.puzzleState(), pressure = MissionPreparation.oxygenPressure(packed), flow = MissionPreparation.oxygenFlow(packed);
-        gauge(graphics, "Pressure", pressure, MissionPreparation.OXYGEN_PRESSURE_MIN, MissionPreparation.OXYGEN_PRESSURE_MAX, top + 51);
-        gauge(graphics, "Flow", flow, MissionPreparation.OXYGEN_FLOW_MIN, MissionPreparation.OXYGEN_FLOW_MAX, top + 79);
+        gauge(graphics, "Pressure", pressure, MissionPreparation.OXYGEN_PRESSURE_MIN, MissionPreparation.OXYGEN_PRESSURE_MAX, top + 49);
+        gauge(graphics, "Flow", flow, MissionPreparation.OXYGEN_FLOW_MIN, MissionPreparation.OXYGEN_FLOW_MAX, top + 73);
         final int spacing = (panelWidth - 28) / 3;
         final String[] names = { "Intake", "Pump", "Vent" };
         for (int valve = 0; valve < 3; valve++) {
@@ -204,13 +204,12 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
             valveAngles[valve] = motion ? valveAngles[valve] + (target - valveAngles[valve]) * Math.min(1, elapsed * 14) : target;
             final int centerX = left + 14 + spacing * valve + spacing / 2;
             final String label = names[valve] + " " + MissionPreparation.oxygenValve(packed, valve) + "/4";
-            NovaRenderer.text(graphics, label, centerX - NovaRenderer.width(label, 8) / 2, top + 105, 8, selectedValve == valve ? ACCENT : MUTED);
+            NovaRenderer.text(graphics, label, centerX - NovaRenderer.width(label, 8) / 2, top + 98, 8, selectedValve == valve ? ACCENT : MUTED);
         }
 
         final float stable = Math.clamp((state.aux() >>> 16) / (float) MissionPreparation.OXYGEN_STABLE_TICKS, 0, 1);
         final int progressY = top + panelHeight - 47;
-        NovaRenderer.rect(graphics, left + 14, progressY, panelWidth - 95, 3, 1.5F, SURFACE);
-        NovaRenderer.rect(graphics, left + 14, progressY, (panelWidth - 95) * stable, 3, 1.5F, SUCCESS);
+        NovaRenderer.meter(graphics, left + 14, progressY, panelWidth - 95, 5, stable, SUCCESS);
         NovaRenderer.text(graphics, stable >= 1 ? "Stable!" : "Hold steady", left + panelWidth - 72, progressY - 4, 8, stable >= 1 ? SUCCESS : MUTED);
     }
 
@@ -220,19 +219,18 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
         NovaRenderer.text(graphics, name + " " + value, x, y, 9, safe ? SUCCESS : TEXT);
         NovaRenderer.text(graphics, "Target " + minimum + "-" + maximum,
                 x + width - NovaRenderer.width("Target " + minimum + "-" + maximum, 8), y, 8, MUTED);
-        NovaRenderer.rect(graphics, x, y + 14, width, 6, 3, SURFACE);
-        NovaRenderer.rect(graphics, x + width * minimum / 100F, y + 12, width * (maximum - minimum) / 100F, 10, 3, new Color(113, 192, 143, 100));
-        NovaRenderer.rect(graphics, x + width * Math.clamp(value, 0, 100) / 100F - 1, y + 11, 2, 12, 1, safe ? SUCCESS : ACCENT);
+        NovaRenderer.slot(graphics, x, y + 14, width, 6, SURFACE, false);
+        NovaRenderer.rect(graphics, x + width * minimum / 100F, y + 12, width * (maximum - minimum) / 100F, 10, new Color(113, 192, 143, 100));
+        NovaRenderer.rect(graphics, x + width * Math.clamp(value, 0, 100) / 100F - 1, y + 11, 2, 12, safe ? SUCCESS : ACCENT);
     }
 
     private void drawComplete(final GuiGraphicsExtractor graphics, final long now, final boolean motion) {
         final float age = Math.clamp((now - completedAt) / 700_000_000F, 0, 1);
         if (motion && age < 1)
-            NovaRenderer.glow(graphics, left + 18, top + 18, panelWidth - 36, panelHeight - 36, 12, 8 + age * 12,
-                    new Color(164, 206, 151, Math.round((1 - age) * 75)));
+            NovaRenderer.stroke(graphics, left + 6, top + 6, panelWidth - 12, panelHeight - 12, 2,
+                    new Color(158, 232, 114, Math.round((1 - age) * 130)));
 
-        NovaRenderer.text(graphics, state.kind() == MissionPreparation.TaskKind.POWER ? "Circuit connected!" : "Recycler ready!",
-                left + 20, top + 25, 21, SUCCESS);
+        NovaRenderer.title(graphics, left, top, panelWidth, state.kind() == MissionPreparation.TaskKind.POWER ? "Circuit connected!" : "Recycler ready!");
         NovaRenderer.wrap(graphics, state.kind() == MissionPreparation.TaskKind.POWER
                         ? "Power now reaches the habitat. Your circuit repair is complete."
                         : "Pressure and flow are stable. Your oxygen system is ready for the crew.",
@@ -265,8 +263,7 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
         protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
             final boolean live = (state.aux() & 1 << index) != 0 && Math.abs(cableTargets[index] - cableAngles[index]) < 5;
             final boolean selected = isHoveredOrFocused() || selectedCell == index;
-            NovaRenderer.rect(graphics, getX(), getY(), getWidth(), getHeight(), 5, SURFACE);
-            NovaRenderer.stroke(graphics, getX(), getY(), getWidth(), getHeight(), 5, selected ? 1.3F : 0.5F, selected ? ACCENT : BORDER);
+            NovaRenderer.slot(graphics, getX(), getY(), getWidth(), getHeight(), SURFACE, selected);
             final Color cable = live ? ACCENT : new Color(105, 126, 138);
             graphics.pose().pushMatrix();
             graphics.pose().translate(getX() + getWidth() / 2F, getY() + getHeight() / 2F);
@@ -276,15 +273,15 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
                 if ((mask & 1 << direction) == 0) continue;
                 graphics.pose().pushMatrix();
                 graphics.pose().rotate(direction * (float) Math.PI / 2);
-                NovaRenderer.rect(graphics, -2.4F, -getHeight() / 2F - 2, 4.8F, getHeight() / 2F + 2, 1.6F, cable);
+                NovaRenderer.rect(graphics, -2.4F, -getHeight() / 2F - 2, 4.8F, getHeight() / 2F + 2, cable);
                 if (live && minecraft.options.screenEffectScale().get() > 0) {
                     final float travel = (float) ((animationTime * 1.25 + index * 0.09) % 1);
-                    NovaRenderer.rect(graphics, -1.5F, -travel * getHeight() / 2F - 1.5F, 3, 3, 1.5F, TEXT);
+                    NovaRenderer.rect(graphics, -1.5F, -travel * getHeight() / 2F - 1.5F, 3, 3, TEXT);
                 }
                 graphics.pose().popMatrix();
             }
 
-            NovaRenderer.rect(graphics, -4, -4, 8, 8, 4, cable);
+            NovaRenderer.rect(graphics, -4, -4, 8, 8, cable);
             graphics.pose().popMatrix();
         }
 
@@ -323,15 +320,14 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
         @Override
         protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
             final float centerX = getX() + 18, centerY = getY() + 18;
-            NovaRenderer.rect(graphics, getX(), getY(), 36, 36, 18, SURFACE);
             final boolean highlighted = isHoveredOrFocused() || selectedValve == index;
-            NovaRenderer.stroke(graphics, getX(), getY(), 36, 36, 18, highlighted ? 1.4F : 0.7F, highlighted ? ACCENT : BORDER);
+            NovaRenderer.slot(graphics, getX(), getY(), 36, 36, SURFACE, highlighted);
             graphics.pose().pushMatrix();
             graphics.pose().translate(centerX, centerY);
             graphics.pose().rotate((float) Math.toRadians(valveAngles[index]));
-            NovaRenderer.rect(graphics, -1.2F, -13, 2.4F, 14, 1.2F, OXYGEN);
+            NovaRenderer.rect(graphics, -1.2F, -13, 2.4F, 14, OXYGEN);
             graphics.pose().popMatrix();
-            NovaRenderer.rect(graphics, centerX - 3, centerY - 3, 6, 6, 3, OXYGEN);
+            NovaRenderer.rect(graphics, centerX - 3, centerY - 3, 6, 6, OXYGEN);
         }
 
         @Override
@@ -351,9 +347,8 @@ public final class TaskScreen extends NovaScreen implements MissionPalette {
 
         @Override
         protected void extractContents(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
-            NovaRenderer.rect(graphics, getX(), getY(), getWidth(), getHeight(), 4, isHoveredOrFocused() ? BORDER : SURFACE);
-            NovaRenderer.stroke(graphics, getX(), getY(), getWidth(), getHeight(), 4, 0.7F, isFocused() ? ACCENT : BORDER);
-            NovaRenderer.text(graphics, symbol, getX() + (getWidth() - NovaRenderer.width(symbol, 13)) / 2, getY() + 1, 13, active ? TEXT : MUTED);
+            NovaRenderer.button(graphics, getX(), getY(), getWidth(), getHeight(), active, isHoveredOrFocused(), false);
+            NovaRenderer.centered(graphics, symbol, getX(), getY(), getWidth(), getHeight(), active ? TEXT : MUTED);
         }
     }
 }

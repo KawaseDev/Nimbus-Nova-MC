@@ -53,7 +53,7 @@ public final class ScenarioClient {
             final int width = Math.min(324, graphics.guiWidth() - 16);
             final var waypoint = waypoint();
             final String phase = state.get("phase").getAsString();
-            NovaRenderer.rect(graphics, 8, 8, width, waypoint == null ? 87 : 108, 7, new Color(10, 23, 31, 220));
+            NovaRenderer.hud(graphics, 8, 8, width, waypoint == null ? 87 : 108, new Color(10, 23, 31, 220));
             NovaRenderer.text(graphics, state.get("title").getAsString(), 17, 15, 11, new Color(112, 226, 232));
             final int left = Math.max(0, 150 - state.get("elapsed").getAsInt());
             final String progress = switch (state.get("id").getAsString()) {

@@ -245,10 +245,9 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
     @Override
     public void extractRenderState(final @NonNull GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
         updateControls();
-        NovaRenderer.rect(graphics, 0, 0, width, height, 0, new Color(10, 15, 22, 155));
+        NovaRenderer.rect(graphics, 0, 0, width, height, new Color(10, 15, 22, 155));
         MissionUi.panel(graphics, panelX, panelY, panelWidth, panelHeight);
-        NovaRenderer.text(graphics, "The Darkening Sky", panelX + 20, panelY + 8, 15, TEXT);
-        MissionUi.text(graphics, "Your crew / one shared mission", panelX + 20, panelY + 29, MUTED);
+        NovaRenderer.title(graphics, panelX, panelY, panelWidth, "The Darkening Sky");
 
         final MissionSnapshotPayload packet = NimbusNovaClient.snapshot;
         final int contentX = panelX + 14, contentY = panelY + 78, contentWidth = panelWidth - 28;
@@ -270,16 +269,16 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
                             : objective == null ? "Walk into the habitat and right-click Commander Vega. He will give your crew its first task."
                             : objective.instruction();
                     NovaRenderer.wrap(graphics, instruction, contentX, contentY + 23, contentWidth, 10.5F, 2, TEXT);
-                    ObjectiveGuidance.arrow(graphics, objective, contentX + 5, contentY + 62, ACCENT);
+                    ObjectiveGuidance.arrow(graphics, objective, contentX + 5, contentY + 54, ACCENT);
                     NovaRenderer.wrap(graphics, objective == null ? "Right-click the astronaut to begin" : ObjectiveGuidance.navigation(objective),
-                            contentX + 18, contentY + 55, contentWidth - 18, 9.5F, 1, ACCENT);
+                            contentX + 18, contentY + 47, contentWidth - 18, 9.5F, 1, ACCENT);
                     final int completed = objective == null ? 0 : objective.completed();
                     final int total = objective == null ? 5 : Math.max(1, objective.total());
                     NovaRenderer.text(graphics, state.phase() == MissionState.Phase.READY
                                     ? "Crew preparation: " + completed + " / " + total + " tasks complete"
                                     : "Science progress: " + Math.min(state.researchSeconds(), 90) + " / 90 seconds",
-                            contentX, contentY + 75, 9, MUTED);
-                    MissionUi.bar(graphics, contentX, contentY + 89, contentWidth,
+                            contentX, contentY + 63, 9, MUTED);
+                    MissionUi.bar(graphics, contentX, contentY + 77, contentWidth,
                             state.phase() == MissionState.Phase.READY ? completed * 100.0 / total : state.researchSeconds() * 100.0 / 90, SUCCESS);
                     final String feedback = objective == null || objective.feedback().isBlank()
                             ? "The clock stays stopped while your crew prepares." : objective.feedback();
@@ -287,7 +286,7 @@ public final class MissionConsoleScreen extends NovaScreen implements MissionPal
                         NovaRenderer.wrap(graphics, MissionTutorial.job(packet.role()), contentX, contentY + 109, contentWidth, 11, 3, ACCENT);
                         NovaRenderer.text(graphics, "Keep power and air above zero. Finish the science objective together.", contentX, contentY + 158, 10, TEXT);
                     } else {
-                        NovaRenderer.wrap(graphics, feedback, contentX, contentY + 100, contentWidth, 9, 1, MUTED);
+                        NovaRenderer.wrap(graphics, feedback, contentX, contentY + 87, contentWidth, 9, 2, MUTED);
                     }
                 }
                 case 1 -> {

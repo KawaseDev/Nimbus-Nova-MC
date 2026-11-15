@@ -125,8 +125,8 @@ public final class ScenarioScreen extends NovaScreen {
     @Override
     public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
         final Color accent = new Color(112, 226, 232), muted = new Color(168, 187, 197), text = new Color(235, 244, 247);
-        NovaRenderer.rect(graphics, left, top, panelWidth, panelHeight, 9, new Color(10, 23, 31, 245));
-        NovaRenderer.text(graphics, state.get("title").getAsString(), left + 14, top + 12, 14, text);
+        NovaRenderer.window(graphics, left, top, panelWidth, panelHeight, new Color(30, 28, 42, 245));
+        NovaRenderer.title(graphics, left, top, panelWidth, state.get("title").getAsString());
         final String role = state.get("role").getAsString().replace('_', ' ');
         NovaRenderer.text(graphics, state.get("phase").getAsString() + (role.isEmpty() ? "" : " / " + role), left + 14, top + 33, 8, accent);
         final int station = state.get("station").getAsInt();
@@ -139,8 +139,7 @@ public final class ScenarioScreen extends NovaScreen {
                 final float x = left + 14 + column * bed;
                 final int moisture = state.getAsJsonArray("moisture").get(bed).getAsInt(), rootAir = state.getAsJsonArray("rootAir").get(bed).getAsInt();
                 NovaRenderer.text(graphics, "Bed " + (bed + 1) + " / root air " + rootAir, x, top + 57, 8, text);
-                NovaRenderer.rect(graphics, x, top + 78, column - 7, 16, 4, new Color(37, 55, 65));
-                NovaRenderer.rect(graphics, x, top + 78, (column - 7) * moisture / 100F, 16, 4, moisture > 80 ? new Color(246, 167, 95) : accent);
+                NovaRenderer.meter(graphics, x, top + 78, column - 7, 16, moisture / 100D, moisture > 80 ? new Color(246, 167, 95) : accent);
                 NovaRenderer.text(graphics, "Moisture " + moisture + " / target 40-70", x, top + 100, 7, muted);
             }
         } else if (id.equals("greenhouse") && station == 2) {
@@ -156,7 +155,7 @@ public final class ScenarioScreen extends NovaScreen {
             NovaRenderer.text(graphics, "SOS: . . .  --- --- ---  . . .", left + 14, top + 58, 12, accent);
             final float cell = (panelWidth - 28) / 9F;
             for (int pulse = 0; pulse < 9; pulse++)
-                NovaRenderer.rect(graphics, left + 14 + pulse * cell, top + 85, cell - 4, 15, 4,
+                NovaRenderer.rect(graphics, left + 14 + pulse * cell, top + 85, cell - 4, 15,
                         pulse < state.get("signal").getAsInt() ? accent : new Color(37, 55, 65));
         } else if (id.equals("long_night") && station == 0) {
             NovaRenderer.text(graphics, "Battery " + Math.round(state.get("battery").getAsDouble()) + " / heat " + Math.round(state.get("temperature").getAsDouble())
@@ -166,10 +165,15 @@ public final class ScenarioScreen extends NovaScreen {
                 NovaRenderer.text(graphics, "Live scan " + state.get("eventScanSeconds").getAsInt() + "/3s / dose " + state.get("dose").getAsInt() + "/100", left + 14, top + 58, 11, accent);
                 NovaRenderer.wrap(graphics, "Three active seconds by this sensor during seconds 45-90; return to mass shielding after the measurement.", left + 14, top + 80, panelWidth - 28, 8, 2, text);
             } else {
-            NovaRenderer.text(graphics, "Exposed ridge    Berm    Covered roof", left + 14, top + 57, 10, text);
-            for (int bearing = 0; bearing < 3; bearing++)
-                NovaRenderer.rect(graphics, left + 16 + bearing * (panelWidth - 28) / 3F, top + 82, 55 - bearing * 17, 15, 3,
-                        (state.get("scans").getAsInt() & 1 << bearing) != 0 ? accent : muted);
+                final String[] locations = {"Exposed ridge", "Berm", "Covered roof"};
+                final float column = (panelWidth - 28) / 3F;
+                final int scans = state.get("scans").getAsInt();
+                for (int bearing = 0; bearing < locations.length; bearing++) {
+                    final float x = left + 14 + bearing * column;
+                    NovaRenderer.text(graphics, locations[bearing], x, top + 57, 10, text);
+                    NovaRenderer.meter(graphics, x, top + 78, column - 7, 16, (55 - bearing * 17) / 55D,
+                            (scans & 1 << bearing) != 0 ? accent : muted);
+                }
             }
         } else if (!id.equals("greenhouse") && station == 1) {
             NovaRenderer.text(graphics, "Breathing flow " + state.get("lifeFlow").getAsInt() + " / crew demand 2", left + 14, top + 57, 10, accent);

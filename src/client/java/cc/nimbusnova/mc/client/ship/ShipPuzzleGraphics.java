@@ -19,12 +19,12 @@ final class ShipPuzzleGraphics implements ShipPalette {
         graphics.pose().pushMatrix();
         graphics.pose().translate(fromX, fromY);
         graphics.pose().rotate((float) Math.atan2(toY - fromY, toX - fromX));
-        NovaRenderer.rect(graphics, 0, -thickness / 2, (float) Math.hypot(toX - fromX, toY - fromY), thickness, thickness / 2, color);
+        NovaRenderer.rect(graphics, 0, -thickness / 2, (float) Math.hypot(toX - fromX, toY - fromY), thickness, color);
         graphics.pose().popMatrix();
     }
 
     static void docking(final GuiGraphicsExtractor graphics, final ShipPayload state, final int x, final int y, final int size) {
-        NovaRenderer.rect(graphics, x, y, size, size, 7, SURFACE);
+        NovaRenderer.rect(graphics, x, y, size, size, SURFACE);
         for (int index = 1; index < 8; index++) {
             final float point = size * index / 8F;
             line(graphics, x + point, y + 5, x + point, y + size - 5, 0.4F, BORDER);
@@ -35,21 +35,21 @@ final class ShipPuzzleGraphics implements ShipPalette {
         final int horizontal = state.board() & 15, vertical = state.board() >> 4 & 15;
         final int velocityX = (state.board() >> 8 & 7) - 2, velocityY = (state.board() >> 11 & 7) - 2;
         final float craftX = x + 9 + horizontal * scale, craftY = y + 9 + vertical * scale;
-        NovaRenderer.stroke(graphics, x + 9 + 3 * scale, y + 9 + 3 * scale, scale * 2, scale * 2, 4, 1.5F, SUCCESS);
+        NovaRenderer.stroke(graphics, x + 9 + 3 * scale, y + 9 + 3 * scale, scale * 2, scale * 2, 1.5F, SUCCESS);
         final float predictedX = x + 9 + Math.clamp(horizontal + velocityX, 0, 8) * scale;
         final float predictedY = y + 9 + Math.clamp(vertical + velocityY, 0, 8) * scale;
         line(graphics, craftX, craftY, predictedX, predictedY, 1.2F, WARNING);
-        NovaRenderer.stroke(graphics, predictedX - 4, predictedY - 4, 8, 8, 4, 0.7F, WARNING);
-        NovaRenderer.rect(graphics, craftX - 3, craftY - 3, 6, 6, 1, ACCENT);
+        NovaRenderer.stroke(graphics, predictedX - 4, predictedY - 4, 8, 8, 0.7F, WARNING);
+        NovaRenderer.rect(graphics, craftX - 3, craftY - 3, 6, 6, ACCENT);
         NovaRenderer.text(graphics, "PORT", x + size / 2F - 10, y + size / 2F + 12, 6, SUCCESS);
     }
 
     static void stars(final GuiGraphicsExtractor graphics, final ShipPayload state, final int x, final int y, final int width, final int height) {
-        NovaRenderer.rect(graphics, x, y, width, height, 7, SURFACE);
+        NovaRenderer.rect(graphics, x, y, width, height, SURFACE);
         for (int point = 0; point < 22; point++) {
             final float starX = x + 5 + Math.floorMod(point * 73 + 11, width - 10);
             final float starY = y + 5 + Math.floorMod(point * 37 + 19, height - 10);
-            NovaRenderer.rect(graphics, starX, starY, 1, 1, 0.5F, MUTED);
+            NovaRenderer.rect(graphics, starX, starY, 1, 1, MUTED);
         }
 
         int previous = -1;
@@ -70,16 +70,16 @@ final class ShipPuzzleGraphics implements ShipPalette {
             final float pointX = x + STAR_X[star] * width, pointY = y + 16 + STAR_Y[star] * height;
             if (previous >= 0)
                 line(graphics, x + STAR_X[previous] * width, y + 16 + STAR_Y[previous] * height, pointX, pointY, 1, WARNING);
-            NovaRenderer.rect(graphics, pointX - 2, pointY - 2, 4, 4, 2, WARNING);
+            NovaRenderer.rect(graphics, pointX - 2, pointY - 2, 4, 4, WARNING);
             previous = star;
         }
     }
 
     static void burn(final GuiGraphicsExtractor graphics, final ShipPayload state, final int x, final int y, final int width, final int height) {
-        NovaRenderer.rect(graphics, x, y, width, height, 7, SURFACE);
+        NovaRenderer.rect(graphics, x, y, width, height, SURFACE);
         final int units = state.board() & 255;
         final float margin = 14, chartWidth = width - margin * 2;
-        NovaRenderer.rect(graphics, x + margin + chartWidth * 0.6F, y + 5, chartWidth * 0.2F, height - 15, 5, new Color(80, 161, 117, 65));
+        NovaRenderer.rect(graphics, x + margin + chartWidth * 0.6F, y + 5, chartWidth * 0.2F, height - 15, new Color(80, 161, 117, 65));
         for (int index = 0; index <= 10; index++) {
             final float pointX = x + margin + chartWidth * index / 10F;
             line(graphics, pointX, y + height - 17, pointX, y + height - 12, 0.6F, MUTED);
@@ -101,7 +101,7 @@ final class ShipPuzzleGraphics implements ShipPalette {
     }
 
     static void signal(final GuiGraphicsExtractor graphics, final ShipPayload state, final int x, final int y, final int width, final int height) {
-        NovaRenderer.rect(graphics, x, y, width, height, 7, SURFACE);
+        NovaRenderer.rect(graphics, x, y, width, height, SURFACE);
         final int frequency = state.board() & 15, gain = state.board() >> 4 & 15;
         final int target = state.stage().equals("RETURN") ? 5 : state.stage().equals("DESCENT") ? 4 : 3;
         final float amplitude = height * 0.21F, noise = (100 - (state.aux() & 255)) * 0.035F;
@@ -121,13 +121,13 @@ final class ShipPuzzleGraphics implements ShipPalette {
 
     static void adapter(final GuiGraphicsExtractor graphics, final ShipPayload state, final int x, final int y, final int width, final int height) {
         final int progress = state.board() & 7;
-        NovaRenderer.rect(graphics, x, y, width, height, 7, SURFACE);
+        NovaRenderer.rect(graphics, x, y, width, height, SURFACE);
         final int[] order = { 2, 0, 3, 1 };
         for (int index = 0; index < 4; index++) {
             final float partX = x + 10 + index * (width - 20) / 4F, partWidth = (width - 30) / 4F;
             if (index < progress) {
-                NovaRenderer.rect(graphics, partX + 3, y + 17, partWidth - 3, height - 30, 3, BORDER);
-                NovaRenderer.rect(graphics, partX, y + 12, partWidth - 5, height - 30, 3, order[index] == 3 ? SUCCESS : ACCENT);
+                NovaRenderer.rect(graphics, partX + 3, y + 17, partWidth - 3, height - 30, BORDER);
+                NovaRenderer.rect(graphics, partX, y + 12, partWidth - 5, height - 30, order[index] == 3 ? SUCCESS : ACCENT);
                 if (order[index] == 3) {
                     for (int rib = 1; rib < 5; rib++) {
                         final float ribX = partX + rib * (partWidth - 5) / 5;
@@ -135,7 +135,7 @@ final class ShipPuzzleGraphics implements ShipPalette {
                     }
                 }
             } else
-                NovaRenderer.stroke(graphics, partX, y + 12, partWidth - 5, height - 30, 3, 0.8F, BORDER);
+                NovaRenderer.stroke(graphics, partX, y + 12, partWidth - 5, height - 30, 0.8F, BORDER);
             NovaRenderer.text(graphics, new String[] { "Seal", "Housing", "Cartridge", "Fan" }[index], partX, y + height - 13, 7, index < progress ? TEXT : MUTED);
         }
         if ((state.board() & 256) != 0 || state.aux() > 0) {
@@ -150,13 +150,13 @@ final class ShipPuzzleGraphics implements ShipPalette {
     }
 
     static void heating(final GuiGraphicsExtractor graphics, final ShipPayload state, final int x, final int y, final int width, final int height) {
-        NovaRenderer.rect(graphics, x + width * 0.35F, y, width * 0.3F, height, 8, BORDER);
+        NovaRenderer.rect(graphics, x + width * 0.35F, y, width * 0.3F, height, BORDER);
         final int mask = state.board();
         final boolean emergency = state.task().equals("ENGINE");
         final String[] names = emergency ? new String[] { "Life support", "Science", "Comfort heat" } : new String[] { "Guidance", "Air loop", "Laboratory" };
         for (int room = 0; room < 3; room++) {
             final float roomX = x + room * width / 3F + 3;
-            NovaRenderer.rect(graphics, roomX, y + 3 + room * 3, width / 3F - 6, height - 14, 5,
+            NovaRenderer.rect(graphics, roomX, y + 3 + room * 3, width / 3F - 6, height - 14,
                     (mask & 1 << room) != 0 ? new Color(145, 89, 45) : SURFACE);
             NovaRenderer.text(graphics, names[room], roomX + 5, y + 11 + room * 3, 8, TEXT);
             NovaRenderer.text(graphics, (mask & 1 << room) != 0 ? emergency ? "POWERED" : "HEATING" : emergency ? "ISOLATED" : "COLD",

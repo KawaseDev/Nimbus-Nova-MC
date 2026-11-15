@@ -51,7 +51,7 @@ public final class ShipClient implements ShipPalette {
             if (state == null || client.level == null || client.player == null || client.gui.screen() != null || client.gui.hud.isHidden()) return;
             if (client.level.dimension().equals(LunarSurface.DIMENSION)) {
                 final int width = Math.min(324, graphics.guiWidth() - 16);
-                NovaRenderer.rect(graphics, 8, 8, width, 82, 7, BACKGROUND);
+                NovaRenderer.hud(graphics, 8, 8, width, 82, BACKGROUND);
                 NovaRenderer.text(graphics, "Moon surface", 18, 14, 10, ACCENT);
                 final var suit = SuitLifeSupportClient.state();
                 NovaRenderer.text(graphics, (suit == null ? "" : "Suit air " + (int) Math.ceil(suit.air()) + "% / ") + "J crew tablet", 18, 29, 8, MUTED);
@@ -63,7 +63,7 @@ public final class ShipClient implements ShipPalette {
             if (!client.level.dimension().equals(ShipMap.DIMENSION)) return;
 
             final int panelWidth = Math.min(324, graphics.guiWidth() - 16);
-            NovaRenderer.rect(graphics, 8, 8, panelWidth, 34, 7, BACKGROUND);
+            NovaRenderer.hud(graphics, 8, 8, panelWidth, 34, BACKGROUND);
             final String title = state.variant().equals("EXPLORATION") ? "Moon Expedition" : "Return Window";
             NovaRenderer.text(graphics, title + " / " + label(state.role().isEmpty() ? "Choose a role" : state.role()), 18, 14, 10, ACCENT);
             final String resource = telemetry(state);
@@ -72,7 +72,7 @@ public final class ShipClient implements ShipPalette {
                     ? state.seconds() / 60 + ":" + String.format("%02d", state.seconds() % 60) : state.phase();
             NovaRenderer.text(graphics, status, 8 + panelWidth - NovaRenderer.width(status, 8) - 10, 29, 8, WARNING);
 
-            NovaRenderer.rect(graphics, 8, 46, panelWidth, 72, 7, BACKGROUND);
+            NovaRenderer.hud(graphics, 8, 46, panelWidth, 72, BACKGROUND);
             NovaRenderer.text(graphics, state.title(), 18, 54, 11, TEXT);
             NovaRenderer.wrap(graphics, state.instruction(), 18, 72, panelWidth - 20, 9, 2, TEXT);
             if (!state.hasWaypoint()) {

@@ -3,13 +3,13 @@ package cc.nimbusnova.mc.client;
 import java.awt.Color;
 
 interface MissionPalette {
-    Color BACKGROUND = new Color(15, 20, 26, 238);
-    Color SURFACE = new Color(27, 35, 43, 245);
-    Color BORDER = new Color(65, 78, 87);
-    Color TEXT = new Color(240, 237, 226);
-    Color MUTED = new Color(164, 177, 183);
-    Color ACCENT = new Color(239, 177, 94);
-    Color OXYGEN = new Color(128, 207, 207);
-    Color DANGER = new Color(245, 113, 103);
-    Color SUCCESS = new Color(164, 206, 151);
+    Color BACKGROUND = new Color(30, 28, 42, 245);
+    Color SURFACE = new Color(52, 49, 65);
+    Color BORDER = new Color(103, 100, 121);
+    Color TEXT = new Color(248, 245, 235);
+    Color MUTED = new Color(190, 187, 200);
+    Color ACCENT = new Color(255, 218, 117);
+    Color OXYGEN = new Color(113, 221, 230);
+    Color DANGER = new Color(255, 119, 113);
+    Color SUCCESS = new Color(158, 232, 114);
 }

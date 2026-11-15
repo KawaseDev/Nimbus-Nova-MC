@@ -61,11 +61,11 @@ public final class RoomClient implements ShipPalette {
                         + "% / Power " + (room.get("powered").getAsBoolean() ? "ON" : "OFF");
                 break;
             }
-            NovaRenderer.rect(graphics, 8, 122, width, 24, 6, BACKGROUND);
+            NovaRenderer.hud(graphics, 8, 122, width, 24, BACKGROUND);
             NovaRenderer.text(graphics, details, 17, 129, 8, TEXT);
             final String alert = state.get("alert").getAsString();
             if (alert.isEmpty() || alert.equals("All compartments nominal")) return;
-            NovaRenderer.rect(graphics, 8, 150, width, 43, 6, BACKGROUND);
+            NovaRenderer.hud(graphics, 8, 150, width, 43, BACKGROUND);
             NovaRenderer.text(graphics, alert, 17, 156, 9, WARNING);
             NovaRenderer.wrap(graphics, state.get("instruction").getAsString(), 17, 169, width - 18, 8, 2, TEXT);
         });

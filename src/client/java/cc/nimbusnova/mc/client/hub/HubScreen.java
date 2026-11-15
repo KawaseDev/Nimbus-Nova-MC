@@ -9,6 +9,7 @@ import com.google.gson.JsonObject;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Items;
 import org.jspecify.annotations.NullMarked;
 
 import java.util.Objects;
@@ -66,11 +67,20 @@ public final class HubScreen extends NovaScreen implements ShipPalette {
         for (final var item : state.getAsJsonArray("missions")) {
             final JsonObject mission = item.getAsJsonObject();
             final String id = mission.get("id").getAsString();
+            final var icon = switch (id) {
+                case "mars" -> Items.RED_SAND;
+                case "moon" -> Items.CALCITE;
+                case "ship" -> Items.FIREWORK_ROCKET;
+                case "shelter" -> Items.SHIELD;
+                case "long_night" -> Items.REDSTONE;
+                case "greenhouse" -> Items.WHEAT_SEEDS;
+                default -> Items.COMPASS;
+            };
             final MissionButton button = addRenderableWidget(new MissionButton(left + 14 + index % 2 * (cardWidth + 5),
                     top + 45 + index / 2 * 28, cardWidth, 24, mission.get("title").getAsString(), () -> {
                         chosen = id;
                         rebuildWidgets();
-                    }));
+                    }).withIcon(icon));
             button.selected = chosen.equals(id);
             button.active = !pending;
             index++;
@@ -101,8 +111,8 @@ public final class HubScreen extends NovaScreen implements ShipPalette {
 
     @Override
     public void extractRenderState(final GuiGraphicsExtractor graphics, final int mouseX, final int mouseY, final float delta) {
-        NovaRenderer.rect(graphics, left, top, panelWidth, panelHeight, 9, BACKGROUND);
-        NovaRenderer.text(graphics, "Nimbus Nova / Mission Control", left + 14, top + 12, 14, TEXT);
+        NovaRenderer.window(graphics, left, top, panelWidth, panelHeight, BACKGROUND);
+        NovaRenderer.title(graphics, left, top, panelWidth, "Nimbus Nova / Mission Control");
         final String current = state.get("selected").getAsString();
         NovaRenderer.text(graphics, current.isEmpty() ? "Choose your classroom's next mission" : "Selected: " + current.replace('_', ' ') + " / " + state.get("phase").getAsString(),
                 left + 14, top + 32, 8, ACCENT);
@@ -113,7 +123,8 @@ public final class HubScreen extends NovaScreen implements ShipPalette {
         }
         if (!current.isEmpty() && !chosen.equals(current))
             description = "Switching ends the current attempt. " + description;
-        NovaRenderer.wrap(graphics, error.isEmpty() ? description : error, left + 14, top + 132, panelWidth - 28, 8, 2,
+        NovaRenderer.slot(graphics, left + 14, top + 131, panelWidth - 28, 30, SURFACE, false);
+        NovaRenderer.wrap(graphics, error.isEmpty() ? description : error, left + 20, top + 137, panelWidth - 40, 8, 2,
                 error.isEmpty() ? MUTED : WARNING);
         super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
