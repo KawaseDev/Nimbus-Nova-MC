@@ -307,6 +307,23 @@ public final class MissionController {
         return mission.snapshot();
     }
 
+    public boolean chargeVehicle(final ServerPlayer player) {
+        if (!player.level().dimension().equals(MarsTrainingMap.DIMENSION)
+                || player.distanceToSqr(28.5, 66, 25.5) > 64
+                || !player.getMainHandItem().is(ModContent.ENGINEERING_TOOL)
+                || role(player.getUUID()) != CrewRole.POWER && !player.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)) {
+            player.sendSystemMessage(Component.literal("The power engineer connects the rover at its workshop using the engineering tool."));
+            return false;
+        }
+        if (!mission.transferVehicleCharge()) {
+            player.sendSystemMessage(Component.literal("Charging needs an unpaused mission and at least 5 shared energy units."));
+            return false;
+        }
+        progressFeedback = mission.snapshot().lastEvent();
+        broadcast(player.level().getServer());
+        return true;
+    }
+
     public int backupCellsRemaining() {
         return mission.backupCellsRemaining();
     }

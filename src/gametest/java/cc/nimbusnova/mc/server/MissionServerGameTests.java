@@ -2,6 +2,10 @@ package cc.nimbusnova.mc.server;
 
 import cc.nimbusnova.mc.hub.MissionHub;
 import cc.nimbusnova.mc.learning.LearningChecks;
+import cc.nimbusnova.mc.scenario.OutpostScenarioController;
+import cc.nimbusnova.mc.scenario.ScenarioActionPayload;
+import cc.nimbusnova.mc.scenario.ScenarioContent;
+import cc.nimbusnova.mc.world.scenario.ScenarioMaps;
 import cc.nimbusnova.mc.content.RepairContent;
 import cc.nimbusnova.mc.content.OutpostContent;
 import cc.nimbusnova.mc.content.ShipContent;
@@ -10,6 +14,7 @@ import cc.nimbusnova.mc.ship.ShipActionPayload;
 import cc.nimbusnova.mc.ship.ShipController;
 import cc.nimbusnova.mc.ship.ShipTask;
 import cc.nimbusnova.mc.ship.rooms.ShipRooms;
+import cc.nimbusnova.mc.ship.rooms.RoomLighting;
 import cc.nimbusnova.mc.ship.rooms.ShipRoomState;
 import cc.nimbusnova.mc.world.MarsTrainingMap;
 import cc.nimbusnova.mc.world.ship.ShipMap;
@@ -23,6 +28,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.NameAndId;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -33,6 +39,8 @@ import net.minecraft.world.phys.Vec3;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.Map;
+import java.util.EnumMap;
 
 public final class MissionServerGameTests {
     @GameTest(maxTicks = 400)
@@ -44,6 +52,11 @@ public final class MissionServerGameTests {
 
         for (final ShipMap.Marker marker : ShipMap.MARKERS)
             context.assertTrue(ship.getBlockState(marker.position()).is(ShipMap.block(marker.task())), "Imported station missing: " + marker);
+
+        final var windows = ShipMap.windowPositions(server);
+        context.assertFalse(windows.isEmpty(), "The ship has no observation windows");
+        for (final BlockPos window : windows)
+            context.assertTrue(ship.getBlockState(window).is(Blocks.GLASS), "An authored observation port was not fitted: " + window);
 
         context.assertTrue(ship.getBlockState(ShipMap.SPAWN.below()).isFaceSturdy(ship, ShipMap.SPAWN.below(), Direction.UP), "Bridge spawn has no supporting floor");
         final BlockPos playerChange = new BlockPos(0, 80, 22);
@@ -81,7 +94,24 @@ public final class MissionServerGameTests {
         context.assertTrue(count(engineer, RepairContent.WIRE_KIT) == 2 && count(engineer, RepairContent.PATCH_PLATE.asItem()) == 4
                 && count(lifeSupport, RepairContent.WIRE_KIT) == 0, "The shared repair pool was missing or duplicated across actors");
 
+        RoomLighting.tick(server, false);
+        context.assertTrue(RoomLighting.fixtureCount(server) > 0, "The ship lighting fixtures were not installed");
+        final BlockPos engineLamp = BlockPos.betweenClosedStream(-12, 80, -41, 12, 87, -22)
+                .filter(position -> ShipRooms.roomAt(position) == ShipRoomState.Room.ENGINEERING)
+                .filter(position -> ship.getBlockState(position).is(RoomLighting.LAMP) || ship.getBlockState(position).is(Blocks.LIGHT))
+                .findFirst().orElseThrow().immutable();
+        context.assertTrue(ship.getBlockState(engineLamp).getLightEmission() == 12, "Powered engineering did not illuminate its fixtures");
+        final BlockPos lightSwitch = RoomLighting.switchPosition(server, ShipRoomState.Room.ENGINEERING);
+        context.assertTrue(ship.getBlockState(lightSwitch).is(RoomLighting.SWITCH), "Engineering has no physical light switch");
+        move(engineer, ship, lightSwitch);
+        use(engineer, lightSwitch, Direction.NORTH);
+        context.assertTrue(ship.getBlockState(engineLamp).getLightEmission() <= 3, "The physical switch did not dim engineering lighting");
+        use(engineer, lightSwitch, Direction.NORTH);
+        context.assertTrue(ship.getBlockState(engineLamp).getLightEmission() == 12, "The physical switch did not restore engineering lighting");
+
         ShipRooms.trigger(server, "ENGINEERING", "POWER");
+        RoomLighting.tick(server, false);
+        context.assertTrue(ship.getBlockState(engineLamp).getLightEmission() <= 3, "A power failure left full room lighting on");
         final BlockPos wire = ShipRooms.wirePosition();
         move(engineer, ship, wire.offset(-2, -1, 0));
         final int revision = controller.mission().revision();
@@ -99,6 +129,9 @@ public final class MissionServerGameTests {
         use(engineer, wire, Direction.WEST);
         context.assertTrue(ShipRooms.state(server).powered(ShipRoomState.Room.ENGINEERING)
                 && count(engineer, RepairContent.WIRE_KIT) == 0, "Engineering repair did not restore power and consume the kit");
+
+        RoomLighting.tick(server, false);
+        context.assertTrue(ship.getBlockState(engineLamp).getLightEmission() == 12, "Cable repair did not restore actual light emission");
 
         final BlockPos breach = ShipRooms.breachPosition();
         final BlockState hull = ship.getBlockState(breach), outerHull = ship.getBlockState(breach.east());
@@ -122,13 +155,14 @@ public final class MissionServerGameTests {
                 "A patched room did not recover safe pressure");
         ShipRooms.recoverOwnedBreach(server);
         context.assertTrue(ship.getBlockState(breach).equals(hull) && ship.getBlockState(breach.east()).equals(outerHull), "Owned-cell recovery did not restore the original hull");
-        server.getPlayerList().op(new NameAndId(engineer.getGameProfile()));
         move(engineer, ship, wire.offset(-2, -1, 0));
         for (int socket = 0; socket < 4; socket++) {
             final int cartridge = controller.mission().aux(ShipTask.ENGINE) >> socket * 4 & 15;
             controller.action(engineer, new ShipActionPayload("task", wire, controller.mission().revision(), socket * 4 + cartridge - 1));
         }
         context.assertTrue(controller.mission().completed(ShipTask.ENGINE), "Engine setup rejected at " + engineer.position() + "; op=" + engineer.permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER) + "; board=" + controller.mission().board(ShipTask.ENGINE));
+        controller.action(engineer, new ShipActionPayload("role", BlockPos.ZERO, controller.mission().revision(), MoonMission.Role.SUPPLIES.ordinal()));
+        context.assertTrue(controller.role(engineer) == MoonMission.Role.SUPPLIES, "READY role reassignment to supplies was rejected");
         move(engineer, ship, storage.west());
         controller.action(engineer, new ShipActionPayload("task", storage, controller.mission().revision(), 0));
         controller.action(engineer, new ShipActionPayload("task", storage, controller.mission().revision(), 2));
@@ -138,6 +172,7 @@ public final class MissionServerGameTests {
             context.assertTrue(engineer.level() == ship && engineer.distanceToSqr(Vec3.atCenterOf(storage)) < 36, "Cargo actor moved out of reach while holding: " + engineer.position());
             controller.action(engineer, new ShipActionPayload("hold_finish", storage, controller.mission().revision(), 3));
             context.assertTrue(controller.mission().ready(), "Physical power and cargo setup did not enable launch");
+            controller.action(engineer, new ShipActionPayload("role", BlockPos.ZERO, controller.mission().revision(), MoonMission.Role.POWER.ordinal()));
             controller.teacherAction(server, "ship_start");
             final var launched = controller.mission().snapshot();
             controller.teacherAction(server, "ship_start");
@@ -160,10 +195,21 @@ public final class MissionServerGameTests {
             context.assertTrue(controller.mission().snapshot().equals(active), "Repeated active launch reset the mission");
             controller.teacherAction(server, "ship_end");
 
+            final Map<MoonMission.Role, ServerPlayer> crew = new EnumMap<>(MoonMission.Role.class);
+            crew.put(MoonMission.Role.POWER, engineer);
+            crew.put(MoonMission.Role.LIFE_SUPPORT, lifeSupport);
+            for (final MoonMission.Role role : new MoonMission.Role[] { MoonMission.Role.SUPPLIES, MoonMission.Role.MAINTENANCE, MoonMission.Role.PILOT }) {
+                final ServerPlayer actor = context.makeMockServerPlayerInLevel();
+                server.getPlayerList().deop(new NameAndId(actor.getGameProfile()));
+                crew.put(role, actor);
+            }
+            context.assertTrue(crew.values().stream().map(ServerPlayer::getUUID).distinct().count() == 5, "Five role actors need distinct identities");
             final MissionHub hub = MissionHub.get(server);
             for (final String id : new String[] { "mars", "moon", "ship", "shelter", "long_night", "greenhouse" }) {
                 hub.action(server, "select", id);
                 context.assertTrue(hub.selected(server).equals(id), "Unified hub did not select " + id);
+                if (id.equals("shelter") || id.equals("long_night") || id.equals("greenhouse"))
+                    scenarioRoles(context, crew, id);
                 final var state = hub.state(server).deepCopy();
                 hub.action(server, "select", id);
                 context.assertTrue(hub.state(server).equals(state), "Repeated selection reset " + id);
@@ -176,14 +222,127 @@ public final class MissionServerGameTests {
             }
             context.assertTrue(invalidRejected && hub.selected(server).equals("greenhouse"), "Invalid mission selection changed the running mission");
             hub.action(server, "end", "");
-            server.getPlayerList().remove(engineer);
-            server.getPlayerList().remove(lifeSupport);
+            for (final ServerPlayer actor : crew.values()) server.getPlayerList().remove(actor);
             hub.action(server, "select", "mars");
             context.assertFalse(hub.state(server).get("ready").getAsBoolean(), "An empty classroom was marked ready");
             hub.action(server, "end", "");
-            System.out.println("Headless world checks passed: six map selections, preserved player edits, two role-bound server actors, physical repairs, timed cargo and idempotent launch.");
+            System.out.println("Headless world checks passed: six map selections, five role-bound server actors, physical repairs, windows/lights, timed cargo and idempotent launch.");
             context.succeed();
         });
+    }
+
+    private static void scenarioRoles(final GameTestHelper context, final Map<MoonMission.Role, ServerPlayer> crew, final String id) {
+        final var server = context.getLevel().getServer();
+        final OutpostScenarioController controller = OutpostScenarioController.get(server);
+        final ServerLevel level = server.getLevel(ScenarioMaps.dimension(id));
+        if (level == null) throw new AssertionError("Scenario world missing: " + id);
+        for (final var entry : crew.entrySet()) {
+            controller.playerAction(entry.getValue(), new ScenarioActionPayload("role", 0, entry.getKey().ordinal(), controller.mission().revision));
+            final var snapshot = controller.playerState(entry.getValue());
+            final BlockPos target = controller.roleTarget(entry.getValue());
+            context.assertTrue(snapshot.get("role").getAsString().equals(entry.getKey().name())
+                    && !snapshot.get("roleObjective").getAsString().isBlank()
+                    && snapshot.get("targetX").getAsInt() == target.getX() && snapshot.get("targetZ").getAsInt() == target.getZ(),
+                    "The assigned role has no matching objective route: " + id + "/" + entry.getKey());
+            context.assertFalse(entry.getValue().permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER), "Scenario role coverage used an operator bypass");
+        }
+        final ServerPlayer power = crew.get(MoonMission.Role.POWER), life = crew.get(MoonMission.Role.LIFE_SUPPORT),
+                supplies = crew.get(MoonMission.Role.SUPPLIES), maintenance = crew.get(MoonMission.Role.MAINTENANCE), pilot = crew.get(MoonMission.Role.PILOT);
+        move(life, level, ScenarioMaps.station(0).south());
+        final int deniedRevision = controller.mission().revision;
+        controller.playerAction(life, new ScenarioActionPayload("task", 0, 0, deniedRevision));
+        context.assertTrue(controller.mission().revision == deniedRevision, "The wrong role operated a power station in " + id);
+        move(supplies, level, ScenarioMaps.station(3).south());
+        controller.playerAction(supplies, new ScenarioActionPayload("supplies", 3, 0, controller.mission().revision));
+        final Item stores = id.equals("shelter") ? ScenarioContent.SHIELD.asItem() : id.equals("long_night") ? RepairContent.WIRE_KIT : RepairContent.PATCH_PLATE.asItem();
+        context.assertTrue(count(supplies, stores) == (id.equals("shelter") ? 3 : 2), "Supplies role did not receive the finite stores in " + id);
+
+        if (id.equals("shelter")) {
+            context.assertTrue(controller.roleTarget(maintenance).equals(ScenarioMaps.shieldSlots().getFirst()), "Shield builder was sent to the wrong task");
+            for (int bearing = 0; bearing < 3; bearing++) scenarioTask(context, controller, power, level, 0, bearing);
+            scenarioTask(context, controller, life, level, 1, 1);
+            scenarioTask(context, controller, life, level, 1, 1);
+            transfer(supplies, maintenance, stores, 3);
+            equip(maintenance, stores);
+            for (final BlockPos slot : ScenarioMaps.shieldSlots()) {
+                move(maintenance, level, slot.south());
+                use(maintenance, slot.below(), Direction.UP);
+                context.assertTrue(level.getBlockState(slot).is(ScenarioContent.SHIELD), "Maintenance could not build the actual shielding");
+            }
+            context.assertTrue(controller.mission().shields == 7, "Built shielding did not reach the shared mission state");
+            controller.action(server, "start");
+            scenarioTask(context, controller, pilot, level, 2, 0);
+            context.assertTrue(controller.mission().signal == 1, "Pilot could not begin the SOS beacon");
+        } else if (id.equals("long_night")) {
+            context.assertTrue(controller.roleTarget(maintenance).equals(ScenarioMaps.station(1)), "Night recorder objective sent maintenance to the wrong station");
+            scenarioTask(context, controller, power, level, 0, 2);
+            scenarioTask(context, controller, life, level, 1, 2);
+            scenarioTask(context, controller, life, level, 1, 2);
+            scenarioTask(context, controller, maintenance, level, 1, 0);
+            context.assertTrue(controller.mission().labArmed, "Maintenance could not arm the recorder");
+            scenarioTask(context, controller, power, level, 0, 2);
+            controller.action(server, "start");
+            scenarioTask(context, controller, pilot, level, 2, 0);
+            context.assertTrue(controller.mission().signal == 1, "Night pilot could not use the beacon");
+            // Inject the scripted fault at the repair boundary without waiting through the mission timer.
+            controller.mission().cableBroken = true;
+            transfer(supplies, maintenance, stores, 2);
+            equip(maintenance, stores);
+            final BlockPos bus = ScenarioMaps.station(0);
+            move(maintenance, level, bus.south());
+            controller.action(server, "pause");
+            context.assertTrue(use(maintenance, bus, Direction.SOUTH) == InteractionResult.FAIL
+                    && controller.mission().cableBroken && count(maintenance, stores) == 2, "A paused wire repair consumed stores or cleared the fault");
+            controller.action(server, "abort");
+            context.assertTrue(use(maintenance, bus, Direction.SOUTH) == InteractionResult.FAIL
+                    && controller.mission().cableBroken && count(maintenance, stores) == 2, "An ended wire repair consumed stores or cleared the fault");
+        } else {
+            context.assertTrue(controller.roleTarget(supplies).equals(ScenarioMaps.station(2)), "Issued greenhouse stores did not route supplies to crop sampling");
+            for (int bed = 0; bed < 3; bed++) scenarioTask(context, controller, power, level, 0, bed);
+            scenarioTask(context, controller, maintenance, level, 0, 3);
+            scenarioTask(context, controller, life, level, 1, 0);
+            scenarioTask(context, controller, pilot, level, 2, 3);
+            context.assertTrue(controller.mission().pumpInspected && controller.mission().extractionVent, "Maintenance/pilot preparation did not affect greenhouse equipment");
+            controller.action(server, "start");
+            // Stage a ready specimen: this check covers role routing, not the timed care loop.
+            controller.mission().elapsed = 80;
+            controller.mission().moisture[0] = 55;
+            controller.mission().rootAir[0] = 80;
+            controller.mission().lightSeconds[0] = 10;
+            controller.mission().cabinHumidity = 55;
+            move(pilot, level, ScenarioMaps.station(2).south());
+            final int revision = controller.mission().revision;
+            controller.playerAction(pilot, new ScenarioActionPayload("task", 2, 0, revision));
+            context.assertTrue(controller.mission().revision == revision, "Pilot bypassed the supplies harvest role");
+            scenarioTask(context, controller, supplies, level, 2, 0);
+            context.assertTrue((controller.mission().harvest & 1) != 0, "Supplies could not archive the prepared crop observation");
+            final BlockPos pipe = OutpostScenarioController.PIPE;
+            // Exercise the actual placement callback against a pre-existing pipe fault.
+            level.setBlock(pipe, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+            controller.mission().pipeBroken = true;
+            transfer(supplies, maintenance, stores, 2);
+            equip(maintenance, stores);
+            move(maintenance, level, pipe.south());
+            controller.action(server, "pause");
+            context.assertTrue(use(maintenance, pipe.below(), Direction.UP) == InteractionResult.FAIL
+                    && level.getBlockState(pipe).isAir() && count(maintenance, stores) == 2 && controller.mission().pipeBroken,
+                    "A paused pipe repair placed a plate or consumed stores");
+            controller.action(server, "resume");
+            final BlockPos wrongTarget = pipe.south();
+            final BlockState targetBefore = level.getBlockState(wrongTarget);
+            context.assertTrue(use(maintenance, wrongTarget.below(), Direction.UP) == InteractionResult.FAIL
+                    && level.getBlockState(wrongTarget).equals(targetBefore) && count(maintenance, stores) == 2 && controller.mission().pipeBroken,
+                    "An off-target plate fell through to normal block placement");
+        }
+        System.out.println("Five-role scenario routing passed: " + id);
+    }
+
+    private static void scenarioTask(final GameTestHelper context, final OutpostScenarioController controller, final ServerPlayer actor,
+                                     final ServerLevel level, final int station, final int value) {
+        move(actor, level, ScenarioMaps.station(station).south());
+        final int revision = controller.mission().revision;
+        controller.playerAction(actor, new ScenarioActionPayload("task", station, value, revision));
+        context.assertTrue(controller.mission().revision > revision, "Assigned role could not use station " + station + "/" + value + " in " + controller.mission().id);
     }
 
     private static void move(final ServerPlayer player, final ServerLevel level, final BlockPos position) {
@@ -191,8 +350,8 @@ public final class MissionServerGameTests {
         player.setDeltaMovement(Vec3.ZERO);
     }
 
-    private static void use(final ServerPlayer player, final BlockPos position, final Direction face) {
-        UseBlockCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND,
+    private static InteractionResult use(final ServerPlayer player, final BlockPos position, final Direction face) {
+        return UseBlockCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND,
                 new BlockHitResult(Vec3.atCenterOf(position).add(face.getUnitVec3().scale(0.5)), face, position, false));
     }
 

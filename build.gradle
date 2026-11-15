@@ -258,3 +258,11 @@ tasks.register('scenarioMissionTest', JavaExec) {
     enableAssertions = true
 }
 check.dependsOn scenarioMissionTest
+
+tasks.register('missionVehicleChargeTest', JavaExec) {
+    dependsOn missionTestClasses
+    classpath = sourceSets.missionTest.runtimeClasspath
+    mainClass = 'cc.nimbusnova.mc.mission.MissionVehicleChargeTest'
+    enableAssertions = true
+}
+check.dependsOn missionVehicleChargeTest

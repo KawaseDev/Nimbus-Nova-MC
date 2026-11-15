@@ -1,6 +1,11 @@
 package cc.nimbusnova.mc.client.vehicle;
 
 import cc.nimbusnova.mc.vehicle.MarsRover;
+import cc.nimbusnova.mc.client.render.NovaRenderer;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.minecraft.client.Minecraft;
+import java.awt.Color;
 import cc.nimbusnova.mc.vehicle.RoverContent;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
@@ -40,6 +45,15 @@ public final class RoverRenderer extends EntityRenderer<MarsRover, RoverRenderer
 
     public static void register() {
         EntityRenderers.register(RoverContent.ROVER, RoverRenderer::new);
+        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, Identifier.parse("nimbus_nova:rover_systems"), (graphics, _) -> {
+            final Minecraft client = Minecraft.getInstance();
+            if (client.player == null || !(client.player.getVehicle() instanceof MarsRover rover)
+                    || client.gui.screen() != null || client.gui.hud.isHidden()) return;
+            final int top = graphics.guiHeight() - 70;
+            NovaRenderer.rect(graphics, 8, top, Math.min(270, graphics.guiWidth() - 16), 24, 5, new Color(12, 24, 32, 225));
+            NovaRenderer.text(graphics, "Rover battery " + (int) Math.ceil(rover.battery()) + "% / Cargo " + rover.cargoCount() + "/3",
+                    16, top + 7, 9, rover.battery() <= 15 ? new Color(248, 185, 95) : new Color(119, 230, 237));
+        });
     }
 
     @Override

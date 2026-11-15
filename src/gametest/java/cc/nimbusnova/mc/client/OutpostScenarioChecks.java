@@ -16,6 +16,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.NameAndId;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
@@ -32,6 +33,8 @@ public final class OutpostScenarioChecks {
         station(context, world, "shelter", 3);
         station(context, world, "shelter", 0);
         for (int bearing = 0; bearing < 3; bearing++) act(context, 0, bearing);
+        station(context, world, "shelter", 1);
+        act(context, 1, 1); act(context, 1, 1);
         world.getServer().runCommand("execute in nimbus_nova:scenario_shelter run tp @p 0.5 65 -6.5 180 10");
         world.getServer().runOnServer(server -> {
             final ServerPlayer player = world.getConnection().getServerPlayer();
@@ -48,28 +51,54 @@ public final class OutpostScenarioChecks {
         world.getServer().runCommand("execute in nimbus_nova:scenario_shelter run tp @p 0.5 65 -10.5 0 -5");
         context.waitTicks(5);
         GuidedMissionChecks.capture(context, "scenario-shelter-covered-room");
+        advance(world, 54);
+        station(context, world, "shelter", 0);
+        act(context, 0, 3);
+        final int liveStart = world.getServer().computeOnServer(server -> OutpostScenarioController.get(server).mission().elapsed);
+        advance(world, liveStart + 3);
+        context.waitFor(client -> ScenarioClient.state() != null && ScenarioClient.state().get("observation").getAsBoolean());
+        GuidedMissionChecks.capture(context, "scenario-shelter-live-event-scan");
+        context.setScreen(() -> null);
+        world.getServer().runCommand("execute in nimbus_nova:scenario_shelter run tp @p 0.5 65 -10.5 0 -5");
         advance(world, 150);
         success(context, world, "shelter");
         select(context, world, "long_night");
         station(context, world, "long_night", 3);
+        station(context, world, "long_night", 1);
+        act(context, 1, 0); act(context, 1, 2); act(context, 1, 2);
+        world.getServer().runOnServer(server -> OutpostScenarioController.get(server).action(server, "start"));
+        advance(world, 30);
         station(context, world, "long_night", 0);
         act(context, 0, 2);
-        world.getServer().runOnServer(server -> OutpostScenarioController.get(server).action(server, "start"));
         advance(world, 45);
         station(context, world, "long_night", 0);
         world.getServer().runOnServer(server -> {
             final ServerPlayer player = world.getConnection().getServerPlayer();
             equip(player, RepairContent.WIRE_KIT);
-            UseBlockCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND,
-                    new BlockHitResult(Vec3.atCenterOf(ScenarioMaps.station(0)), Direction.NORTH, ScenarioMaps.station(0), false));
+            final var controller = OutpostScenarioController.get(server);
+            controller.action(server, "pause");
+            final int before = player.getMainHandItem().getCount();
+            final BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(ScenarioMaps.station(0)), Direction.NORTH, ScenarioMaps.station(0), false);
+            final InteractionResult denied = UseBlockCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND, hit);
+            if (denied != InteractionResult.FAIL || player.getMainHandItem().getCount() != before || controller.mission().repaired)
+                throw new AssertionError("Paused wire repair consumed a kit or cleared the fault");
+            controller.action(server, "resume");
+            UseBlockCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND, hit);
             if (!OutpostScenarioController.get(server).mission().repaired) throw new AssertionError("Night cable repair failed");
         });
         station(context, world, "long_night", 2);
         sos(context);
+        station(context, world, "long_night", 0);
+        act(context, 0, 3);
         advance(world, 150);
         success(context, world, "long_night");
         select(context, world, "greenhouse");
         station(context, world, "greenhouse", 3);
+        station(context, world, "greenhouse", 0);
+        act(context, 0, 3);
+        for (int bed = 0; bed < 3; bed++) act(context, 0, bed);
+        station(context, world, "greenhouse", 2);
+        act(context, 2, 3);
         world.getServer().runOnServer(server -> OutpostScenarioController.get(server).action(server, "start"));
         station(context, world, "greenhouse", 1);
         for (int second = 0; second < 150; second++) {
@@ -81,6 +110,13 @@ public final class OutpostScenarioChecks {
                 final boolean open = (state.get("valves").getAsInt() & 1 << bed) != 0;
                 if (moisture < 48 && !open || moisture > 62 && open) act(context, 1, bed);
             }
+            final double humidity = ScenarioClient.state().get("cabinHumidity").getAsDouble();
+            final boolean vent = ScenarioClient.state().get("extractionVent").getAsBoolean();
+            if (humidity < 55 && vent || humidity > 65 && !vent) {
+                station(context, world, "greenhouse", 2);
+                act(context, 2, 3);
+                station(context, world, "greenhouse", 1);
+            }
             advance(world, current + 1);
             context.waitFor(client -> ScenarioClient.state() != null && ScenarioClient.state().get("elapsed").getAsInt() >= current + 1);
             if (ScenarioClient.state().get("pipeBroken").getAsBoolean()) {
@@ -89,9 +125,22 @@ public final class OutpostScenarioChecks {
                 world.getServer().runOnServer(server -> {
                     final ServerPlayer player = world.getConnection().getServerPlayer();
                     equip(player, RepairContent.PATCH_PLATE.asItem());
+                    final var controller = OutpostScenarioController.get(server);
+                    final int before = player.getMainHandItem().getCount();
+                    final BlockPos wrong = OutpostScenarioController.PIPE.east(), wrongFloor = wrong.below();
+                    final var original = player.level().getBlockState(wrong);
+                    final InteractionResult rejected = UseBlockCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND,
+                            new BlockHitResult(Vec3.atCenterOf(wrongFloor).add(0, 0.5, 0), Direction.UP, wrongFloor, false));
+                    if (rejected != InteractionResult.FAIL || player.getMainHandItem().getCount() != before || player.level().getBlockState(wrong) != original)
+                        throw new AssertionError("Wrong-target placement did not preserve the finite patch plate");
                     final BlockPos floor = OutpostScenarioController.PIPE.below();
-                    UseBlockCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND,
-                            new BlockHitResult(Vec3.atCenterOf(floor).add(0, 0.5, 0), Direction.UP, floor, false));
+                    final BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(floor).add(0, 0.5, 0), Direction.UP, floor, false);
+                    controller.action(server, "pause");
+                    final InteractionResult denied = UseBlockCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND, hit);
+                    if (denied != InteractionResult.FAIL || player.getMainHandItem().getCount() != before || !player.level().getBlockState(OutpostScenarioController.PIPE).isAir())
+                        throw new AssertionError("Paused patching consumed a plate or changed the world");
+                    controller.action(server, "resume");
+                    UseBlockCallback.EVENT.invoker().interact(player, player.level(), InteractionHand.MAIN_HAND, hit);
                     if (!OutpostScenarioController.get(server).mission().repaired) throw new AssertionError("Greenhouse physical pipe patch failed");
                 });
                 station(context, world, "greenhouse", 1);

@@ -350,6 +350,7 @@ public final class MissionClientSmokeTest implements FabricClientGameTest {
                 if (rover.getDeltaMovement().horizontalDistanceSqr() > 0.0001)
                     throw new AssertionError("An unoccupied rover continued driving");
             });
+            RoverSystemsChecks.run(context, world);
             RoverVisibilityChecks.captureDriverView(context, world);
             world.getServer().runCommand("gamemode spectator @p");
             world.getServer().runCommand("execute in nimbus_nova:mars_training run tp @p 24 68 19 -55 20");

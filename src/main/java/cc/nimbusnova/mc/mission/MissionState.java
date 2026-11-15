@@ -240,6 +240,17 @@ public final class MissionState {
         return true;
     }
 
+    public boolean transferVehicleCharge() {
+        if (phase == Phase.READY) return true;
+        if (phase != Phase.ACTIVE || battery < 5) return false;
+
+        battery -= 5;
+        lowestBattery = Math.min(lowestBattery, battery);
+        decisions++;
+        lastEvent = "Rover charging used 5 shared energy units. Stored driving energy competes with habitat equipment.";
+        return true;
+    }
+
     public Snapshot snapshot() {
         return new Snapshot(phase, elapsedSeconds, battery, oxygen, oxygenOnline, researchOnline,
                 DustStormProfile.generation(storm, elapsedSeconds), 0.15 + (oxygenOnline ? 0.45 : 0) + (researchOnline ? 0.65 : 0),

@@ -2,6 +2,7 @@ package cc.nimbusnova.mc.world.scenario;
 
 import cc.nimbusnova.mc.content.ScifiBlocks;
 import cc.nimbusnova.mc.content.ShipContent;
+import cc.nimbusnova.mc.scenario.ScenarioContent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
@@ -127,7 +128,7 @@ public final class ScenarioMaps {
         }
         final Block[] stations = switch (id) {
             case "shelter" -> new Block[] { ShipContent.SCIENCE_LAB, ShipContent.MEETING_TERMINAL, ShipContent.COMMS_ARRAY };
-            case "long_night" -> new Block[] { ShipContent.ENGINE_CORE, ShipContent.GALLEY, ShipContent.COMMS_ARRAY };
+            case "long_night" -> new Block[] { ShipContent.ENGINE_CORE, ShipContent.SCIENCE_LAB, ShipContent.COMMS_ARRAY };
             default -> new Block[] { ShipContent.HYDROPONICS, ShipContent.MEDICAL_STATION, ShipContent.MEETING_TERMINAL };
         };
         for (int index = 0; index < 3; index++)
@@ -203,7 +204,7 @@ public final class ScenarioMaps {
             fill(plan, center - 1, 64, -6, center + 1, 64, -3, Blocks.FARMLAND);
             fill(plan, center - 1, 65, -6, center + 1, 65, -3, Blocks.WHEAT);
             fill(plan, center - 2, 65, -7, center + 2, 65, -7, ScifiBlocks.HYDROPONIC_TRAY);
-            fill(plan, center - 1, 70, -6, center + 1, 70, -3, ScifiBlocks.STRIP_LIGHT);
+            fill(plan, center - 1, 70, -6, center + 1, 70, -3, ScenarioContent.GROW_LIGHT);
         }
         fill(plan, -10, 64, -1, 10, 64, -1, Blocks.STAINED_GLASS.blue());
         fill(plan, -11, 65, 3, -11, 67, 7, ScifiBlocks.AIR_TANK);

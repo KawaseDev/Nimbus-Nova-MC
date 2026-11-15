@@ -6,6 +6,10 @@ public final class ScenarioMission {
     public final String id;
     public Phase phase = Phase.READY;
     public int revision, elapsed, scans, shields, signal, valves, harvest;
+    public int eventScanSeconds, labSeconds, lifeFlow, growLights, acknowledgement;
+    public final int[] lightSeconds = new int[3];
+    public boolean scanActive, observation, labArmed, extractionVent, pumpInspected;
+    public double cabinHumidity = 75;
     public int loads = 15;
     public double battery = 100, oxygen = 100, water = 100, temperature = 65, dose;
     public final double[] moisture = { 30, 55, 80 };
@@ -27,8 +31,12 @@ public final class ScenarioMission {
         if (phase != Phase.READY) return;
         if (id.equals("shelter") && (scans != 7 || shields != 7))
             throw new IllegalStateException("Survey all three bearings and install three shielding blocks first.");
+        if (!id.equals("greenhouse") && lifeFlow < 2)
+            throw new IllegalStateException("Life support must set the breathing loop to at least two model flow units before launch.");
         if (id.equals("long_night") && (loads & 3) != 3)
             throw new IllegalStateException("Keep life support and habitat heat supplied before starting.");
+        if (id.equals("greenhouse") && !pumpInspected)
+            throw new IllegalStateException("Maintenance must inspect the feed pump before launch.");
         phase = Phase.ACTIVE;
         revision++;
         feedback = "Mission running. Physical repairs and resource decisions affect the outcome.";
@@ -53,6 +61,15 @@ public final class ScenarioMission {
                 if ((scans & 1 << value) != 0) return false;
                 scans |= 1 << value;
                 feedback = "Survey recorded: exposed terrain has little mass above it; the covered shelter provides passive shielding.";
+            } else if (station == 0 && value == 3 && phase == Phase.ACTIVE && elapsed >= 45 && elapsed <= 90 && !observation) {
+                scanActive = true;
+                eventScanSeconds = 0;
+                feedback = "Live event scan started. Remain by the survey sensor for three active seconds, then return to shielding. Outside exposure accumulates.";
+            } else if (station == 1 && value >= 0 && value <= 1) {
+                final int next = lifeFlow + (value == 1 ? 1 : -1);
+                if (next < 0 || next > 3) return false;
+                lifeFlow = next;
+                feedback = "The crew needs two model flow units. Higher flow restores air faster but uses more stored power.";
             } else if (station == 2 && phase == Phase.ACTIVE && value >= 0 && value <= 1) {
                 if (signal >= 9) return false;
                 final int expected = new int[] { 0, 0, 0, 1, 1, 1, 0, 0, 0 }[signal];
@@ -63,6 +80,15 @@ public final class ScenarioMission {
             if (station == 0 && value >= 0 && value < 4) {
                 loads ^= 1 << value;
                 feedback = "Budget heat and breathing first. Laboratory and beacon loads also drain the battery.";
+            } else if (station == 1 && value == 0) {
+                if (labArmed) return false;
+                labArmed = true;
+                feedback = "Laboratory recorder armed. Full success needs 30 powered observation seconds; then shed the load to save energy.";
+            } else if (station == 1 && (value == 1 || value == 2)) {
+                final int next = lifeFlow + (value == 2 ? 1 : -1);
+                if (next < 0 || next > 3) return false;
+                lifeFlow = next;
+                feedback = "Balance the air-loop flow with the crew demand of two units. No power means no production.";
             } else if (station == 2 && phase == Phase.ACTIVE && value >= 0 && value <= 1 && (loads & 8) != 0 && !cableBroken) {
                 if (signal >= 9) return false;
                 final int expected = new int[] { 0, 0, 0, 1, 1, 1, 0, 0, 0 }[signal];
@@ -71,13 +97,24 @@ public final class ScenarioMission {
                 feedback = signal == 9 ? "Rescue beacon locked. Protect the remaining battery until sunrise." : "Beacon needs SOS. More transmitted pulses use stored energy.";
             } else return false;
         } else {
-            if (station == 1 && value >= 0 && value < 3) {
+            if (station == 0 && value >= 0 && value < 3) {
+                growLights ^= 1 << value;
+                feedback = "Power the observation lamps long enough to verify each bed. Lamps share the battery with pumps and extraction systems.";
+            } else if (station == 0 && value == 3) {
+                if (pumpInspected) return false;
+                pumpInspected = true;
+                feedback = "Feed pump inspected. Maintenance will replace a failed pipe physically; the power specialist operates observation lamps.";
+            } else if (station == 2 && value == 3) {
+                extractionVent = !extractionVent;
+                feedback = "Pilot extraction-cabin vent " + (extractionVent ? "ON: humidity falls, energy and water are used." : "OFF: preserve reserves and monitor rising humidity.");
+            } else if (station == 1 && value >= 0 && value < 3) {
                 valves ^= 1 << value;
                 feedback = "Open channels water roots but consume reserve. Excess water reduces root aeration.";
             } else if (station == 2 && value >= 0 && value < 3 && phase == Phase.ACTIVE && elapsed >= 80) {
                 if ((harvest & 1 << value) != 0) return false;
-                if (moisture[value] < 40 || moisture[value] > 70 || rootAir[value] < 60 || pipeBroken) {
-                    feedback = "Wait for this bed to reach moisture 40-70 and root air at least 60. Repair the pipe before sampling.";
+                if (moisture[value] < 40 || moisture[value] > 70 || rootAir[value] < 60 || pipeBroken
+                        || lightSeconds[value] < 10 || cabinHumidity < 40 || cabinHumidity > 70) {
+                    feedback = "Sampling needs moisture40-70, root air60+, ten lamp-observation seconds, extraction humidity40-70 and a repaired pipe.";
                     revision++;
                     return true;
                 }
@@ -89,35 +126,62 @@ public final class ScenarioMission {
         return true;
     }
 
-    public void repair() {
-        if (ended() || phase != Phase.ACTIVE || !cableBroken && !pipeBroken) return;
+    public boolean canRepair() {
+        return phase == Phase.ACTIVE && (cableBroken || pipeBroken);
+    }
+
+    public boolean repair() {
+        if (!canRepair()) return false;
         cableBroken = false;
         pipeBroken = false;
         repaired = true;
         revision++;
         feedback = "Physical repair verified. Stored resources still have to last until the end.";
+        return true;
     }
 
     public void tick(final boolean protectedCrew) {
+        tick(protectedCrew, false);
+    }
+
+    public void tick(final boolean protectedCrew, final boolean surveyCrew) {
         if (phase != Phase.ACTIVE) return;
         elapsed++;
+        if (signal == 9) acknowledgement = Math.min(5, acknowledgement + 1);
         if (id.equals("shelter")) {
+            oxygen = Math.clamp(oxygen + lifeFlow * 0.15 - 0.3 - (!protectedCrew ? 0.2 : 0), 0, 100);
+            battery = Math.max(0, battery - lifeFlow * 0.08);
+            if (scanActive) {
+                if (!surveyCrew || elapsed > 100) {
+                    scanActive = false;
+                    eventScanSeconds = 0;
+                    feedback = "Live scan interrupted. Stay beside the survey sensor for three active seconds during the event.";
+                } else if (++eventScanSeconds >= 3) {
+                    scanActive = false;
+                    observation = true;
+                    feedback = "Live event observation secured. Return to the covered shelter now; more exposed time adds dose.";
+                }
+            }
             if (elapsed >= 45 && elapsed <= 100 && (!protectedCrew || shields != 7)) dose += 3;
             if (elapsed == 25) feedback = "Particle-event warning. Finish outside work and enter the covered shelter before 00:45.";
-            if (elapsed == 45) feedback = "Particle event active. Stay under the covered shielding until 01:40.";
+            if (elapsed == 45) feedback = "Particle event active. Full success needs a short live outside scan; weigh data value against exposure, then return to shielding.";
             if (elapsed == 101) feedback = "All-clear. The passive shield reduced exposure without requiring power.";
         } else if (id.equals("long_night")) {
             if (elapsed == 45) { cableBroken = true; feedback = "Cable fault: collect a wire kit from storage and replace the failed connection at the power rack."; }
             final boolean heat = !cableBroken && (loads & 1) != 0, air = !cableBroken && (loads & 2) != 0;
             temperature = Math.clamp(temperature + (heat ? 0.15 : -1), 0, 100);
-            oxygen = Math.clamp(oxygen + (air ? 0.1 : -0.8), 0, 100);
+            oxygen = Math.clamp(oxygen + (air ? lifeFlow * 0.15 - 0.3 : -0.8), 0, 100);
+            if (labArmed && !cableBroken && (loads & 4) != 0) labSeconds = Math.min(30, labSeconds + 1);
             battery = Math.max(0, battery - (cableBroken ? 0.05 : 0.08 + (heat ? 0.12 : 0) + (air ? 0.12 : 0)
-                    + ((loads & 4) != 0 ? 0.55 : 0) + ((loads & 8) != 0 ? 0.18 : 0)));
+                    + (air ? lifeFlow * 0.01 : 0) + ((loads & 4) != 0 ? 0.55 : 0) + ((loads & 8) != 0 ? 0.18 : 0)));
         } else {
             if (elapsed == 40) { pipeBroken = true; feedback = "The feed pipe burst. Take a repair plate from storage and physically replace the missing pipe block."; }
-            battery = Math.max(0, battery - 0.12);
+            battery = Math.max(0, battery - 0.06 - Integer.bitCount(growLights) * 0.08 - (extractionVent ? 0.1 : 0));
+            cabinHumidity = Math.clamp(cabinHumidity + Integer.bitCount(valves) * 0.2 - (extractionVent ? 1 : 0), 0, 100);
+            if (extractionVent) water = Math.max(0, water - 0.08);
             if (pipeBroken) water = Math.max(0, water - 0.7);
             for (int bed = 0; bed < 3; bed++) {
+                if ((growLights & 1 << bed) != 0) lightSeconds[bed] = Math.min(10, lightSeconds[bed] + 1);
                 final boolean watering = !pipeBroken && (valves & 1 << bed) != 0;
                 moisture[bed] = Math.clamp(moisture[bed] + (watering ? 3 : -1), 0, 100);
                 rootAir[bed] = Math.clamp(rootAir[bed] + (moisture[bed] > 80 ? -1.2 : 0.5), 0, 100);
@@ -128,14 +192,14 @@ public final class ScenarioMission {
             phase = Phase.FAILED;
             feedback = dose >= 100 ? "Exposure limit reached. Compare the crew's timing and shield placement." : "An essential reserve reached zero. Review loads, repairs and resource choices.";
         } else if (elapsed >= 150) {
-            final boolean objective = id.equals("shelter") ? shields == 7 && signal == 9
-                    : id.equals("long_night") ? repaired && signal == 9 : repaired && harvest == 7;
+            final boolean objective = id.equals("shelter") ? shields == 7 && signal == 9 && acknowledgement == 5 && observation && oxygen >= 80
+                    : id.equals("long_night") ? repaired && signal == 9 && acknowledgement == 5 && labSeconds >= 30 : repaired && harvest == 7;
             phase = objective ? Phase.SUCCESS : Phase.PARTIAL;
             feedback = (objective ? "Mission complete. " : "Crew survived; objective incomplete. ") + switch (id) {
                 case "shelter" -> "Exposure " + Math.round(dose) + "/100; shield modules " + Integer.bitCount(shields)
-                        + "/3; beacon " + signal + "/9. Mass shielding preserved the crew without drawing power.";
+                        + "/3; beacon " + signal + "/9; live observation " + observation + ". Data gathering cost exposed time.";
                 case "long_night" -> "Battery " + Math.round(battery) + "/100; heat " + Math.round(temperature)
-                        + "; oxygen " + Math.round(oxygen) + ". Cable repaired: " + repaired + "; beacon " + signal + "/9.";
+                        + "; oxygen " + Math.round(oxygen) + ". Lab " + labSeconds + "/30s; cable repaired " + repaired + "; beacon " + signal + "/9.";
                 default -> "Healthy bed records " + Integer.bitCount(harvest) + "/3; water " + Math.round(water)
                         + "/100; pipe repaired: " + repaired + ". Compare irrigation, root air and remaining reserve.";
             };
@@ -150,9 +214,9 @@ public final class ScenarioMission {
         if (ended()) return feedback;
         return switch (id) {
             case "shelter" -> phase == Phase.READY ? "Survey three bearings, collect shielding blocks and fill the three marked shield slots."
-                    : elapsed < 45 ? "Transmit SOS and move the crew inside the covered shelter." : elapsed <= 100 ? "Remain in the protected shelter." : "Verify SOS before rescue.";
+                    : elapsed < 45 ? "Transmit SOS and move the crew inside the covered shelter." : elapsed <= 100 ? observation ? "Live data secured: remain protected until the all-clear." : "Power specialist: make a three-second live outside scan, then return. Staying safe without data earns partial success." : "Verify SOS before rescue.";
             case "long_night" -> cableBroken ? "Repair the physical power junction with a wire kit from storage."
-                    : "Keep heat and life support supplied, shed optional loads and transmit the rescue beacon.";
+                    : "Keep heat/air supplied, record 30 powered lab seconds, then shed lab load. Verify SOS and save return reserves.";
             default -> pipeBroken ? "Replace the missing feed-pipe block using a plate from storage."
                     : elapsed < 80 ? "Balance irrigation and root aeration while preserving water." : "Collect healthy observations from all three beds (moisture40-70, rootair60+).";
         };
