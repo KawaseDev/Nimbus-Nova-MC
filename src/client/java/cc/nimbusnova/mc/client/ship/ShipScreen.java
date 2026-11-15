@@ -2,6 +2,7 @@ package cc.nimbusnova.mc.client.ship;
 
 import cc.nimbusnova.mc.client.MissionButton;
 import cc.nimbusnova.mc.client.render.NovaRenderer;
+import cc.nimbusnova.mc.client.ship.rooms.RoomClient;
 import cc.nimbusnova.mc.client.render.NovaScreen;
 import cc.nimbusnova.mc.moon.MoonMission;
 import cc.nimbusnova.mc.world.moon.LunarSurface;
@@ -106,6 +107,9 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
         addRenderableWidget(new MissionButton(left + panelWidth - 70, top + panelHeight - 29, 56, 20, "Close", this::onClose));
         addRenderableWidget(new MissionButton(left + 14, top + panelHeight - 29, 68, 20,
                 tablet ? "Station" : "Mission", () -> { tablet = !tablet; rebuildWidgets(); })).active = !state.task().isEmpty();
+        if (state.incident().isEmpty())
+            addRenderableWidget(new MissionButton(left + (tablet ? 180 : 88), top + panelHeight - 29, 110, 20,
+                    "Room control", RoomClient::open));
         if (!state.incident().isEmpty()) {
             final MoonMission.Incident incident = MoonMission.Incident.valueOf(state.incident());
             addRenderableWidget(new MissionButton(left + 88, top + panelHeight - 29, 81, 20, "NASA source",

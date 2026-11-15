@@ -50,5 +50,7 @@
   "block.nimbus_nova.ship_comms_array": "Communications Array",
   "block.nimbus_nova.ship_hydroponics": "Hydroponic Module",
   "block.nimbus_nova.ship_punching_bag": "Crew Exercise Station",
-  "block.nimbus_nova.ship_storage_locker": "Cargo Storage"
+  "block.nimbus_nova.ship_storage_locker": "Cargo Storage",
+  "block.nimbus_nova.repair_patch_plate": "Hull Repair Plate",
+  "item.nimbus_nova.repair_wire_kit": "Replacement Wire Kit"
 }

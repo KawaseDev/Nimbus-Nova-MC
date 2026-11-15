@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:block/cube_all",
   "textures": {
-    "all": "nimbus_nova:block/scifi_floor_tile"
+    "all": "minecraft:block/smooth_stone"
   }
 }

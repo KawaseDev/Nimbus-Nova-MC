@@ -1,9 +1,11 @@
 package cc.nimbusnova.mc.content.scifi;
 
 import cc.nimbusnova.mc.world.EntranceAirlock;
+import cc.nimbusnova.mc.ship.rooms.ShipRooms;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -39,7 +41,8 @@ public final class AirlockDoorBlock extends DoorBlock {
     protected void tick(final BlockState state, final ServerLevel level, final BlockPos position, final RandomSource random) {
         if (state.getValue(HALF) != DoubleBlockHalf.LOWER) return;
 
-        final Boolean chamber = EntranceAirlock.openingOverride(level, position);
+        final Boolean room = ShipRooms.doorOverride(level, position);
+        final Boolean chamber = room != null ? room : EntranceAirlock.openingOverride(level, position);
         final boolean nearby = chamber != null ? chamber : !level.getEntitiesOfClass(Player.class,
                 new AABB(position).inflate(2.5, 1, 2.5), player -> player.isAlive() && !player.isSpectator()).isEmpty();
         if (nearby != state.getValue(OPEN)) {
@@ -78,6 +81,8 @@ public final class AirlockDoorBlock extends DoorBlock {
     @Override
     protected InteractionResult useWithoutItem(final BlockState state, final Level level, final BlockPos position,
                                                final Player player, final BlockHitResult hit) {
+        if (player instanceof ServerPlayer serverPlayer)
+            ShipRooms.interactDoor(serverPlayer, position);
         return InteractionResult.SUCCESS;
     }
 }

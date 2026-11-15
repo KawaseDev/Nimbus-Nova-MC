@@ -184,6 +184,21 @@ The active return window is six minutes; preparation and teacher/incident pauses
 | Chest | Cargo locker: mass/balance packing of spares, kits and science |
 | Lime wool | Substantial proximity portal frames and visible locked blue fields |
 
+### Compartment emergencies and physical repairs
+
+The ship now has ten authored compartments with local pressure, power, isolation and door modes. Existing schematic walls/doors remain, and hydroponics/recreation gain a guarded partition. Ordinary hull/floor blocks use vanilla materials; utility equipment keeps its custom models and textures. Existing imported hull materials are restored when selecting the ship, while unrelated player blocks are preserved.
+
+Open **Room control** on the crew tablet/intercom, or use `/ship rooms`. AUTO uses proximity; OPEN and CLOSE set room door modes. Low-pressure isolation overrides ordinary opening. A right-click emergency crank provides five seconds of escape/access through a quarantined or unpowered gate. Door links stay on their own deck. Pressure values are authored room indices, not a seal-detection or gas-flow simulation.
+
+The rescue now introduces two physical incidents:
+
+- **Engineering power fault:** room equipment stops. A power/maintenance specialist collects a wire kit from storage and right-clicks the marked engine junction at `-8 82 -38`. One real kit is consumed and local power returns. Emergency/navigation illumination remains available.
+- **Science hull impact:** a real hull cell at `11 77 -12` becomes a hole. Pressure falls, nearby doors isolate the room and unsuited occupants face exposure at low pressure. A maintenance/life-support specialist takes a repair plate and places it into that exact hole using a neighboring block face. One plate is consumed. The leak stops, and pressure recovers before the interlock releases.
+
+**Sneak-right-click the storage locker** to issue the crew's one shared pool of four patch plates and two wire kits; carry/drop/share the actual items with specialists. Operators may test every role. Return completion is blocked while room emergencies remain unresolved. Reset/end restores only the scenario's owned hull cell and clears repair supplies. A saved ownership marker also recovers an interrupted breach after restart without overwriting an unknown player block; mission progress itself is still transient.
+
+Operators can schedule the basic drills with `/ship fault ENGINEERING POWER` and `/ship fault SCIENCE BREACH`, or use the dashboard's drill buttons. The fault sites are deliberately authored for this first version; arbitrary-room impact placement is not implemented. Changed hull/approach cells refuse the breach instead of erasing builds. Inspect the control alert if a custom map blocks a scenario.
+
 ### Hands-on secondary activities and hold controls
 
 The optional stations now require work before applying their finite resource effect:

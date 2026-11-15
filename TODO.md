@@ -236,3 +236,17 @@ The rendering fix applies to existing hull blocks after resource reload; no map 
 - [x] Inspect the new activity/charge screenshots, update the guide and push the batch.
 
 Java 25 `build runClientGameTest` passed. Native checks completed all five secondary activities, paced physical bag hits, primary rescue tasks and a successful return; captures include the cargo control at 50% charge. The interactive client was closed and its save completed as requested; the disposable test client also exited. Multiplayer/classroom testing remains open.
+
+## Compartment emergency gameplay
+
+- [x] Define ten authored room zones with pressure, power, isolation and AUTO/OPEN/CLOSED controls.
+- [x] Add a guarded hydroponics/recreation partition and room-aware door interlocks/emergency cranks.
+- [x] Restore ordinary structural materials and retain custom utility equipment.
+- [x] Add control-room/tablet alerts and local pressure/power feedback.
+- [x] Integrate engineering power loss and science hull impact into the rescue sequence.
+- [x] Issue finite physical repair stores; consume a wire kit or placed hull plate for a validated repair.
+- [x] Block return completion until faults/unsafe pressure are resolved; freeze hazards during pauses.
+- [x] Preserve unknown builds and recover the scenario's owned breach after interruption.
+- [x] Test door modes, real item repairs, pressure recovery and full rescue in the native client; preserve teammate exploration changes.
+
+Native door and repair checks passed, followed by rescue success and the merged exploration prototype checks. The dashboard/repair captures were inspected. Room pressure is authored, not fluid simulation; real multiplayer/classroom testing remains open.

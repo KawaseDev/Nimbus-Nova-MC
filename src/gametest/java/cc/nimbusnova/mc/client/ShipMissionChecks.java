@@ -2,6 +2,8 @@ package cc.nimbusnova.mc.client;
 
 import cc.nimbusnova.mc.client.ship.ShipClient;
 import cc.nimbusnova.mc.content.ModContent;
+import cc.nimbusnova.mc.content.RepairContent;
+import cc.nimbusnova.mc.ship.rooms.ShipRooms;
 import cc.nimbusnova.mc.client.ship.ShipScreen;
 import cc.nimbusnova.mc.ship.ShipController;
 import cc.nimbusnova.mc.ship.ShipMission;
@@ -113,6 +115,8 @@ final class ShipMissionChecks {
             action(context, operation);
         GuidedMissionChecks.capture(context, "ship-specimen-classification");
         action(context, 9);
+        RoomEmergencyChecks.collect(context, world);
+        RoomEmergencyChecks.doors(context, world);
         world.getServer().runCommand("ship start");
         resume(context, world);
         align(context, world, ShipTask.PILOT);
@@ -120,12 +124,14 @@ final class ShipMissionChecks {
         align(context, world, ShipTask.PILOT);
         align(context, world, ShipTask.COMMS);
         resume(context, world);
+        RoomEmergencyChecks.repairPower(context, world);
         open(context, world, ShipTask.ENGINE);
         GuidedMissionChecks.capture(context, "ship-emergency-loads");
         action(context, 1);
         action(context, 2);
         action(context, 3);
         resume(context, world);
+        RoomEmergencyChecks.patchHull(context, world);
         open(context, world, ShipTask.MEDICAL);
         for (final int component : new int[] { 2, 0, 3, 1 })
             action(context, component);
@@ -152,6 +158,13 @@ final class ShipMissionChecks {
                 world.getConnection().getServerPlayer(), InteractionHand.MAIN_HAND));
         context.waitForScreen(ShipScreen.class);
         GuidedMissionChecks.capture(context, "ship-success-report");
+        world.getServer().runOnServer(server -> {
+            ShipRooms.recoverOwnedBreach(server);
+            final var level = world.getConnection().getServerLevel();
+            if (level.getBlockState(ShipRooms.breachPosition()).isAir()
+                    || level.getBlockState(ShipRooms.breachPosition()).is(RepairContent.PATCH_PLATE))
+                throw new AssertionError("Owned breach recovery did not restore the original hull");
+        });
         world.getServer().runCommand("ship end");
         context.waitFor(client -> client.level != null && !client.level.dimension().equals(ShipMap.DIMENSION));
         exploration(context, world);

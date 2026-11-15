@@ -1,5 +1,6 @@
 package cc.nimbusnova.mc.ship;
 
+import cc.nimbusnova.mc.ship.rooms.ShipRooms;
 import cc.nimbusnova.mc.mission.MissionController;
 import cc.nimbusnova.mc.mission.MissionState;
 import cc.nimbusnova.mc.moon.MoonController;
@@ -10,6 +11,7 @@ import cc.nimbusnova.mc.world.moon.LunarSurface;
 import cc.nimbusnova.mc.content.ModContent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -57,6 +59,7 @@ public final class ShipController {
     private final Set<UUID> issuedSuits = new HashSet<>();
     private ShipMission mission;
     private int ticks;
+    private boolean roomPowerEvent, roomBreachEvent;
 
     public static ShipController get(final MinecraftServer server) {
         return SESSIONS.computeIfAbsent(server, _ -> new ShipController());
@@ -64,6 +67,10 @@ public final class ShipController {
 
     public ShipMission mission() {
         return mission;
+    }
+
+    public MoonMission.Role role(final ServerPlayer player) {
+        return roles.get(player.getUUID());
     }
 
     public boolean selected() {
@@ -103,13 +110,16 @@ public final class ShipController {
             if (server.getPlayerList().getPlayerCount() == 0 && controller.mission.snapshot().phase() == ShipMission.Phase.ACTIVE)
                 controller.mission.pause();
             controller.mission.tickSecond();
+            ShipRooms.tick(server, controller.mission.snapshot().phase() != ShipMission.Phase.ACTIVE);
             final var level = server.getLevel(ShipMap.DIMENSION);
             if (level != null && controller.mission.snapshot().phase() == ShipMission.Phase.ACTIVE) {
                 final var stage = controller.mission.snapshot().stage();
                 for (final ShipMap.Marker marker : ShipMap.MARKERS) {
                     final var block = level.getBlockState(marker.position());
                     if (marker.task() == ShipTask.EXERCISE) continue;
-                    final boolean active = controller.mission.activeTask(marker.task()) || controller.mission.completed(marker.task());
+                    final var room = ShipRooms.roomAt(marker.position());
+                    final boolean powered = room == null || ShipRooms.state(server).powered(room);
+                    final boolean active = powered && (controller.mission.activeTask(marker.task()) || controller.mission.completed(marker.task()));
                     if (block.is(ShipMap.block(marker.task())) && block.getValue(BlockStateProperties.POWERED) != active)
                         level.setBlock(marker.position(), block.setValue(BlockStateProperties.POWERED, active), Block.UPDATE_CLIENTS);
                     if (marker.task() != ShipTask.ENGINE) continue;
@@ -189,6 +199,17 @@ public final class ShipController {
                     }
                 }));
             }
+            command.then(Commands.literal("rooms").executes(context -> {
+                ShipRooms.send(context.getSource().getPlayerOrException(), true);
+                return 1;
+            }));
+            command.then(Commands.literal("fault").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                    .then(Commands.argument("room", StringArgumentType.word()).then(Commands.argument("fault", StringArgumentType.word())
+                            .executes(context -> {
+                                if (!get(context.getSource().getServer()).selected()) return 0;
+                                ShipRooms.trigger(context.getSource().getServer(), StringArgumentType.getString(context, "room"), StringArgumentType.getString(context, "fault"));
+                                return 1;
+                            }))));
             dispatcher.register(command);
         });
     }
@@ -205,6 +226,9 @@ public final class ShipController {
             } catch (final IOException error) {
                 throw new IllegalStateException(error.getMessage(), error);
             }
+            ShipRooms.clear(server);
+            roomPowerEvent = false;
+            roomBreachEvent = false;
             mission = new ShipMission(action.equals("ship_explore") ? MoonMission.Variant.EXPLORATION : MoonMission.Variant.RESCUE);
             roles.clear();
             opened.clear();
@@ -219,12 +243,16 @@ public final class ShipController {
                 case "ship_resume" -> mission.resume();
                 case "ship_abort" -> mission.abort();
                 case "ship_reset" -> {
+                    ShipRooms.clear(server);
+                    roomPowerEvent = false;
+                    roomBreachEvent = false;
                     mission = new ShipMission(mission.underlying().variant());
                     roles.clear();
                     opened.clear();
                     issuedSuits.clear();
                 }
                 case "ship_end" -> {
+                    ShipRooms.clear(server);
                     for (final ServerPlayer player : server.getPlayerList().getPlayers()) {
                         if (player.level().dimension().equals(ShipMap.DIMENSION) || player.level().dimension().equals(LunarSurface.DIMENSION)) leave(player);
                     }
@@ -410,7 +438,11 @@ public final class ShipController {
                 && task.role != null && roles.get(player.getUUID()) != task.role)
             throw new IllegalStateException("Ask the " + task.role.name().replace('_', ' ').toLowerCase() + " specialist to use this system.");
 
+        if (ShipRooms.blockedStation(player, packet.position()))
+            throw new IllegalStateException("Room equipment is offline or pressure is unsafe. Check Room control for the repair location.");
         final var state = mission.snapshot();
+        if (task == ShipTask.PILOT && state.stage() == MoonMission.Stage.RETURN && packet.value() == 1 && ShipRooms.hasUnresolved(player.level().getServer()))
+            throw new IllegalStateException("Resolve the room alerts before committing the return burn.");
         if (task == ShipTask.PILOT && state.stage() == MoonMission.Stage.SURFACE && packet.value() == 5
                 && player.level().getServer().getPlayerList().getPlayers().stream().anyMatch(crew -> crew.level().dimension().equals(LunarSurface.DIMENSION)))
             throw new IllegalStateException("All crew must return from the lunar surface before ascent.");
@@ -450,7 +482,26 @@ public final class ShipController {
         player.level().setBlock(packet.position(), block.setValue(BlockStateProperties.POWERED, true), Block.UPDATE_CLIENTS);
     }
 
+    private static void triggerRoomFault(final MinecraftServer server, final String room, final String fault) {
+        try {
+            ShipRooms.trigger(server, room, fault);
+        } catch (final IllegalStateException error) {
+            for (final ServerPlayer player : server.getPlayerList().getPlayers())
+                player.sendSystemMessage(Component.literal("Room scenario could not start: " + error.getMessage()));
+        }
+    }
+
     private void broadcast(final MinecraftServer server, final boolean open) {
+        if (mission != null) {
+            if (mission.snapshot().stage() == MoonMission.Stage.EMERGENCY && !roomPowerEvent) {
+                roomPowerEvent = true;
+                triggerRoomFault(server, "ENGINEERING", "POWER");
+            }
+            if (mission.snapshot().stage() == MoonMission.Stage.FILTER && !roomBreachEvent) {
+                roomBreachEvent = true;
+                triggerRoomFault(server, "SCIENCE", "BREACH");
+            }
+        }
         for (final ServerPlayer player : server.getPlayerList().getPlayers()) send(player, open);
     }
 

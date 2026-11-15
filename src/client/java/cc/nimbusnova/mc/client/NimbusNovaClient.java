@@ -10,6 +10,7 @@ import cc.nimbusnova.mc.client.npc.MissionNpcClient;
 import cc.nimbusnova.mc.client.effect.DustStormEffects;
 import cc.nimbusnova.mc.client.guidance.HologramGuidance;
 import cc.nimbusnova.mc.client.ship.ShipClient;
+import cc.nimbusnova.mc.client.ship.rooms.RoomClient;
 import cc.nimbusnova.mc.world.ship.ShipMap;
 import cc.nimbusnova.mc.world.moon.LunarSurface;
 import cc.nimbusnova.mc.client.airlock.EntranceAirlockClient;
@@ -47,6 +48,7 @@ public final class NimbusNovaClient implements ClientModInitializer {
         NovaRenderer.initialize();
         GuidedMissionClient.register();
         ShipClient.register();
+        RoomClient.register();
         HologramGuidance.register();
         EntranceAirlockClient.register();
         SuitLifeSupportClient.register();
