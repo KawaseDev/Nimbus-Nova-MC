@@ -10,7 +10,7 @@ public final class ShipHoldActions {
     public static boolean requires(final ShipTask task, final MoonMission.Stage stage, final int action) {
         return switch (task) {
             case ENGINE -> stage == MoonMission.Stage.EMERGENCY && action == 3;
-            case PILOT -> stage == MoonMission.Stage.DOCKING && action == 5;
+            case PILOT -> stage == MoonMission.Stage.DOCKING && action == 5 || stage == MoonMission.Stage.DESCENT && action == 6;
             case COMMS -> action == 4;
             case MEDICAL -> action == (stage == MoonMission.Stage.FILTER ? 5 : 6);
             case GALLEY -> action == (stage == MoonMission.Stage.RESTART ? 3 : 6);

@@ -183,12 +183,13 @@ public final class ShipScreen extends NovaScreen implements ShipPalette {
             taskButton(left + 14, top + 145, bodyWidth, "Commit capture burn", 3);
         } else if (state.task().equals("PILOT") && state.stage().equals("DESCENT")) {
             final int w = (bodyWidth - 10) / 3;
-            taskButton(left + 14, top + 103, w, "Check guidance", 0);
-            taskButton(left + 19 + w, top + 103, w, "Primary site", 5);
-            taskButton(left + 24 + 2 * w, top + 103, w, "Alternate site", 1);
-            taskButton(left + 14, top + 130, w, "Brake lateral", 2);
-            taskButton(left + 19 + w, top + 130, w, "Brake vertical", 3);
-            taskButton(left + 24 + 2 * w, top + 130, w, "Confirm contact", 4);
+            taskButton(left + 14, top + 96, w, "Check guidance", 0);
+            taskButton(left + 19 + w, top + 96, w, "Primary site", 5);
+            taskButton(left + 24 + 2 * w, top + 96, w, "Alternate site", 1);
+            taskButton(left + 14, top + 122, w, "Brake lateral", 2);
+            taskButton(left + 19 + w, top + 122, w, "Brake vertical", 3);
+            taskButton(left + 24 + 2 * w, top + 122, w, "Confirm contact", 4);
+            taskButton(left + 14, top + 148, bodyWidth, "Hold to cancel landing", 6);
         } else if (state.task().equals("PILOT") && state.stage().equals("SURFACE")) {
             taskButton(left + 14, top + 145, (bodyWidth - 5) / 2, "Launch lander", 5);
             taskButton(left + 19 + (bodyWidth - 5) / 2, top + 145, (bodyWidth - 5) / 2, "Confirm rendezvous", 6);

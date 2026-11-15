@@ -31,7 +31,7 @@ public final class ShipMission {
     private int loadMask = 7, parts = 6;
     private int orbitProfile;
     private double battery = 100, oxygen = 100, water = 100, fuel = 100, co2 = 12, readiness = 70;
-    private boolean cargoSelected, extraInstrument, filterOnline, heaterCommitted, filterTesting, burnRunning;
+    private boolean cargoSelected, extraInstrument, filterOnline, heaterCommitted, filterTesting, burnRunning, descentAborted;
     private String feedback = "Assemble the rated power cartridges and choose cargo before Mission Control starts the clock.";
 
     public ShipMission() { this(MoonMission.Variant.RESCUE); }
@@ -201,7 +201,20 @@ public final class ShipMission {
     }
 
     private boolean lunarDescent(final int action) {
-        if (landing == null || action < 0 || action > 5) return false;
+        if (landing == null || action < 0 || action > 6) return false;
+        if (action == 6) {
+            if (fuel < 15) { feedback = "Abort needs five fuel units while preserving ten for the return."; return true; }
+            landing.abort();
+            moon.abortDescent();
+            fuel -= 5;
+            stageComplete = 0;
+            pilotBoard = 0;
+            commsBoard = 0;
+            descentAborted = true;
+            record("Canceled lunar descent and preserved fuel for the return.");
+            feedback = instruction();
+            return true;
+        }
         if (action == 0) {
             if (!completed(ShipTask.COMMS)) {
                 feedback = "Maintenance must verify the radar link before the pilot can validate guidance.";
@@ -577,7 +590,7 @@ public final class ShipMission {
             engineBoard = 0;
         if (moon.stage() == MoonMission.Stage.COMPLETE) {
             phase = battery >= 20 && oxygen >= 25 && fuel >= 25 && readiness >= 60 ? Phase.SUCCESS : Phase.PARTIAL;
-            feedback = phase == Phase.SUCCESS ? "Crew recovered inside the approved return corridor with essential reserves intact."
+            feedback = phase == Phase.SUCCESS ? (descentAborted ? "Landing canceled safely; crew recovered with essential reserves intact." : "Crew recovered inside the approved return corridor with essential reserves intact.")
                     : "Crew recovered, but reserve or readiness targets were missed. Compare the crew's resource choices.";
             return;
         }
