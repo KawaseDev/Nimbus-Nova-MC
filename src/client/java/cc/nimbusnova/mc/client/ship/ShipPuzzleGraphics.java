@@ -95,6 +95,8 @@ final class ShipPuzzleGraphics implements ShipPalette {
 
         final float markerX = x + margin + chartWidth * Math.clamp(units / 10F, 0, 1);
         line(graphics, markerX, y + 7, markerX, y + height - 17, 2, units >= 6 && units <= 8 ? SUCCESS : WARNING);
+        final int entry = state.board() >> 9 & 3;
+        NovaRenderer.text(graphics, "ENTRY: " + new String[] { "NOT SELECTED", "SHALLOW", "PLANNED", "STEEP" }[entry], x + 10, y + 7, 7, MUTED);
         NovaRenderer.text(graphics, "RETURN CORRIDOR", x + width * 0.46F, y + 7, 7, SUCCESS);
     }
 
