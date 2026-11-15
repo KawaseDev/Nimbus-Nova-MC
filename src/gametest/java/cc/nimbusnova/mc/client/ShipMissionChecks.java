@@ -324,6 +324,7 @@ final class ShipMissionChecks {
             GuidedMissionChecks.capture(context, "ship-constellation-fix");
             action(context, 6);
         } else {
+            action(context, 3);
             action(context, 0);
             context.waitFor(client -> client.gui.screen() instanceof ShipScreen screen && (screen.state().board() & 255) >= 6);
             GuidedMissionChecks.capture(context, "ship-return-burn-window");

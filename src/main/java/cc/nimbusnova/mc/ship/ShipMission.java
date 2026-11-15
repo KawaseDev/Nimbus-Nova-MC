@@ -29,7 +29,7 @@ public final class ShipMission {
     private int dockingX = 1, dockingY = 1;
     private int dockingVelocityX, dockingVelocityY, burnUnits;
     private int loadMask = 7, parts = 6;
-    private int orbitProfile;
+    private int orbitProfile, entryProfile = -1;
     private double battery = 100, oxygen = 100, water = 100, fuel = 100, co2 = 12, readiness = 70;
     private boolean cargoSelected, extraInstrument, filterOnline, heaterCommitted, filterTesting, burnRunning, descentAborted;
     private String feedback = "Assemble the rated power cartridges and choose cargo before Mission Control starts the clock.";
@@ -364,8 +364,20 @@ public final class ShipMission {
     }
 
     private boolean returnBurn(final int action) {
-        if (action < 0 || action > 1) return false;
+        if (action < 0 || action > 4) return false;
+        if (action >= 2) {
+            if (burnRunning) return false;
+            if (action == 3 && entryProfile != 1) record("Selected the planned Earth-entry prediction.");
+            entryProfile = action - 2;
+            feedback = switch (entryProfile) {
+                case 0 -> "Shallow entry prediction: the capsule may miss its target or spend longer in the atmosphere.";
+                case 1 -> "Planned entry prediction: the simulated capsule reaches the recovery area within its limits.";
+                default -> "Steep entry prediction: the capsule may exceed heating and deceleration limits.";
+            };
+            return true;
+        }
         if (action == 0) {
+            if (entryProfile != 1) { feedback = "Select the planned Earth-entry prediction before igniting the return engine."; return true; }
             if (burnRunning || fuel < 1) return false;
             burnUnits = 0;
             burnRunning = true;
@@ -692,7 +704,7 @@ public final class ShipMission {
                 case DESCENT -> landing == null ? 0 : landing.verticalSpeed() | landing.lateralSpeed() << 4
                         | (landing.guidanceChecked() ? 1 << 8 : 0) | (landing.siteSelected() ? 1 << 9 : 0);
                 case SURFACE -> landing != null && landing.phase() == LunarLanding.Phase.RENDEZVOUS ? 1 : 0;
-                case RETURN -> burnUnits | (burnRunning ? 1 << 8 : 0);
+                case RETURN -> burnUnits | (burnRunning ? 1 << 8 : 0) | (entryProfile + 1) << 9;
                 default -> pilotBoard;
             };
             case COMMS -> commsBoard;
@@ -757,7 +769,7 @@ public final class ShipMission {
             case EMERGENCY -> "Power engineer: isolate science and comfort heating while keeping life support on.";
             case FILTER -> "Life-support engineer: assemble the CO2 adapter in order, pressure-test the seal and start filtered airflow.";
             case RESTART -> "Power engineer: fit cartridges to the new restart loads. Supplies: allocate heat to navigation and the air loop.";
-            case RETURN -> "Pilot: ignite and cut off the return burn inside the predicted corridor. Communications: establish the recovery link.";
+            case RETURN -> "Pilot: compare Earth-entry predictions, then execute the return burn. Communications: establish the recovery link.";
             case COMPLETE -> feedback;
             default -> throw new IllegalStateException("Unexpected rescue stage " + moon.stage());
         };
