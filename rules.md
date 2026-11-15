@@ -50,4 +50,4 @@ The brief encourages NASA open data. Suggestions include [DONKI](https://ccmc.gs
 - [ ] Publish accessible source/final-project and compliant demo links; verify signed-out access.
 - [ ] Review minors' privacy, complete English fields, and submit before the applicable deadline.
 
-The repository now includes playable mission systems, NASA-linked dust/incident evidence, cooperative controls and explicit authored-model limits. Registration, organizer eligibility confirmation, judged public links, formal release and submission have not been verified. Software implementation and test results do not establish classroom learning effectiveness.
+The repository includes playable mission systems, NASA-linked evidence, cooperative controls, and published build files. Registration, organizer eligibility confirmation, and formal submission remain the team's responsibility. Classroom learning outcomes still need observation. [GitHub releases](https://github.com/KawaseDev/Nimbus-Nova-MC/releases)
